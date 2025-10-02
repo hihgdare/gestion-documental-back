@@ -1,0 +1,83 @@
+{
+  "name": "gestion-documental-back",
+  "version": "1.0.0",
+  "description": "Backend API for Document Management System using DDD + Clean Architecture",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "bun run tsc",
+    "start": "bun run dist/index.js",
+    "dev": "bun run --hot src/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "lint": "bun run eslint src/**/*.ts",
+    "lint:fix": "bun run eslint src/**/*.ts --fix",
+    "migration:generate": "bun run typeorm migration:generate -d src/shared/infrastructure/database/typeorm.config.ts",
+    "migration:run": "bun run typeorm migration:run -d src/shared/infrastructure/database/typeorm.config.ts",
+    "migration:revert": "bun run typeorm migration:revert -d src/shared/infrastructure/database/typeorm.config.ts",
+    "install:bun": "bun install",
+    "clean": "rm -rf node_modules bun.lockb dist"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "typescript",
+    "ddd",
+    "clean-architecture",
+    "sqlserver",
+    "api"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "typeorm": "^0.3.17",
+    "mssql": "^10.0.1",
+    "reflect-metadata": "^0.1.13",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "joi": "^17.11.0",
+    "axios": "^1.6.2",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "express-async-errors": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.4",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
+    "@types/compression": "^1.7.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/uuid": "^9.0.7",
+    "@types/jest": "^29.5.8",
+    "@types/supertest": "^2.0.16",
+    "typescript": "^5.3.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "supertest": "^6.3.3",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  },
+  "trustedDependencies": [
+    "@types/node",
+    "typescript"
+  ]
+}
