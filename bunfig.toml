@@ -1,0 +1,22 @@
+# Bun Configuration
+[bun]
+install.cache = true
+install.production = false
+
+# TypeScript configuration for Bun
+[bun.test]
+preload = ["./test-setup.ts"]
+
+# Development configuration
+[bun.dev]
+hot = true
+watch = ["src/**/*"]
+
+# Lockfile settings
+[install]
+lockfile = true
+exact = true
+
+# Registry configuration
+[install.scopes]
+"@types" = "https://registry.npmjs.org/"
