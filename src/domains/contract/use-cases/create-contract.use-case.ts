@@ -1,26 +1,38 @@
 import { ContractRepository } from '../repositories/contract.repository';
 import { Contract, ContractProps } from '../entities/contract.entity';
-import { ContractType } from '../value-objects/contract-enums';
+import { ContractType, JornadaTrabajo } from '../value-objects/contract-enums';
+import { ConflictError } from '@shared/domain/errors';
 
 export interface CreateContractRequest {
-  employeeId: string;
-  title: string;
-  description?: string;
-  type: ContractType;
-  salary: {
-    amount: number;
-    currency?: string;
-  };
+  rutSociedad: string;
+  nombreColaborador: string;
   startDate: Date;
   endDate?: Date;
-  departmentId: string;
-  managerId: string;
+  contractType: ContractType;
+  administradorContratoMandante: string;
+  administradorContratoEmpresa: string;
+  rutAdministradorContrato: string;
+  contractNumber: string;
+  nombreMandante: string;
+  division?: string;
+  area?: string;
+  dotacionPersonal?: number;
+  dotacionVehiculos?: number;
+  descripcionServicio?: string;
+  nombreProyecto?: string;
+  jornadaTrabajo: JornadaTrabajo;
 }
 
 export class CreateContractUseCase {
   constructor(private readonly contractRepository: ContractRepository) {}
 
   public async execute(request: CreateContractRequest): Promise<Contract> {
+    // Check if contract number already exists
+    const existingContract = await this.contractRepository.findByContractNumber(request.contractNumber);
+    if (existingContract) {
+      throw new ConflictError('Contract with this number already exists');
+    }
+
     const contractProps: ContractProps = {
       ...request,
       startDate: new Date(request.startDate),

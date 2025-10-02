@@ -26,19 +26,27 @@ export class UserEntity {
   password!: string;
 
   @Column({
-    type: 'varchar',
-    length: 20,
-    default: 'active',
+    type: 'enum',
     enum: ['active', 'inactive', 'suspended', 'pending'],
+    default: 'active',
   })
   status!: string;
 
-  @Column({ type: 'uuid', name: 'role_id' })
+  @Column({ type: 'varchar', length: 36, name: 'role_id' })
   roleId!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ 
+    name: 'created_at',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ 
+    name: 'updated_at',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
   updatedAt!: Date;
 }

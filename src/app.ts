@@ -5,24 +5,44 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import 'express-async-errors';
-import { createUserRoutes } from './presentation/routes/user.routes';
-import { createContractRoutes } from './presentation/routes/contract.routes';
-import { errorHandler } from './shared/middleware/error-handler';
-import { initializeDatabase } from './shared/infrastructure/database/typeorm.config';
+
+import { errorHandler } from '@shared/middleware/error-handler';
+import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
+import { createUserRoutes } from '@presentation/routes/user.routes';
+import { createContractRoutes } from '@presentation/routes/contract.routes';
+import { DependencyContainer } from './dependency-container';
 
 export class App {
   private app: Application;
+  private dependencyContainer: DependencyContainer;
 
   constructor() {
     this.app = express();
-    this.initializeMiddlewares();
-    this.initializeRoutes();
-    this.initializeErrorHandling();
+    this.dependencyContainer = new DependencyContainer();
   }
 
-  private initializeMiddlewares(): void {
-    // Security middlewares
+  public async initialize(): Promise<void> {
+    // Initialize database
+    await initializeDatabase();
+    
+    // Initialize dependencies
+    await this.dependencyContainer.initialize();
+    
+    // Setup middleware
+    this.setupMiddleware();
+    
+    // Setup routes
+    this.setupRoutes();
+    
+    // Setup error handling
+    this.setupErrorHandling();
+  }
+
+  private setupMiddleware(): void {
+    // Security middleware
     this.app.use(helmet());
+    
+    // CORS configuration
     this.app.use(cors({
       origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
       credentials: true,
@@ -30,11 +50,11 @@ export class App {
 
     // Rate limiting
     const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // limit each IP to 100 requests per windowMs
+      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
+      max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
       message: {
         error: {
-          message: 'Too many requests from this IP, please try again later.',
+          message: 'Too many requests from this IP, please try again later',
           code: 'RATE_LIMIT_EXCEEDED',
           timestamp: new Date().toISOString(),
         },
@@ -42,20 +62,20 @@ export class App {
     });
     this.app.use('/api', limiter);
 
-    // Body parsing and compression
-    this.app.use(compression());
+    // Body parsing middleware
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // Logging
+    // Compression middleware
+    this.app.use(compression());
+
+    // Logging middleware
     if (process.env.NODE_ENV !== 'test') {
       this.app.use(morgan('combined'));
     }
-  }
 
-  private initializeRoutes(): void {
-    // Health check endpoint
-    this.app.get('/health', (req: Request, res: Response) => {
+    // Health check middleware
+    this.app.use('/health', (req: Request, res: Response) => {
       res.status(200).json({
         status: 'OK',
         timestamp: new Date().toISOString(),
@@ -63,21 +83,31 @@ export class App {
         environment: process.env.NODE_ENV || 'development',
       });
     });
+  }
 
-    // API routes
+  private setupRoutes(): void {
+    // API info endpoint
     this.app.get('/api', (req: Request, res: Response) => {
       res.status(200).json({
         message: 'Gestion Documental API',
         version: '1.0.0',
-        documentation: '/api/docs',
+        endpoints: {
+          users: '/api/users',
+          contracts: '/api/contracts',
+          health: '/health',
+        },
       });
     });
 
-    // Domain routes (to be injected with dependency injection)
-    // this.app.use('/api/users', createUserRoutes(userController));
-    // this.app.use('/api/contracts', createContractRoutes(contractController));
+    // Get controllers from dependency container
+    const userController = this.dependencyContainer.getUserController();
+    const contractController = this.dependencyContainer.getContractController();
 
-    // 404 handler
+    // API routes
+    this.app.use('/api/users', createUserRoutes(userController));
+    this.app.use('/api/contracts', createContractRoutes(contractController));
+
+    // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {
       res.status(404).json({
         error: {
@@ -90,18 +120,9 @@ export class App {
     });
   }
 
-  private initializeErrorHandling(): void {
+  private setupErrorHandling(): void {
+    // Global error handler (must be last)
     this.app.use(errorHandler);
-  }
-
-  public async initialize(): Promise<void> {
-    try {
-      await initializeDatabase();
-      console.log('✅ Application initialized successfully');
-    } catch (error) {
-      console.error('❌ Failed to initialize application:', error);
-      throw error;
-    }
   }
 
   public getApp(): Application {

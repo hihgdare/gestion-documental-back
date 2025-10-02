@@ -20,27 +20,30 @@ export const getUserByIdSchema = Joi.object({
 });
 
 export const createContractSchema = Joi.object({
-  employeeId: Joi.string().uuid().required(),
-  title: Joi.string().min(3).max(100).required(),
-  description: Joi.string().max(500).optional(),
-  type: Joi.string().valid('permanent', 'temporary', 'consultant', 'intern').required(),
-  salary: Joi.object({
-    amount: Joi.number().positive().required(),
-    currency: Joi.string().length(3).default('CLP'),
-  }).required(),
+  rutSociedad: Joi.string().min(8).max(12).required(),
+  nombreColaborador: Joi.string().min(2).max(100).required(),
   startDate: Joi.date().iso().required(),
   endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional(),
-  departmentId: Joi.string().uuid().required(),
-  managerId: Joi.string().uuid().required(),
+  contractType: Joi.string().valid('indefinido', 'plazo_fijo', 'obra_faena', 'consultoria', 'honorarios').required(),
+  administradorContratoMandante: Joi.string().min(2).max(100).required(),
+  administradorContratoEmpresa: Joi.string().min(2).max(100).required(),
+  rutAdministradorContrato: Joi.string().min(8).max(12).required(),
+  contractNumber: Joi.string().min(1).max(50).required(),
+  nombreMandante: Joi.string().min(2).max(100).required(),
+  division: Joi.string().max(100).optional(),
+  area: Joi.string().max(100).optional(),
+  dotacionPersonal: Joi.number().integer().min(0).optional(),
+  dotacionVehiculos: Joi.number().integer().min(0).optional(),
+  descripcionServicio: Joi.string().max(1000).optional(),
+  nombreProyecto: Joi.string().max(100).optional(),
+  jornadaTrabajo: Joi.string().valid('completa', 'parcial', 'turno', 'especial').required(),
 });
 
 export const updateContractSchema = Joi.object({
-  title: Joi.string().min(3).max(100).optional(),
-  description: Joi.string().max(500).optional(),
-  salary: Joi.object({
-    amount: Joi.number().positive().required(),
-    currency: Joi.string().length(3).optional(),
-  }).optional(),
+  nombreColaborador: Joi.string().min(2).max(100).optional(),
+  descripcionServicio: Joi.string().max(1000).optional(),
+  dotacionPersonal: Joi.number().integer().min(0).optional(),
+  dotacionVehiculos: Joi.number().integer().min(0).optional(),
   endDate: Joi.date().iso().optional(),
 }).min(1);
 

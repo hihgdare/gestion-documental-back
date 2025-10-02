@@ -19,11 +19,32 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // GET /api/contracts/active - Get active contracts
   router.get('/active', contractController.getActiveContracts);
 
+  // GET /api/contracts/expired - Get expired contracts
+  router.get('/expired', contractController.getExpiredContracts);
+
+  // GET /api/contracts/ending-before - Get contracts ending before date (query: ?date=2024-12-31)
+  router.get('/ending-before', contractController.getContractsEndingBefore);
+
+  // GET /api/contracts/rut-sociedad/:rutSociedad - Get contracts by RUT sociedad
+  router.get('/rut-sociedad/:rutSociedad', contractController.getContractsByRutSociedad);
+
+  // GET /api/contracts/colaborador/:nombre - Get contracts by colaborador name
+  router.get('/colaborador/:nombre', contractController.getContractsByNombreColaborador);
+
+  // GET /api/contracts/mandante/:mandante - Get contracts by mandante
+  router.get('/mandante/:mandante', contractController.getContractsByMandante);
+
+  // GET /api/contracts/division/:division - Get contracts by division
+  router.get('/division/:division', contractController.getContractsByDivision);
+
+  // GET /api/contracts/area/:area - Get contracts by area
+  router.get('/area/:area', contractController.getContractsByArea);
+
+  // GET /api/contracts/number/:contractNumber - Get contract by number
+  router.get('/number/:contractNumber', contractController.getContractByNumber);
+
   // GET /api/contracts/:id - Get contract by ID
   router.get('/:id', contractController.getContractById);
-
-  // GET /api/contracts/employee/:employeeId - Get contracts by employee
-  router.get('/employee/:employeeId', contractController.getContractsByEmployee);
 
   // PUT /api/contracts/:id - Update contract
   router.put('/:id', validateRequest(updateContractSchema), contractController.updateContract);
