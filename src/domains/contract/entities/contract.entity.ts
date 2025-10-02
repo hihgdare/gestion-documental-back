@@ -1,24 +1,28 @@
 import { BaseEntity } from '@shared/domain/base-entity';
 import { UUID, DateUtils } from '@shared/utils/common';
-import { ContractStatus, ContractType } from '../value-objects/contract-enums';
-import { Salary } from '../value-objects/salary';
+import { ContractStatus, ContractType, JornadaTrabajo } from '../value-objects/contract-enums';
 import { ValidationError } from '@shared/domain/errors';
 
 export interface ContractProps {
   id?: string;
-  employeeId: string;
-  title: string;
-  description?: string;
-  type: ContractType;
-  status?: ContractStatus;
-  salary: {
-    amount: number;
-    currency?: string;
-  };
+  rutSociedad: string;
+  nombreColaborador: string;
   startDate: Date;
   endDate?: Date;
-  departmentId: string;
-  managerId: string;
+  contractType: ContractType;
+  administradorContratoMandante: string;
+  administradorContratoEmpresa: string;
+  rutAdministradorContrato: string;
+  contractNumber: string;
+  nombreMandante: string;
+  division?: string;
+  area?: string;
+  dotacionPersonal?: number;
+  dotacionVehiculos?: number;
+  descripcionServicio?: string;
+  nombreProyecto?: string;
+  jornadaTrabajo: JornadaTrabajo;
+  status?: ContractStatus;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,16 +30,24 @@ export interface ContractProps {
 export class Contract extends BaseEntity {
   private constructor(
     id: string,
-    private _employeeId: string,
-    private _title: string,
-    private _description: string,
-    private _type: ContractType,
-    private _status: ContractStatus,
-    private _salary: Salary,
+    private _rutSociedad: string,
+    private _nombreColaborador: string,
     private _startDate: Date,
     private _endDate: Date | null,
-    private _departmentId: string,
-    private _managerId: string,
+    private _contractType: ContractType,
+    private _administradorContratoMandante: string,
+    private _administradorContratoEmpresa: string,
+    private _rutAdministradorContrato: string,
+    private _contractNumber: string,
+    private _nombreMandante: string,
+    private _division: string | undefined,
+    private _area: string | undefined,
+    private _dotacionPersonal: number,
+    private _dotacionVehiculos: number,
+    private _descripcionServicio: string | undefined,
+    private _nombreProyecto: string | undefined,
+    private _jornadaTrabajo: JornadaTrabajo,
+    private _status: ContractStatus,
     createdAt: Date,
     updatedAt: Date
   ) {
@@ -45,61 +57,84 @@ export class Contract extends BaseEntity {
   public static create(props: ContractProps): Contract {
     const id = props.id || UUID.generate().toString();
     const status = props.status || ContractStatus.DRAFT;
-    const salary = Salary.create(props.salary.amount, props.salary.currency);
     
     this.validateRequired(props);
     this.validateDates(props.startDate, props.endDate);
     
     return new Contract(
       id,
-      props.employeeId,
-      props.title.trim(),
-      props.description?.trim() || '',
-      props.type,
-      status,
-      salary,
+      props.rutSociedad.trim(),
+      props.nombreColaborador.trim(),
       props.startDate,
       props.endDate || null,
-      props.departmentId,
-      props.managerId,
+      props.contractType,
+      props.administradorContratoMandante.trim(),
+      props.administradorContratoEmpresa.trim(),
+      props.rutAdministradorContrato.trim(),
+      props.contractNumber.trim(),
+      props.nombreMandante.trim(),
+      props.division?.trim(),
+      props.area?.trim(),
+      props.dotacionPersonal || 0,
+      props.dotacionVehiculos || 0,
+      props.descripcionServicio?.trim(),
+      props.nombreProyecto?.trim(),
+      props.jornadaTrabajo,
+      status,
       props.createdAt || new Date(),
       props.updatedAt || new Date()
     );
   }
 
   public static fromPersistence(props: ContractProps): Contract {
-    const salary = Salary.create(props.salary.amount, props.salary.currency);
     const status = props.status || ContractStatus.DRAFT;
     
     return new Contract(
       props.id!,
-      props.employeeId,
-      props.title,
-      props.description || '',
-      props.type,
-      status,
-      salary,
+      props.rutSociedad,
+      props.nombreColaborador,
       props.startDate,
       props.endDate || null,
-      props.departmentId,
-      props.managerId,
+      props.contractType,
+      props.administradorContratoMandante,
+      props.administradorContratoEmpresa,
+      props.rutAdministradorContrato,
+      props.contractNumber,
+      props.nombreMandante,
+      props.division,
+      props.area,
+      props.dotacionPersonal || 0,
+      props.dotacionVehiculos || 0,
+      props.descripcionServicio,
+      props.nombreProyecto,
+      props.jornadaTrabajo,
+      status,
       props.createdAt!,
       props.updatedAt!
     );
   }
 
   private static validateRequired(props: ContractProps): void {
-    if (!props.employeeId) {
-      throw new ValidationError('Employee ID is required', 'employeeId');
+    if (!props.rutSociedad?.trim()) {
+      throw new ValidationError('RUT de sociedad is required', 'rutSociedad');
     }
-    if (!props.title?.trim()) {
-      throw new ValidationError('Contract title is required', 'title');
+    if (!props.nombreColaborador?.trim()) {
+      throw new ValidationError('Nombre colaborador is required', 'nombreColaborador');
     }
-    if (!props.departmentId) {
-      throw new ValidationError('Department ID is required', 'departmentId');
+    if (!props.administradorContratoMandante?.trim()) {
+      throw new ValidationError('Administrador contrato mandante is required', 'administradorContratoMandante');
     }
-    if (!props.managerId) {
-      throw new ValidationError('Manager ID is required', 'managerId');
+    if (!props.administradorContratoEmpresa?.trim()) {
+      throw new ValidationError('Administrador contrato empresa is required', 'administradorContratoEmpresa');
+    }
+    if (!props.rutAdministradorContrato?.trim()) {
+      throw new ValidationError('RUT administrador contrato is required', 'rutAdministradorContrato');
+    }
+    if (!props.contractNumber?.trim()) {
+      throw new ValidationError('Contract number is required', 'contractNumber');
+    }
+    if (!props.nombreMandante?.trim()) {
+      throw new ValidationError('Nombre mandante is required', 'nombreMandante');
     }
     if (!props.startDate) {
       throw new ValidationError('Start date is required', 'startDate');
@@ -119,28 +154,12 @@ export class Contract extends BaseEntity {
   }
 
   // Getters
-  public get employeeId(): string {
-    return this._employeeId;
+  public get rutSociedad(): string {
+    return this._rutSociedad;
   }
 
-  public get title(): string {
-    return this._title;
-  }
-
-  public get description(): string {
-    return this._description;
-  }
-
-  public get type(): ContractType {
-    return this._type;
-  }
-
-  public get status(): ContractStatus {
-    return this._status;
-  }
-
-  public get salary(): Salary {
-    return this._salary;
+  public get nombreColaborador(): string {
+    return this._nombreColaborador;
   }
 
   public get startDate(): Date {
@@ -151,12 +170,60 @@ export class Contract extends BaseEntity {
     return this._endDate;
   }
 
-  public get departmentId(): string {
-    return this._departmentId;
+  public get contractType(): ContractType {
+    return this._contractType;
   }
 
-  public get managerId(): string {
-    return this._managerId;
+  public get administradorContratoMandante(): string {
+    return this._administradorContratoMandante;
+  }
+
+  public get administradorContratoEmpresa(): string {
+    return this._administradorContratoEmpresa;
+  }
+
+  public get rutAdministradorContrato(): string {
+    return this._rutAdministradorContrato;
+  }
+
+  public get contractNumber(): string {
+    return this._contractNumber;
+  }
+
+  public get nombreMandante(): string {
+    return this._nombreMandante;
+  }
+
+  public get division(): string | undefined {
+    return this._division;
+  }
+
+  public get area(): string | undefined {
+    return this._area;
+  }
+
+  public get dotacionPersonal(): number {
+    return this._dotacionPersonal;
+  }
+
+  public get dotacionVehiculos(): number {
+    return this._dotacionVehiculos;
+  }
+
+  public get descripcionServicio(): string | undefined {
+    return this._descripcionServicio;
+  }
+
+  public get nombreProyecto(): string | undefined {
+    return this._nombreProyecto;
+  }
+
+  public get jornadaTrabajo(): JornadaTrabajo {
+    return this._jornadaTrabajo;
+  }
+
+  public get status(): ContractStatus {
+    return this._status;
   }
 
   // Business methods
@@ -178,19 +245,23 @@ export class Contract extends BaseEntity {
     this._status = ContractStatus.TERMINATED;
   }
 
-  public updateSalary(amount: number, currency?: string): void {
-    this._salary = Salary.create(amount, currency || this._salary.currency);
-  }
-
-  public updateTitle(title: string): void {
-    if (!title?.trim()) {
-      throw new ValidationError('Contract title is required', 'title');
+  public updateNombreColaborador(nombre: string): void {
+    if (!nombre?.trim()) {
+      throw new ValidationError('Nombre colaborador is required', 'nombreColaborador');
     }
-    this._title = title.trim();
+    this._nombreColaborador = nombre.trim();
   }
 
-  public updateDescription(description: string): void {
-    this._description = description?.trim() || '';
+  public updateDescripcionServicio(descripcion?: string): void {
+    this._descripcionServicio = descripcion?.trim();
+  }
+
+  public updateDotaciones(personal: number, vehiculos: number): void {
+    if (personal < 0 || vehiculos < 0) {
+      throw new ValidationError('Dotaciones cannot be negative', 'dotaciones');
+    }
+    this._dotacionPersonal = personal;
+    this._dotacionVehiculos = vehiculos;
   }
 
   public extendContract(newEndDate: Date): void {
@@ -218,19 +289,24 @@ export class Contract extends BaseEntity {
   public toJSON() {
     return {
       id: this.id,
-      employeeId: this._employeeId,
-      title: this._title,
-      description: this._description,
-      type: this._type,
-      status: this._status,
-      salary: {
-        amount: this._salary.amount,
-        currency: this._salary.currency,
-      },
+      rutSociedad: this._rutSociedad,
+      nombreColaborador: this._nombreColaborador,
       startDate: this._startDate,
       endDate: this._endDate,
-      departmentId: this._departmentId,
-      managerId: this._managerId,
+      contractType: this._contractType,
+      administradorContratoMandante: this._administradorContratoMandante,
+      administradorContratoEmpresa: this._administradorContratoEmpresa,
+      rutAdministradorContrato: this._rutAdministradorContrato,
+      contractNumber: this._contractNumber,
+      nombreMandante: this._nombreMandante,
+      division: this._division,
+      area: this._area,
+      dotacionPersonal: this._dotacionPersonal,
+      dotacionVehiculos: this._dotacionVehiculos,
+      descripcionServicio: this._descripcionServicio,
+      nombreProyecto: this._nombreProyecto,
+      jornadaTrabajo: this._jornadaTrabajo,
+      status: this._status,
       duration: this.getDuration(),
       isActive: this.isActive(),
       isExpired: this.isExpired(),

@@ -3,12 +3,10 @@ import { Contract } from '../entities/contract.entity';
 import { NotFoundError } from '@shared/domain/errors';
 
 export interface UpdateContractRequest {
-  title?: string;
-  description?: string;
-  salary?: {
-    amount: number;
-    currency?: string;
-  };
+  nombreColaborador?: string;
+  descripcionServicio?: string;
+  dotacionPersonal?: number;
+  dotacionVehiculos?: number;
   endDate?: Date;
 }
 
@@ -21,16 +19,19 @@ export class UpdateContractUseCase {
       throw new NotFoundError('Contract', id);
     }
 
-    if (request.title) {
-      contract.updateTitle(request.title);
+    if (request.nombreColaborador) {
+      contract.updateNombreColaborador(request.nombreColaborador);
     }
 
-    if (request.description !== undefined) {
-      contract.updateDescription(request.description);
+    if (request.descripcionServicio !== undefined) {
+      contract.updateDescripcionServicio(request.descripcionServicio);
     }
 
-    if (request.salary) {
-      contract.updateSalary(request.salary.amount, request.salary.currency);
+    if (request.dotacionPersonal !== undefined || request.dotacionVehiculos !== undefined) {
+      contract.updateDotaciones(
+        request.dotacionPersonal ?? contract.dotacionPersonal,
+        request.dotacionVehiculos ?? contract.dotacionVehiculos
+      );
     }
 
     if (request.endDate) {
