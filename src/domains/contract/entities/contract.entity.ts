@@ -276,12 +276,12 @@ export class Contract extends BaseEntity {
   }
 
   public isExpired(): boolean {
-    if (!this._endDate) return false;
+    if (!this._endDate || !(this._endDate instanceof Date)) return false;
     return DateUtils.isAfter(new Date(), this._endDate);
   }
 
   public getDuration(): number | null {
-    if (!this._endDate) return null;
+    if (!this._endDate || !(this._endDate instanceof Date)) return null;
     const diffTime = this._endDate.getTime() - this._startDate.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // days
   }

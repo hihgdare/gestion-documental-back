@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 
 @Entity('users')
-@Index(['email'], { unique: true })
+//@Index(['email'], { unique: true })
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -38,15 +38,17 @@ export class UserEntity {
   @CreateDateColumn({ 
     name: 'created_at',
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
+    precision: 6,
+    default: () => 'CURRENT_TIMESTAMP(6)',
   })
   createdAt!: Date;
 
   @UpdateDateColumn({ 
     name: 'updated_at',
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
+    precision: 6,
+    default: () => 'CURRENT_TIMESTAMP(6)',
+    onUpdate: 'CURRENT_TIMESTAMP(6)',
   })
   updatedAt!: Date;
 }

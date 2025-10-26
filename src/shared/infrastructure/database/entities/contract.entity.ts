@@ -11,11 +11,11 @@ import {
 import { UserEntity } from './user.entity';
 
 @Entity('contracts')
-@Index(['rutSociedad'])
-@Index(['nombreColaborador'])
-@Index(['contractNumber'], { unique: true })
-@Index(['contractType'])
-@Index(['status'])
+//@Index(['rutSociedad'])
+//@Index(['nombreColaborador'])
+//@Index(['contractNumber'], { unique: true })
+//@Index(['contractType'])
+//@Index(['status'])
 export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -90,15 +90,17 @@ export class ContractEntity {
   @CreateDateColumn({ 
     name: 'created_at',
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
+    precision: 6,
+    default: () => 'CURRENT_TIMESTAMP(6)',
   })
   createdAt!: Date;
 
   @UpdateDateColumn({ 
     name: 'updated_at',
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
+    precision: 6,
+    default: () => 'CURRENT_TIMESTAMP(6)',
+    onUpdate: 'CURRENT_TIMESTAMP(6)',
   })
   updatedAt!: Date;
 
