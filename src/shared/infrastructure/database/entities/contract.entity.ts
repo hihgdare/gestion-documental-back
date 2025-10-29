@@ -11,11 +11,11 @@ import {
 import { UserEntity } from './user.entity';
 
 @Entity('contracts')
-//@Index(['rutSociedad'])
-//@Index(['nombreColaborador'])
-//@Index(['contractNumber'], { unique: true })
-//@Index(['contractType'])
-//@Index(['status'])
+@Index(['rutSociedad'])
+@Index(['nombreColaborador'])
+@Index(['contractNumber'], { unique: true })
+@Index(['contractType'])
+@Index(['status'])
 export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

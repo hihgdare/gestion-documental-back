@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 
 @Entity('users')
-//@Index(['email'], { unique: true })
+@Index(['email'], { unique: true })
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
