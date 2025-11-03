@@ -10,6 +10,7 @@ import { errorHandler } from '@shared/middleware/error-handler';
 import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
+import { createColaboratorRoutes } from '@presentation/routes/colaborators.routes';
 import { DependencyContainer } from './dependency-container';
 
 export class App {
@@ -94,6 +95,7 @@ export class App {
         endpoints: {
           users: '/api/users',
           contracts: '/api/contracts',
+          colaborators: '/api/colaborators',
           health: '/health',
         },
       });
@@ -102,10 +104,12 @@ export class App {
     // Get controllers from dependency container
     const userController = this.dependencyContainer.getUserController();
     const contractController = this.dependencyContainer.getContractController();
+    const colaboratorController = this.dependencyContainer.getColaboratorController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
+    this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
 
     // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {

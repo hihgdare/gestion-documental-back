@@ -50,3 +50,56 @@ export const updateContractSchema = Joi.object({
 export const getContractByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
+
+export const createColaboratorSchema = Joi.object({
+  tipoDocumento: Joi.string().valid('rut', 'pasaporte', 'dni', 'otro').required(),
+  numeroDocumento: Joi.string().min(5).max(50).required(),
+  nombre: Joi.string().min(2).max(100).required(),
+  apellidoPaterno: Joi.string().min(2).max(100).required(),
+  apellidoMaterno: Joi.string().min(2).max(100).optional(),
+  nacionalidad: Joi.string().min(2).max(100).required(),
+  sexo: Joi.string().valid('masculino', 'femenino', 'otro').required(),
+  estadoCivil: Joi.string().valid('soltero', 'casado', 'divorciado', 'viudo', 'union_civil').required(),
+  fechaNacimiento: Joi.date().iso().max('now').required(),
+  paisResidencia: Joi.string().length(2).required(),
+  region: Joi.string().max(100).when('paisResidencia', {
+    is: 'CL',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  comuna: Joi.string().max(100).when('paisResidencia', {
+    is: 'CL',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  estadoRegion: Joi.string().max(100).when('paisResidencia', {
+    is: Joi.not('CL'),
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  ciudadMunicipio: Joi.string().max(100).when('paisResidencia', {
+    is: Joi.not('CL'),
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  direccionResidencia: Joi.string().min(5).max(255).required(),
+  telefono: Joi.string().min(7).max(20).required(),
+  email: Joi.string().email().required(),
+  contactoEmergencia: Joi.string().max(100).optional(),
+  telefonoEmergencia: Joi.string().min(7).max(20).optional(),
+  profesion: Joi.string().min(2).max(100).required(),
+  cargo: Joi.string().min(2).max(100).required(),
+});
+
+export const updateColaboratorSchema = Joi.object({
+  telefono: Joi.string().min(7).max(20).optional(),
+  email: Joi.string().email().optional(),
+  direccionResidencia: Joi.string().min(5).max(255).optional(),
+  contactoEmergencia: Joi.string().max(100).optional(),
+  telefonoEmergencia: Joi.string().min(7).max(20).optional(),
+  cargo: Joi.string().min(2).max(100).optional(),
+  region: Joi.string().max(100).optional(),
+  comuna: Joi.string().max(100).optional(),
+  estadoRegion: Joi.string().max(100).optional(),
+  ciudadMunicipio: Joi.string().max(100).optional(),
+}).min(1);

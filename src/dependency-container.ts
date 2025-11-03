@@ -1,6 +1,7 @@
 // Dependency Injection Container
 import { UserController } from '@presentation/controllers/user.controller';
 import { ContractController } from '@presentation/controllers/contract.controller';
+import { ColaboratorController } from '@presentation/controllers/colaborators.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
@@ -30,14 +31,21 @@ import {
   DeleteContractUseCase,
 } from '@domains/contract/use-cases/update-contract.use-case';
 
+// Colaborator domain
+import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
+import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
+import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
+
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
+import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
 
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
   private contractRepository!: TypeOrmContractRepository;
+  private colaboratorRepository!: TypeOrmColaboratorRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -65,14 +73,21 @@ export class DependencyContainer {
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
 
+  // Use Cases - Colaborator
+  private createColaboratorUseCase!: CreateColaboratorUseCase;
+  private getColaboratorUseCase!: GetColaboratorUseCase;
+  private updateColaboratorUseCase!: UpdateColaboratorUseCase;
+
   // Controllers
   private userController!: UserController;
   private contractController!: ContractController;
+  private colaboratorController!: ColaboratorController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
     this.contractRepository = new TypeOrmContractRepository();
+    this.colaboratorRepository = new TypeOrmColaboratorRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository);
@@ -99,6 +114,11 @@ export class DependencyContainer {
     this.suspendContractUseCase = new SuspendContractUseCase(this.contractRepository);
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
+
+    // Initialize Colaborator use cases
+    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
+    this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
+    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository);
 
     // Initialize Controllers
     this.userController = new UserController(
@@ -128,6 +148,12 @@ export class DependencyContainer {
       this.terminateContractUseCase,
       this.deleteContractUseCase
     );
+
+    this.colaboratorController = new ColaboratorController(
+      this.createColaboratorUseCase,
+      this.getColaboratorUseCase,
+      this.updateColaboratorUseCase
+    );
   }
 
   // Getters for controllers
@@ -139,6 +165,10 @@ export class DependencyContainer {
     return this.contractController;
   }
 
+  public getColaboratorController(): ColaboratorController {
+    return this.colaboratorController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -146,5 +176,9 @@ export class DependencyContainer {
 
   public getContractRepository(): TypeOrmContractRepository {
     return this.contractRepository;
+  }
+
+  public getColaboratorRepository(): TypeOrmColaboratorRepository {
+    return this.colaboratorRepository;
   }
 }
