@@ -4,7 +4,6 @@ import { validateRequest } from '@shared/middleware/validation';
 import {
   createUserSchema,
   updateUserSchema,
-  getUserByIdSchema,
 } from '../dto/validation-schemas';
 
 export const createUserRoutes = (userController: UserController): Router => {
