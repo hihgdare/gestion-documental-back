@@ -82,17 +82,17 @@ export class CreateUsersTable1696269600000 implements MigrationInterface {
 
 ### Aplicar Todas las Migraciones Pendientes
 ```bash
-bun run typeorm migration:run
+bun run migration:run
 ```
 
 ### Revertir la Última Migración
 ```bash
-bun run typeorm migration:revert
+bun run migration:revert
 ```
 
 ### Ver Estado de Migraciones
 ```bash
-bun run typeorm migration:show
+bun run migration:show
 ```
 
 ## 🔧 Comandos Útiles
@@ -101,6 +101,7 @@ bun run typeorm migration:show
 ```json
 {
   "scripts": {
+    "migration:create": "typeorm migration:create -d data-source.js",
     "migration:generate": "typeorm migration:generate -d data-source.js",
     "migration:create": "typeorm migration:create",
     "migration:run": "typeorm migration:run -d data-source.js",

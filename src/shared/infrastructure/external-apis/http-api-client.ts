@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { ExternalApiClient, ExternalApiConfig } from './api-client.interface';
+import axios, { type AxiosInstance } from 'axios';
+import { type ExternalApiClient, type ExternalApiConfig } from './api-client.interface';
 
 export class HttpApiClient implements ExternalApiClient {
   private client: AxiosInstance;
@@ -27,7 +27,7 @@ export class HttpApiClient implements ExternalApiClient {
       (error) => {
         console.error('🚨 External API Request Error:', error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
@@ -39,21 +39,21 @@ export class HttpApiClient implements ExternalApiClient {
       (error) => {
         console.error('🚨 External API Response Error:', error);
         return Promise.reject(error);
-      }
+      },
     );
   }
 
-  public async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+  public async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
     const response = await this.client.get(endpoint, { params });
     return response.data;
   }
 
-  public async post<T>(endpoint: string, data?: any): Promise<T> {
+  public async post<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await this.client.post(endpoint, data);
     return response.data;
   }
 
-  public async put<T>(endpoint: string, data?: any): Promise<T> {
+  public async put<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await this.client.put(endpoint, data);
     return response.data;
   }

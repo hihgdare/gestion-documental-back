@@ -49,7 +49,7 @@ export class Contract extends BaseEntity {
     private _jornadaTrabajo: JornadaTrabajo,
     private _status: ContractStatus,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
   ) {
     super(id, createdAt, updatedAt);
   }
@@ -57,10 +57,10 @@ export class Contract extends BaseEntity {
   public static create(props: ContractProps): Contract {
     const id = props.id || UUID.generate().toString();
     const status = props.status || ContractStatus.DRAFT;
-    
+
     this.validateRequired(props);
     this.validateDates(props.startDate, props.endDate);
-    
+
     return new Contract(
       id,
       props.rutSociedad.trim(),
@@ -82,13 +82,13 @@ export class Contract extends BaseEntity {
       props.jornadaTrabajo,
       status,
       props.createdAt || new Date(),
-      props.updatedAt || new Date()
+      props.updatedAt || new Date(),
     );
   }
 
   public static fromPersistence(props: ContractProps): Contract {
     const status = props.status || ContractStatus.DRAFT;
-    
+
     return new Contract(
       props.id!,
       props.rutSociedad,
@@ -110,7 +110,7 @@ export class Contract extends BaseEntity {
       props.jornadaTrabajo,
       status,
       props.createdAt!,
-      props.updatedAt!
+      props.updatedAt!,
     );
   }
 
@@ -143,11 +143,11 @@ export class Contract extends BaseEntity {
 
   private static validateDates(startDate: Date, endDate?: Date): void {
     const now = new Date();
-    
+
     if (DateUtils.isBefore(startDate, now)) {
       // Allow past start dates for existing contracts
     }
-    
+
     if (endDate && DateUtils.isBefore(endDate, startDate)) {
       throw new ValidationError('End date cannot be before start date', 'endDate');
     }

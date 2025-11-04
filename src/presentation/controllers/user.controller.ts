@@ -10,7 +10,7 @@ export class UserController {
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
     private readonly getAllUsersUseCase: GetAllUsersUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
-    private readonly deleteUserUseCase: DeleteUserUseCase
+    private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
   public createUser = asyncHandler(async (req: Request, res: Response) => {

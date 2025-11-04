@@ -25,6 +25,9 @@ import { UpdateContractDto } from '@presentation/dto/contract/update-contract.dt
 import { ContractResponseDto } from '@presentation/dto/contract/contract-response.dto';
 import { asyncHandler } from '@shared/middleware/validation';
 
+// TODO: Add type for Contract
+type Contract = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
 export class ContractController {
   constructor(
     private readonly createContractUseCase: CreateContractUseCase,
@@ -43,10 +46,10 @@ export class ContractController {
     private readonly activateContractUseCase: ActivateContractUseCase,
     private readonly suspendContractUseCase: SuspendContractUseCase,
     private readonly terminateContractUseCase: TerminateContractUseCase,
-    private readonly deleteContractUseCase: DeleteContractUseCase
+    private readonly deleteContractUseCase: DeleteContractUseCase,
   ) {}
 
-  private toResponseDto(contract: any): ContractResponseDto {
+  private toResponseDto(contract: Contract): ContractResponseDto {
     const json = contract.toJSON();
     return {
       id: json.id,
@@ -83,7 +86,7 @@ export class ContractController {
       startDate: new Date(dto.startDate),
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
     };
-    
+
     const contract = await this.createContractUseCase.execute(contractRequest);
     res.status(201).json({
       success: true,
@@ -105,7 +108,7 @@ export class ContractController {
     const contracts = await this.getAllContractsUseCase.execute();
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -115,7 +118,7 @@ export class ContractController {
     const contracts = await this.getContractsByRutSociedadUseCase.execute(rutSociedad);
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -125,7 +128,7 @@ export class ContractController {
     const contracts = await this.getContractsByNombreColaboradorUseCase.execute(nombre);
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -135,7 +138,7 @@ export class ContractController {
     const contracts = await this.getContractsByMandanteUseCase.execute(mandante);
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -145,7 +148,7 @@ export class ContractController {
     const contracts = await this.getContractsByDivisionUseCase.execute(division);
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -155,7 +158,7 @@ export class ContractController {
     const contracts = await this.getContractsByAreaUseCase.execute(area);
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -173,7 +176,7 @@ export class ContractController {
     const contracts = await this.getActiveContractsUseCase.execute();
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -182,7 +185,7 @@ export class ContractController {
     const contracts = await this.getExpiredContractsUseCase.execute();
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -196,11 +199,11 @@ export class ContractController {
       });
       return;
     }
-    
+
     const contracts = await this.getContractsEndingBeforeUseCase.execute(new Date(date));
     res.status(200).json({
       success: true,
-      data: contracts.map((contract: any) => this.toResponseDto(contract)),
+      data: contracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: contracts.length,
     });
   });
@@ -212,7 +215,7 @@ export class ContractController {
       ...dto,
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
     };
-    
+
     const contract = await this.updateContractUseCase.execute(id, updateRequest);
     res.status(200).json({
       success: true,

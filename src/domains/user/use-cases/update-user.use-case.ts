@@ -31,7 +31,7 @@ export class UpdateUserUseCase {
     if (request.firstName || request.lastName) {
       user.updateName(
         request.firstName || user.firstName,
-        request.lastName || user.lastName
+        request.lastName || user.lastName,
       );
     }
 
