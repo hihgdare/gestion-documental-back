@@ -71,6 +71,7 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+swagger.json
 
 # Database files (if using local SQLite for development)
 *.sqlite

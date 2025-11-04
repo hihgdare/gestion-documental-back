@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
 import 'express-async-errors';
 
 import { errorHandler } from '@shared/middleware/error-handler';
@@ -11,10 +12,12 @@ import { initializeDatabase } from '@shared/infrastructure/database/typeorm.conf
 import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { DependencyContainer } from './dependency-container';
+import { outputFile, swaggerGenerator } from './swagger';
 
 export class App {
   private app: Application;
   private dependencyContainer: DependencyContainer;
+  private swagger = false;
 
   constructor() {
     this.app = express();
@@ -24,16 +27,19 @@ export class App {
   public async initialize(): Promise<void> {
     // Initialize database
     await initializeDatabase();
-    
+
     // Initialize dependencies
     await this.dependencyContainer.initialize();
-    
+
     // Setup middleware
     this.setupMiddleware();
-    
+
+    // Setup swagger documentation
+    await this.setupSwaggerRoute();
+
     // Setup routes
     this.setupRoutes();
-    
+
     // Setup error handling
     this.setupErrorHandling();
   }
@@ -41,7 +47,7 @@ export class App {
   private setupMiddleware(): void {
     // Security middleware
     this.app.use(helmet());
-    
+
     // CORS configuration
     this.app.use(cors({
       origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
@@ -125,6 +131,14 @@ export class App {
     this.app.use(errorHandler);
   }
 
+  private async setupSwaggerRoute(): Promise<void> {
+    if (process.env.NODE_ENV !== 'development') return;
+    this.swagger = await swaggerGenerator();
+    if (this.swagger) {
+      this.app.use('/docs', swaggerUi.serve, swaggerUi.setup(await import(outputFile)));
+    }
+  }
+
   public getApp(): Application {
     return this.app;
   }
@@ -134,6 +148,9 @@ export class App {
       console.log(`🚀 Server running on port ${port}`);
       console.log(`📚 API documentation available at http://localhost:${port}/api`);
       console.log(`❤️  Health check available at http://localhost:${port}/health`);
+      if (this.swagger) {
+        console.log(`📚 Swagger documentation available at http://localhost:${port}/docs`);
+      }
     });
   }
 }
