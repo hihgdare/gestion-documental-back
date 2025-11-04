@@ -12,7 +12,7 @@ export interface ErrorResponse {
   error: {
     message: string;
     code: string;
-    details?: any;
+    details?: unknown;
     timestamp: string;
     path: string;
   };
@@ -22,59 +22,51 @@ export const errorHandler = (
   error: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction,
 ): void => {
   const timestamp = new Date().toISOString();
-  const path = req.originalUrl;
-
-  let statusCode = 500;
-  let code = 'INTERNAL_SERVER_ERROR';
-  let message = 'Internal server error';
-  let details: any = undefined;
-
-  if (error instanceof ValidationError) {
-    statusCode = 400;
-    code = 'VALIDATION_ERROR';
-    message = error.message;
-    details = { field: error.field };
-  } else if (error instanceof NotFoundError) {
-    statusCode = 404;
-    code = 'NOT_FOUND';
-    message = error.message;
-  } else if (error instanceof ConflictError) {
-    statusCode = 409;
-    code = 'CONFLICT';
-    message = error.message;
-  } else if (error instanceof UnauthorizedError) {
-    statusCode = 401;
-    code = 'UNAUTHORIZED';
-    message = error.message;
-  } else if (error instanceof ForbiddenError) {
-    statusCode = 403;
-    code = 'FORBIDDEN';
-    message = error.message;
-  } else if (error instanceof DomainError) {
-    statusCode = 400;
-    code = 'DOMAIN_ERROR';
-    message = error.message;
-  }
+  const {status, code, message, details} = getErrorData(error);
 
   // Log error for debugging
   console.error(`[${timestamp}] ${error.name}: ${error.message}`, {
     stack: error.stack,
-    path,
+    path: req.originalUrl,
     method: req.method,
   });
 
-  const errorResponse: ErrorResponse = {
+  res.status(status).json({
     error: {
-      message,
+      message: message || error.message,
       code,
       details,
       timestamp,
-      path,
+      path: req.originalUrl,
     },
-  };
-
-  res.status(statusCode).json(errorResponse);
+  });
 };
+
+function getErrorData(error: Error): {status: number, code: string, message?: string, details?: unknown} {
+  if (error instanceof DomainError) {
+    return { status: 400, code: 'DOMAIN_ERROR' };
+  } else if (error instanceof UnauthorizedError) {
+    return { status: 401, code: 'UNAUTHORIZED' };
+  } else if (error instanceof ValidationError) {
+    return {
+      status: 400,
+      code: 'VALIDATION_ERROR',
+      details: { field: error.field },
+    };
+  } else if (error instanceof ForbiddenError) {
+    return { status: 403, code: 'FORBIDDEN' };
+  } else if (error instanceof NotFoundError) {
+    return { status: 404, code: 'NOT_FOUND' };
+  } else if (error instanceof ConflictError) {
+    return { status: 409, code: 'CONFLICT' };
+  } else {
+    return {
+      status: 500,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Internal server error',
+    };
+  }
+}

@@ -16,12 +16,11 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
-    "baseUrl": "./",
     "paths": {
-      "@domains/*": ["src/domains/*"],
-      "@shared/*": ["src/shared/*"],
-      "@presentation/*": ["src/presentation/*"],
-      "@config/*": ["config/*"]
+      "@domains/*": ["./src/domains/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@presentation/*": ["./src/presentation/*"],
+      "@config/*": ["./config/*"]
     }
   },
   "include": [

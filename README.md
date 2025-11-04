@@ -24,12 +24,14 @@ src/
 ## 🚀 Instalación
 
 ### Prerequisitos
+
 - **Bun**: >= 1.0.0
 - **MySQL**: >= 8.0 (compatible con AWS RDS MySQL)
 
 ### Pasos
 
 1. **Instalar Bun** (si no lo tienes):
+
 ```bash
 # macOS/Linux
 curl -fsSL https://bun.sh/install | bash
@@ -39,6 +41,7 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
 2. **Clonar e instalar dependencias**:
+
 ```bash
 git clone <repository-url>
 cd gestion-documental-back
@@ -46,12 +49,14 @@ bun install
 ```
 
 3. **Configurar variables de entorno**:
+
 ```bash
 cp .env.example .env
 # Editar .env con tus credenciales de MySQL
 ```
 
 4. **Ejecutar en desarrollo**:
+
 ```bash
 bun run dev
 ```
@@ -59,6 +64,7 @@ bun run dev
 ## 💾 Base de Datos MySQL
 
 ### Configuración Local
+
 ```bash
 # Instalar MySQL (Ubuntu/Debian)
 sudo apt update
@@ -72,7 +78,10 @@ GRANT ALL PRIVILEGES ON gestion_documental.* TO 'gestion_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
+Para desarrollo se puede usar docker-compose de forma alternativa. Mas detalles tendrás mas detalles al respecto.
+
 ### Variables de Entorno (.env)
+
 ```bash
 # Configuración MySQL Local
 DB_HOST=localhost
@@ -83,6 +92,7 @@ DB_DATABASE=gestion_documental
 ```
 
 ### 🔄 Migraciones de Base de Datos
+
 Las migraciones permiten versionar y aplicar cambios en el esquema de la base de datos:
 
 ```bash
@@ -113,6 +123,7 @@ El proyecto implementa **Domain-Driven Design (DDD)** con **Clean Architecture**
 - **Presentation**: API REST endpoints
 
 Esta arquitectura garantiza:
+
 - Separación clara de responsabilidades
 - Código testeable y mantenible
 - Escalabilidad para nuevos módulos
@@ -127,11 +138,23 @@ Este proyecto utiliza el **patrón Repository** para separar la lógica de negoc
    User              Interface         users table
 ```
 
-**¿Nuevo en el equipo?** 👋  
+**¿Nuevo en el equipo?** 👋
 📖 **[Guía completa de Repositories](src/shared/infrastructure/repositories/README.md)** - Todo lo que necesitas saber con ejemplos prácticos
 
 ### 🎯 Beneficios del Repository Pattern:
+
 - ✅ **Testeable**: Fácil de hacer mocks para testing
 - ✅ **Mantenible**: Cambiar base de datos sin tocar lógica
 - ✅ **Limpio**: Separación clara entre dominio e infraestructura
 - ✅ **Escalable**: Agregar nuevas consultas es simple
+
+# Docker
+
+Para desarrollo, se puede utilizar docker.
+Por el momento solo está disponible la base de datos.
+
+## 🐳 Docker Compose
+
+```bash
+docker-compose up -d
+```

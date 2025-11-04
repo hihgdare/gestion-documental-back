@@ -13,13 +13,13 @@ export const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
   entities: [
-    'src/shared/infrastructure/database/entities/*.ts'
+    'src/shared/infrastructure/database/entities/*.ts',
   ],
   migrations: [
-    'src/shared/infrastructure/database/migrations/*.ts'
+    'src/shared/infrastructure/database/migrations/*.ts',
   ],
   subscribers: [
-    'src/shared/infrastructure/database/subscribers/*.ts'
+    'src/shared/infrastructure/database/subscribers/*.ts',
   ],
   charset: 'utf8mb4',
   timezone: 'Z',

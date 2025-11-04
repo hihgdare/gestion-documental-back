@@ -126,7 +126,7 @@ export class DependencyContainer {
       this.getUserByIdUseCase,
       this.getAllUsersUseCase,
       this.updateUserUseCase,
-      this.deleteUserUseCase
+      this.deleteUserUseCase,
     );
 
     this.contractController = new ContractController(
@@ -146,7 +146,7 @@ export class DependencyContainer {
       this.activateContractUseCase,
       this.suspendContractUseCase,
       this.terminateContractUseCase,
-      this.deleteContractUseCase
+      this.deleteContractUseCase,
     );
 
     this.colaboratorController = new ColaboratorController(
