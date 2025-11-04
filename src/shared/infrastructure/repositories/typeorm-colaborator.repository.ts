@@ -158,7 +158,9 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       nacionalidad: entity.nacionalidad,
       sexo: entity.sexo as Gender,
       estadoCivil: entity.estadoCivil as CivilStatus,
-      fechaNacimiento: entity.fechaNacimiento,
+      fechaNacimiento: entity.fechaNacimiento instanceof Date 
+        ? entity.fechaNacimiento 
+        : new Date(entity.fechaNacimiento),
       paisResidencia: entity.paisResidencia,
       region: entity.region,
       comuna: entity.comuna,
@@ -172,8 +174,12 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       profesion: entity.profesion,
       cargo: entity.cargo,
       status: entity.status as ColaboratorStatus,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
+      createdAt: entity.createdAt instanceof Date 
+        ? entity.createdAt 
+        : new Date(entity.createdAt),
+      updatedAt: entity.updatedAt instanceof Date 
+        ? entity.updatedAt 
+        : new Date(entity.updatedAt),
     };
     return Colaborator.fromPersistence(props);
   }
