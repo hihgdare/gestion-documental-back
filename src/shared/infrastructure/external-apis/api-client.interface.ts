@@ -1,7 +1,7 @@
 export interface ExternalApiClient {
-  get<T>(endpoint: string, params?: Record<string, any>): Promise<T>;
-  post<T>(endpoint: string, data?: any): Promise<T>;
-  put<T>(endpoint: string, data?: any): Promise<T>;
+  get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T>;
+  post<T>(endpoint: string, data?: unknown): Promise<T>;
+  put<T>(endpoint: string, data?: unknown): Promise<T>;
   delete<T>(endpoint: string): Promise<T>;
 }
 
