@@ -30,7 +30,7 @@ export class UpdateContractUseCase {
     if (request.dotacionPersonal !== undefined || request.dotacionVehiculos !== undefined) {
       contract.updateDotaciones(
         request.dotacionPersonal ?? contract.dotacionPersonal,
-        request.dotacionVehiculos ?? contract.dotacionVehiculos
+        request.dotacionVehiculos ?? contract.dotacionVehiculos,
       );
     }
 

@@ -26,7 +26,7 @@ export class User extends BaseEntity {
     private _status: UserStatus,
     private _roleId: string,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
   ) {
     super(id, createdAt, updatedAt);
   }
@@ -35,9 +35,9 @@ export class User extends BaseEntity {
     const id = props.id || UUID.generate().toString();
     const email = Email.create(props.email);
     const status = props.status || UserStatus.ACTIVE;
-    
+
     this.validateRequired(props);
-    
+
     return new User(
       id,
       email,
@@ -47,14 +47,14 @@ export class User extends BaseEntity {
       status,
       props.roleId,
       props.createdAt || new Date(),
-      props.updatedAt || new Date()
+      props.updatedAt || new Date(),
     );
   }
 
   public static fromPersistence(props: UserProps): User {
     const email = Email.create(props.email);
     const status = props.status || UserStatus.ACTIVE;
-    
+
     return new User(
       props.id!,
       email,
@@ -64,7 +64,7 @@ export class User extends BaseEntity {
       status,
       props.roleId,
       props.createdAt!,
-      props.updatedAt!
+      props.updatedAt!,
     );
   }
 
@@ -124,7 +124,7 @@ export class User extends BaseEntity {
     if (!lastName?.trim()) {
       throw new ValidationError('Last name is required', 'lastName');
     }
-    
+
     this._firstName = firstName.trim();
     this._lastName = lastName.trim();
   }

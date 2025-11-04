@@ -19,7 +19,7 @@ async function bootstrap() {
 }
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason: unknown, promise: Promise<any>) => {
+process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });

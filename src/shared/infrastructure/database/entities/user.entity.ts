@@ -4,11 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  Index,
 } from 'typeorm';
 
 @Entity('users')
-@Index(['email'], { unique: true })
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -16,10 +14,10 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 255, unique: true })
   email!: string;
 
-  @Column({ type: 'varchar', length: 100, name: 'first_name' })
+  @Column({ name: 'first_name', type: 'varchar', length: 100 })
   firstName!: string;
 
-  @Column({ type: 'varchar', length: 100, name: 'last_name' })
+  @Column({ name: 'last_name', type: 'varchar', length: 100 })
   lastName!: string;
 
   @Column({ type: 'varchar', length: 255 })
@@ -32,21 +30,12 @@ export class UserEntity {
   })
   status!: string;
 
-  @Column({ type: 'varchar', length: 36, name: 'role_id' })
+  @Column({ name: 'role_id', type: 'varchar', length: 36 })
   roleId!: string;
 
-  @CreateDateColumn({ 
-    name: 'created_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ 
-    name: 'updated_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
-  })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 }

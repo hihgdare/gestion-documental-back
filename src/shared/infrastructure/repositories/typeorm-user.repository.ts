@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
-import { UserRepository } from '@domains/user/repositories/user.repository';
-import { User, UserProps } from '@domains/user/entities/user.entity';
+import { type UserRepository } from '@domains/user/repositories/user.repository';
+import { User, type UserProps } from '@domains/user/entities/user.entity';
+import { UserStatus } from '@domains/user/value-objects/user-status';
 import { UserEntity } from '../database/entities/user.entity';
 import { AppDataSource } from '../database/typeorm.config';
 
@@ -48,7 +49,7 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   async findByStatus(status: string): Promise<User[]> {
-    const userEntities = await this.repository.find({ 
+    const userEntities = await this.repository.find({
       where: { status },
       order: { createdAt: 'DESC' },
     });
@@ -56,7 +57,7 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   async findByRoleId(roleId: string): Promise<User[]> {
-    const userEntities = await this.repository.find({ 
+    const userEntities = await this.repository.find({
       where: { roleId },
       order: { createdAt: 'DESC' },
     });
@@ -75,7 +76,7 @@ export class TypeOrmUserRepository implements UserRepository {
       firstName: entity.firstName,
       lastName: entity.lastName,
       password: entity.password,
-      status: entity.status as any,
+      status: entity.status as unknown as UserStatus,
       roleId: entity.roleId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
