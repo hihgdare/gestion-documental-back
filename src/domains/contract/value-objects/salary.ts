@@ -3,7 +3,7 @@ import { ValidationError } from '@shared/domain/errors';
 export class Salary {
   private constructor(
     private readonly _amount: number,
-    private readonly _currency: string = 'CLP'
+    private readonly _currency: string = 'CLP',
   ) {
     if (_amount < 0) {
       throw new ValidationError('Salary amount cannot be negative', 'salary');
