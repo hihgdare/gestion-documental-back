@@ -13,45 +13,44 @@ import { UserEntity } from './user.entity';
 @Entity('contracts')
 @Index(['rutSociedad'])
 @Index(['nombreColaborador'])
-@Index(['contractNumber'], { unique: true })
 @Index(['contractType'])
 @Index(['status'])
 export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar', length: 12, name: 'rut_sociedad' })
+  @Column({ name: 'rut_sociedad', type: 'varchar', length: 12 })
   rutSociedad!: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'nombre_colaborador' })
+  @Column({ name: 'nombre_colaborador', type: 'varchar', length: 255 })
   nombreColaborador!: string;
 
-  @Column({ type: 'date', name: 'start_date' })
+  @Column({ name: 'start_date', type: 'date' })
   startDate!: Date;
 
-  @Column({ type: 'date', nullable: true, name: 'end_date' })
+  @Column({ name: 'end_date', type: 'date', nullable: true })
   endDate?: Date;
 
   @Column({
+    name: 'contract_type',
     type: 'enum',
     enum: ['indefinido', 'plazo_fijo', 'obra_faena', 'consultoria', 'honorarios'],
-    name: 'contract_type',
   })
   contractType!: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'administrador_contrato_mandante' })
+  @Column({ name: 'administrador_contrato_mandante', type: 'varchar', length: 255 })
   administradorContratoMandante!: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'administrador_contrato_empresa' })
+  @Column({ name: 'administrador_contrato_empresa', type: 'varchar', length: 255 })
   administradorContratoEmpresa!: string;
 
-  @Column({ type: 'varchar', length: 12, name: 'rut_administrador_contrato' })
+  @Column({ name: 'rut_administrador_contrato', type: 'varchar', length: 12 })
   rutAdministradorContrato!: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true, name: 'contract_number' })
+  @Column({ name: 'contract_number', type: 'varchar', length: 50, unique: true })
   contractNumber!: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'nombre_mandante' })
+  @Column({ name: 'nombre_mandante', type: 'varchar', length: 255 })
   nombreMandante!: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
@@ -60,23 +59,23 @@ export class ContractEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   area?: string;
 
-  @Column({ type: 'int', default: 0, name: 'dotacion_personal' })
+  @Column({ name: 'dotacion_personal', type: 'int', default: 0 })
   dotacionPersonal!: number;
 
-  @Column({ type: 'int', default: 0, name: 'dotacion_vehiculos' })
+  @Column({ name: 'dotacion_vehiculos', type: 'int', default: 0 })
   dotacionVehiculos!: number;
 
-  @Column({ type: 'text', nullable: true, name: 'descripcion_servicio' })
+  @Column({ name: 'descripcion_servicio', type: 'text', nullable: true })
   descripcionServicio?: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true, name: 'nombre_proyecto' })
+  @Column({ name: 'nombre_proyecto', type: 'varchar', length: 255, nullable: true })
   nombreProyecto?: string;
 
   @Column({
+    name: 'jornada_trabajo',
     type: 'enum',
     enum: ['completa', 'parcial', 'turno', 'especial'],
     default: 'completa',
-    name: 'jornada_trabajo',
   })
   jornadaTrabajo!: string;
 
@@ -87,19 +86,10 @@ export class ContractEntity {
   })
   status!: string;
 
-  @CreateDateColumn({ 
-    name: 'created_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ 
-    name: 'updated_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-    onUpdate: 'CURRENT_TIMESTAMP',
-  })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
   // Relations
