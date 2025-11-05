@@ -62,3 +62,17 @@ export const updateDocumentTypeSchema = Joi.object({
 export const getDocumentTypeByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
+
+export const createDocumentSubtypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
+  documentTypeId: Joi.string().uuid().required(),
+});
+
+export const updateDocumentSubtypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).optional(),
+  documentTypeId: Joi.string().uuid().optional(),
+}).min(1);
+
+export const getDocumentSubtypeByIdSchema = Joi.object({
+  id: Joi.string().uuid().required(),
+});

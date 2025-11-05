@@ -11,6 +11,7 @@ import { initializeDatabase } from '@shared/infrastructure/database/typeorm.conf
 import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
+import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
 import { DependencyContainer } from './dependency-container';
 
 export class App {
@@ -106,11 +107,13 @@ export class App {
     const userController = this.dependencyContainer.getUserController();
     const contractController = this.dependencyContainer.getContractController();
     const documentTypeController = this.dependencyContainer.getDocumentTypeController();
+    const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
     this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
+    this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
 
     // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {
