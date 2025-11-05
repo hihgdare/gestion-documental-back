@@ -50,3 +50,15 @@ export const updateContractSchema = Joi.object({
 export const getContractByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
+
+export const createDocumentTypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
+});
+
+export const updateDocumentTypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).optional(),
+}).min(1);
+
+export const getDocumentTypeByIdSchema = Joi.object({
+  id: Joi.string().uuid().required(),
+});
