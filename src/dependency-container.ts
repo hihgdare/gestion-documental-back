@@ -13,6 +13,10 @@ import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/up
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
 import { GetDocumentTypeByIdUseCase, GetAllDocumentTypesUseCase } from '@domains/document-type/use-cases/get-document-type.use-case';
 import { UpdateDocumentTypeUseCase, DeleteDocumentTypeUseCase } from '@domains/document-type/use-cases/update-document-type.use-case';
+import { 
+  GetDocumentTypeWithSubtypesUseCase,
+  GetAllDocumentTypesWithSubtypesUseCase
+} from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 
 // DocumentSubtype domain
 import { CreateDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/create-document-subtype.use-case';
@@ -72,6 +76,8 @@ export class DependencyContainer {
   private getAllDocumentTypesUseCase!: GetAllDocumentTypesUseCase;
   private updateDocumentTypeUseCase!: UpdateDocumentTypeUseCase;
   private deleteDocumentTypeUseCase!: DeleteDocumentTypeUseCase;
+  private getDocumentTypeWithSubtypesUseCase!: GetDocumentTypeWithSubtypesUseCase;
+  private getAllDocumentTypesWithSubtypesUseCase!: GetAllDocumentTypesWithSubtypesUseCase;
 
   // Use Cases - DocumentSubtype
   private createDocumentSubtypeUseCase!: CreateDocumentSubtypeUseCase;
@@ -126,6 +132,14 @@ export class DependencyContainer {
     this.getAllDocumentTypesUseCase = new GetAllDocumentTypesUseCase(this.documentTypeRepository);
     this.updateDocumentTypeUseCase = new UpdateDocumentTypeUseCase(this.documentTypeRepository);
     this.deleteDocumentTypeUseCase = new DeleteDocumentTypeUseCase(this.documentTypeRepository);
+    this.getDocumentTypeWithSubtypesUseCase = new GetDocumentTypeWithSubtypesUseCase(
+      this.documentTypeRepository,
+      this.documentSubtypeRepository,
+    );
+    this.getAllDocumentTypesWithSubtypesUseCase = new GetAllDocumentTypesWithSubtypesUseCase(
+      this.documentTypeRepository,
+      this.documentSubtypeRepository,
+    );
 
     // Initialize DocumentSubtype use cases
     this.createDocumentSubtypeUseCase = new CreateDocumentSubtypeUseCase(this.documentSubtypeRepository);
@@ -189,6 +203,8 @@ export class DependencyContainer {
       this.getAllDocumentTypesUseCase,
       this.updateDocumentTypeUseCase,
       this.deleteDocumentTypeUseCase,
+      this.getDocumentTypeWithSubtypesUseCase,
+      this.getAllDocumentTypesWithSubtypesUseCase,
     );
 
     this.documentSubtypeController = new DocumentSubtypeController(

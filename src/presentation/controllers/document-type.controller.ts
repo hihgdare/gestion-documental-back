@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
 import { GetDocumentTypeByIdUseCase, GetAllDocumentTypesUseCase } from '@domains/document-type/use-cases/get-document-type.use-case';
 import { UpdateDocumentTypeUseCase, DeleteDocumentTypeUseCase } from '@domains/document-type/use-cases/update-document-type.use-case';
+import { 
+  GetDocumentTypeWithSubtypesUseCase,
+  GetAllDocumentTypesWithSubtypesUseCase
+} from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
 
 export class DocumentTypeController {
@@ -11,6 +15,8 @@ export class DocumentTypeController {
     private readonly getAllDocumentTypesUseCase: GetAllDocumentTypesUseCase,
     private readonly updateDocumentTypeUseCase: UpdateDocumentTypeUseCase,
     private readonly deleteDocumentTypeUseCase: DeleteDocumentTypeUseCase,
+    private readonly getDocumentTypeWithSubtypesUseCase: GetDocumentTypeWithSubtypesUseCase,
+    private readonly getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
   ) {}
 
   public createDocumentType = asyncHandler(async (req: Request, res: Response) => {
@@ -56,6 +62,30 @@ export class DocumentTypeController {
     res.status(200).json({
       success: true,
       message: 'Tipo de documento eliminado exitosamente',
+    });
+  });
+
+  public getDocumentTypeWithSubtypes = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const result = await this.getDocumentTypeWithSubtypesUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: {
+        ...result.documentType.toJSON(),
+        subtypes: result.subtypes.map(subtype => subtype.toJSON()),
+      },
+    });
+  });
+
+  public getAllDocumentTypesWithSubtypes = asyncHandler(async (req: Request, res: Response) => {
+    const results = await this.getAllDocumentTypesWithSubtypesUseCase.execute();
+    res.status(200).json({
+      success: true,
+      data: results.map(result => ({
+        ...result.documentType.toJSON(),
+        subtypes: result.subtypes.map(subtype => subtype.toJSON()),
+      })),
+      count: results.length,
     });
   });
 }
