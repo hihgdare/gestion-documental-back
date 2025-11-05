@@ -20,7 +20,7 @@ export interface ContractResponseDto {
   nombreProyecto?: string;
   jornadaTrabajo: JornadaTrabajo;
   status: ContractStatus;
-  duration?: number; // days
+  duration?: number | null; // days
   isActive: boolean;
   isExpired: boolean;
   createdAt: string; // ISO date string

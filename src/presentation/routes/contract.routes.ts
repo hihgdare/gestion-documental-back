@@ -4,7 +4,6 @@ import { validateRequest } from '@shared/middleware/validation';
 import {
   createContractSchema,
   updateContractSchema,
-  getContractByIdSchema,
 } from '../dto/validation-schemas';
 
 export const createContractRoutes = (contractController: ContractController): Router => {

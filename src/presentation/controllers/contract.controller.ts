@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Contract } from '@domains/contract/entities/contract.entity';
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
 import {
   GetContractByIdUseCase,
@@ -24,9 +25,6 @@ import { CreateContractDto } from '@presentation/dto/contract/create-contract.dt
 import { UpdateContractDto } from '@presentation/dto/contract/update-contract.dto';
 import { ContractResponseDto } from '@presentation/dto/contract/contract-response.dto';
 import { asyncHandler } from '@shared/middleware/validation';
-
-// TODO: Add type for Contract
-type Contract = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export class ContractController {
   constructor(

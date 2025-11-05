@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import stylistic from '@stylistic/eslint-plugin';
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -11,7 +12,11 @@ export default tseslint.config(
       ecmaVersion: 2020,
       globals: globals.node,
     },
+    plugins: {
+      '@stylistic': stylistic,
+    },
     rules: {
+      "@stylistic/indent": ["error", 2],
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/interface-name-prefix": "off",
