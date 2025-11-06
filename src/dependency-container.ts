@@ -3,6 +3,7 @@ import { UserController } from '@presentation/controllers/user.controller';
 import { ContractController } from '@presentation/controllers/contract.controller';
 import { DocumentTypeController } from '@presentation/controllers/document-type.controller';
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
+import { DocumentController } from '@presentation/controllers/document.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
@@ -26,6 +27,19 @@ import {
   GetDocumentSubtypesByDocumentTypeIdUseCase
 } from '@domains/document-subtype/use-cases/get-document-subtype.use-case';
 import { UpdateDocumentSubtypeUseCase, DeleteDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/update-document-subtype.use-case';
+
+// Document domain
+import { CreateDocumentUseCase } from '@domains/document/use-cases/create-document.use-case';
+import {
+  GetDocumentByIdUseCase,
+  GetAllDocumentsUseCase,
+  GetDocumentsByContractIdUseCase,
+  GetDocumentsByDocumentTypeIdUseCase,
+  GetDocumentsByDocumentSubtypeIdUseCase,
+  GetExpiredDocumentsUseCase,
+  GetExpiringDocumentsUseCase,
+} from '@domains/document/use-cases/get-document.use-case';
+import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
@@ -55,6 +69,7 @@ import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeo
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
+import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 
 export class DependencyContainer {
   // Repositories
@@ -62,6 +77,7 @@ export class DependencyContainer {
   private contractRepository!: TypeOrmContractRepository;
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
+  private documentRepository!: TypeOrmDocumentRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -87,6 +103,18 @@ export class DependencyContainer {
   private updateDocumentSubtypeUseCase!: UpdateDocumentSubtypeUseCase;
   private deleteDocumentSubtypeUseCase!: DeleteDocumentSubtypeUseCase;
 
+  // Use Cases - Document
+  private createDocumentUseCase!: CreateDocumentUseCase;
+  private getDocumentByIdUseCase!: GetDocumentByIdUseCase;
+  private getAllDocumentsUseCase!: GetAllDocumentsUseCase;
+  private getDocumentsByContractIdUseCase!: GetDocumentsByContractIdUseCase;
+  private getDocumentsByDocumentTypeIdUseCase!: GetDocumentsByDocumentTypeIdUseCase;
+  private getDocumentsByDocumentSubtypeIdUseCase!: GetDocumentsByDocumentSubtypeIdUseCase;
+  private getExpiredDocumentsUseCase!: GetExpiredDocumentsUseCase;
+  private getExpiringDocumentsUseCase!: GetExpiringDocumentsUseCase;
+  private updateDocumentUseCase!: UpdateDocumentUseCase;
+  private deleteDocumentUseCase!: DeleteDocumentUseCase;
+
   // Use Cases - Contract
   private createContractUseCase!: CreateContractUseCase;
   private getContractByIdUseCase!: GetContractByIdUseCase;
@@ -111,6 +139,7 @@ export class DependencyContainer {
   private contractController!: ContractController;
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
+  private documentController!: DocumentController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -118,6 +147,7 @@ export class DependencyContainer {
     this.contractRepository = new TypeOrmContractRepository();
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
+    this.documentRepository = new TypeOrmDocumentRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository);
@@ -148,6 +178,18 @@ export class DependencyContainer {
     this.getDocumentSubtypesByDocumentTypeIdUseCase = new GetDocumentSubtypesByDocumentTypeIdUseCase(this.documentSubtypeRepository);
     this.updateDocumentSubtypeUseCase = new UpdateDocumentSubtypeUseCase(this.documentSubtypeRepository);
     this.deleteDocumentSubtypeUseCase = new DeleteDocumentSubtypeUseCase(this.documentSubtypeRepository);
+
+    // Initialize Document use cases
+    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository);
+    this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
+    this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
+    this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
+    this.getDocumentsByDocumentTypeIdUseCase = new GetDocumentsByDocumentTypeIdUseCase(this.documentRepository);
+    this.getDocumentsByDocumentSubtypeIdUseCase = new GetDocumentsByDocumentSubtypeIdUseCase(this.documentRepository);
+    this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
+    this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
+    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository);
+    this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
 
     // Initialize Contract use cases
     this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
@@ -215,6 +257,19 @@ export class DependencyContainer {
       this.updateDocumentSubtypeUseCase,
       this.deleteDocumentSubtypeUseCase,
     );
+
+    this.documentController = new DocumentController(
+      this.createDocumentUseCase,
+      this.getDocumentByIdUseCase,
+      this.getAllDocumentsUseCase,
+      this.getDocumentsByContractIdUseCase,
+      this.getDocumentsByDocumentTypeIdUseCase,
+      this.getDocumentsByDocumentSubtypeIdUseCase,
+      this.getExpiredDocumentsUseCase,
+      this.getExpiringDocumentsUseCase,
+      this.updateDocumentUseCase,
+      this.deleteDocumentUseCase,
+    );
   }
 
   // Getters for controllers
@@ -234,6 +289,10 @@ export class DependencyContainer {
     return this.documentSubtypeController;
   }
 
+  public getDocumentController(): DocumentController {
+    return this.documentController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -249,5 +308,9 @@ export class DependencyContainer {
 
   public getDocumentSubtypeRepository(): TypeOrmDocumentSubtypeRepository {
     return this.documentSubtypeRepository;
+  }
+
+  public getDocumentRepository(): TypeOrmDocumentRepository {
+    return this.documentRepository;
   }
 }

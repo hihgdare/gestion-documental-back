@@ -12,6 +12,7 @@ import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
 import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
+import { createDocumentRoutes } from '@presentation/routes/document.routes';
 import { DependencyContainer } from './dependency-container';
 
 export class App {
@@ -98,6 +99,7 @@ export class App {
           contracts: '/api/contracts',
           documentTypes: '/api/document-types',
           documentSubtypes: '/api/document-subtypes',
+          documents: '/api/documents',
           health: '/health',
         },
       });
@@ -108,12 +110,14 @@ export class App {
     const contractController = this.dependencyContainer.getContractController();
     const documentTypeController = this.dependencyContainer.getDocumentTypeController();
     const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
+    const documentController = this.dependencyContainer.getDocumentController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
     this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
+    this.app.use('/api/documents', createDocumentRoutes(documentController));
 
     // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {
