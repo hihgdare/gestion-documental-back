@@ -48,7 +48,7 @@ export class TypeOrmUserRepository implements UserRepository {
     return this.toDomain(userEntity);
   }
 
-  async findByStatus(status: string): Promise<User[]> {
+  async findByStatus(status: UserStatus): Promise<User[]> {
     const userEntities = await this.repository.find({
       where: { status },
       order: { createdAt: 'DESC' },

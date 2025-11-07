@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { EnumColumn } from './utils/decorators';
 
 @Entity('users')
 export class UserEntity {
@@ -23,12 +24,8 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 255 })
   password!: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['active', 'inactive', 'suspended', 'pending'],
-    default: 'active',
-  })
-  status!: string;
+  @EnumColumn({ enum: ['active', 'inactive', 'suspended', 'pending'] })
+  status!: 'active' | 'inactive' | 'suspended' | 'pending';
 
   @Column({ name: 'role_id', type: 'varchar', length: 36 })
   roleId!: string;

@@ -8,6 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { EnumColumn } from './utils/decorators';
 import { UserEntity } from './user.entity';
 
 @Entity('contracts')
@@ -31,9 +32,8 @@ export class ContractEntity {
   @Column({ name: 'end_date', type: 'date', nullable: true })
   endDate?: Date;
 
-  @Column({
+  @EnumColumn({
     name: 'contract_type',
-    type: 'enum',
     enum: ['indefinido', 'plazo_fijo', 'obra_faena', 'consultoria', 'honorarios'],
   })
   contractType!: string;
@@ -71,16 +71,14 @@ export class ContractEntity {
   @Column({ name: 'nombre_proyecto', type: 'varchar', length: 255, nullable: true })
   nombreProyecto?: string;
 
-  @Column({
+  @EnumColumn({
     name: 'jornada_trabajo',
-    type: 'enum',
     enum: ['completa', 'parcial', 'turno', 'especial'],
     default: 'completa',
   })
   jornadaTrabajo!: string;
 
-  @Column({
-    type: 'enum',
+  @EnumColumn({
     enum: ['draft', 'active', 'suspended', 'terminated', 'expired'],
     default: 'draft',
   })
