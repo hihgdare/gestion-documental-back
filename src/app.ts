@@ -13,6 +13,7 @@ import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
 import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
 import { createDocumentRoutes } from '@presentation/routes/document.routes';
+import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { DependencyContainer } from './dependency-container';
 
 export class App {
@@ -27,16 +28,16 @@ export class App {
   public async initialize(): Promise<void> {
     // Initialize database
     await initializeDatabase();
-    
+
     // Initialize dependencies
     await this.dependencyContainer.initialize();
-    
+
     // Setup middleware
     this.setupMiddleware();
-    
+
     // Setup routes
     this.setupRoutes();
-    
+
     // Setup error handling
     this.setupErrorHandling();
   }
@@ -44,7 +45,7 @@ export class App {
   private setupMiddleware(): void {
     // Security middleware
     this.app.use(helmet());
-    
+
     // CORS configuration
     this.app.use(cors({
       origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
@@ -101,6 +102,7 @@ export class App {
           documentSubtypes: '/api/document-subtypes',
           documents: '/api/documents',
           health: '/health',
+          permissions: '/api/permissions',
         },
       });
     });
@@ -111,6 +113,7 @@ export class App {
     const documentTypeController = this.dependencyContainer.getDocumentTypeController();
     const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
     const documentController = this.dependencyContainer.getDocumentController();
+    const permissionController = this.dependencyContainer.getPermissionController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
@@ -118,6 +121,7 @@ export class App {
     this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
     this.app.use('/api/documents', createDocumentRoutes(documentController));
+    this.app.use('/api/permissions', createPermissionRoutes(permissionController));
 
     // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {

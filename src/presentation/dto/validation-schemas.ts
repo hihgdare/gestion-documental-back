@@ -101,3 +101,13 @@ export const updateDocumentSchema = Joi.object({
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
+
+export const createPermissionSchema = Joi.object({
+  name: Joi.string().min(2).max(50).required(),
+  description: Joi.string().max(255).optional(),
+});
+
+export const updatePermissionSchema = Joi.object({
+  name: Joi.string().min(2).max(50).optional(),
+  description: Joi.string().max(255).optional(),
+}).min(1);

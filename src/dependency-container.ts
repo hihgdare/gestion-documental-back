@@ -4,6 +4,7 @@ import { ContractController } from '@presentation/controllers/contract.controlle
 import { DocumentTypeController } from '@presentation/controllers/document-type.controller';
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
 import { DocumentController } from '@presentation/controllers/document.controller';
+import { PermissionController } from '@presentation/controllers/permission.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
@@ -14,17 +15,17 @@ import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/up
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
 import { GetDocumentTypeByIdUseCase, GetAllDocumentTypesUseCase } from '@domains/document-type/use-cases/get-document-type.use-case';
 import { UpdateDocumentTypeUseCase, DeleteDocumentTypeUseCase } from '@domains/document-type/use-cases/update-document-type.use-case';
-import { 
+import {
   GetDocumentTypeWithSubtypesUseCase,
-  GetAllDocumentTypesWithSubtypesUseCase
+  GetAllDocumentTypesWithSubtypesUseCase,
 } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 
 // DocumentSubtype domain
 import { CreateDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/create-document-subtype.use-case';
-import { 
-  GetDocumentSubtypeByIdUseCase, 
+import {
+  GetDocumentSubtypeByIdUseCase,
   GetAllDocumentSubtypesUseCase,
-  GetDocumentSubtypesByDocumentTypeIdUseCase
+  GetDocumentSubtypesByDocumentTypeIdUseCase,
 } from '@domains/document-subtype/use-cases/get-document-subtype.use-case';
 import { UpdateDocumentSubtypeUseCase, DeleteDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/update-document-subtype.use-case';
 
@@ -64,12 +65,20 @@ import {
   DeleteContractUseCase,
 } from '@domains/contract/use-cases/update-contract.use-case';
 
+// Permission domain
+import { CreatePermissionUseCase } from '@domains/permission/use-cases/create-permission.use-case';
+import { GetPermissionsUseCase } from '@domains/permission/use-cases/get-permission.use-case';
+import { GetPermissionByIdUseCase } from '@domains/permission/use-cases/get-permission-by-id.use-case';
+import { UpdatePermissionUseCase } from '@domains/permission/use-cases/update-permission.use-case';
+import { DeletePermissionUseCase } from '@domains/permission/use-cases/delete-permission.use-case';
+
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
+import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 
 export class DependencyContainer {
   // Repositories
@@ -78,6 +87,7 @@ export class DependencyContainer {
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
   private documentRepository!: TypeOrmDocumentRepository;
+  private permissionRepository!: TypeOrmPermissionRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -134,12 +144,20 @@ export class DependencyContainer {
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
 
+  // Use Cases - Permission
+  private createPermissionUseCase!: CreatePermissionUseCase;
+  private getPermissionsUseCase!: GetPermissionsUseCase;
+  private getPermissionByIdUseCase!: GetPermissionByIdUseCase;
+  private updatePermissionUseCase!: UpdatePermissionUseCase;
+  private deletePermissionUseCase!: DeletePermissionUseCase;
+
   // Controllers
-  private userController!: UserController;
   private contractController!: ContractController;
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
   private documentController!: DocumentController;
+  private permissionController!: PermissionController;
+  private userController!: UserController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -148,6 +166,7 @@ export class DependencyContainer {
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
     this.documentRepository = new TypeOrmDocumentRepository();
+    this.permissionRepository = new TypeOrmPermissionRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository);
@@ -210,6 +229,13 @@ export class DependencyContainer {
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
 
+    // Initialize Permission use cases
+    this.createPermissionUseCase = new CreatePermissionUseCase(this.permissionRepository);
+    this.getPermissionsUseCase = new GetPermissionsUseCase(this.permissionRepository);
+    this.getPermissionByIdUseCase = new GetPermissionByIdUseCase(this.permissionRepository);
+    this.updatePermissionUseCase = new UpdatePermissionUseCase(this.permissionRepository);
+    this.deletePermissionUseCase = new DeletePermissionUseCase(this.permissionRepository);
+
     // Initialize Controllers
     this.userController = new UserController(
       this.createUserUseCase,
@@ -270,6 +296,14 @@ export class DependencyContainer {
       this.updateDocumentUseCase,
       this.deleteDocumentUseCase,
     );
+
+    this.permissionController = new PermissionController(
+      this.createPermissionUseCase,
+      this.getPermissionByIdUseCase,
+      this.getPermissionsUseCase,
+      this.updatePermissionUseCase,
+      this.deletePermissionUseCase,
+    );
   }
 
   // Getters for controllers
@@ -293,6 +327,10 @@ export class DependencyContainer {
     return this.documentController;
   }
 
+  public getPermissionController(): PermissionController {
+    return this.permissionController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -312,5 +350,9 @@ export class DependencyContainer {
 
   public getDocumentRepository(): TypeOrmDocumentRepository {
     return this.documentRepository;
+  }
+
+  public getPermissionRepository(): TypeOrmPermissionRepository {
+    return this.permissionRepository;
   }
 }

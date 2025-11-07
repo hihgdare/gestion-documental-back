@@ -46,9 +46,7 @@ export const errorHandler = (
 };
 
 function getErrorData(error: Error): {status: number, code: string, message?: string, details?: unknown} {
-  if (error instanceof DomainError) {
-    return { status: 400, code: 'DOMAIN_ERROR' };
-  } else if (error instanceof UnauthorizedError) {
+  if (error instanceof UnauthorizedError) {
     return { status: 401, code: 'UNAUTHORIZED' };
   } else if (error instanceof ValidationError) {
     return {
@@ -62,6 +60,8 @@ function getErrorData(error: Error): {status: number, code: string, message?: st
     return { status: 404, code: 'NOT_FOUND' };
   } else if (error instanceof ConflictError) {
     return { status: 409, code: 'CONFLICT' };
+  } else if (error instanceof DomainError) {
+    return { status: 400, code: 'DOMAIN_ERROR' };
   } else {
     return {
       status: 500,
