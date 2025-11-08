@@ -5,6 +5,7 @@ import { DocumentTypeController } from '@presentation/controllers/document-type.
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
 import { DocumentController } from '@presentation/controllers/document.controller';
 import { PermissionController } from '@presentation/controllers/permission.controller';
+import { RoleController } from '@presentation/controllers/role.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
@@ -72,6 +73,11 @@ import { GetPermissionByIdUseCase } from '@domains/permission/use-cases/get-perm
 import { UpdatePermissionUseCase } from '@domains/permission/use-cases/update-permission.use-case';
 import { DeletePermissionUseCase } from '@domains/permission/use-cases/delete-permission.use-case';
 
+// Role domain
+import { CreateRoleUseCase } from '@domains/role/use-cases/create-role.use-case';
+import { GetRoleByIdUseCase, GetRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
+import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
+
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
@@ -79,6 +85,7 @@ import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositori
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
+import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 
 export class DependencyContainer {
   // Repositories
@@ -88,6 +95,7 @@ export class DependencyContainer {
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
   private documentRepository!: TypeOrmDocumentRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
+  private roleRepository!: TypeOrmRoleRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -151,12 +159,20 @@ export class DependencyContainer {
   private updatePermissionUseCase!: UpdatePermissionUseCase;
   private deletePermissionUseCase!: DeletePermissionUseCase;
 
+  // Use Cases - Role
+  private createRoleUseCase!: CreateRoleUseCase;
+  private getRoleByIdUseCase!: GetRoleByIdUseCase;
+  private getRolesUseCase!: GetRolesUseCase;
+  private updateRoleUseCase!: UpdateRoleUseCase;
+  private deleteRoleUseCase!: DeleteRoleUseCase;
+
   // Controllers
   private contractController!: ContractController;
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
   private documentController!: DocumentController;
   private permissionController!: PermissionController;
+  private roleController!: RoleController;
   private userController!: UserController;
 
   public async initialize(): Promise<void> {
@@ -167,6 +183,7 @@ export class DependencyContainer {
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
     this.documentRepository = new TypeOrmDocumentRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
+    this.roleRepository = new TypeOrmRoleRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository);
@@ -236,6 +253,13 @@ export class DependencyContainer {
     this.updatePermissionUseCase = new UpdatePermissionUseCase(this.permissionRepository);
     this.deletePermissionUseCase = new DeletePermissionUseCase(this.permissionRepository);
 
+    // Initialize Role use cases
+    this.createRoleUseCase = new CreateRoleUseCase(this.roleRepository);
+    this.getRoleByIdUseCase = new GetRoleByIdUseCase(this.roleRepository);
+    this.getRolesUseCase = new GetRolesUseCase(this.roleRepository);
+    this.updateRoleUseCase = new UpdateRoleUseCase(this.roleRepository);
+    this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository);
+
     // Initialize Controllers
     this.userController = new UserController(
       this.createUserUseCase,
@@ -304,6 +328,22 @@ export class DependencyContainer {
       this.updatePermissionUseCase,
       this.deletePermissionUseCase,
     );
+
+    this.roleController = new RoleController(
+      this.createRoleUseCase,
+      this.getRoleByIdUseCase,
+      this.getRolesUseCase,
+      this.updateRoleUseCase,
+      this.deleteRoleUseCase,
+    );
+
+    this.userController = new UserController(
+      this.createUserUseCase,
+      this.getUserByIdUseCase,
+      this.getAllUsersUseCase,
+      this.updateUserUseCase,
+      this.deleteUserUseCase,
+    );
   }
 
   // Getters for controllers
@@ -331,6 +371,10 @@ export class DependencyContainer {
     return this.permissionController;
   }
 
+  public getRoleController(): RoleController {
+    return this.roleController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -354,5 +398,9 @@ export class DependencyContainer {
 
   public getPermissionRepository(): TypeOrmPermissionRepository {
     return this.permissionRepository;
+  }
+
+  public getRoleRepository(): TypeOrmRoleRepository {
+    return this.roleRepository;
   }
 }
