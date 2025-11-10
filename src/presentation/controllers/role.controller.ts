@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import { CreateRoleUseCase } from '@domains/role/use-cases/create-role.use-case';
 import { GetRoleByIdUseCase, GetRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
 import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
+import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
+import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 
 export class RoleController {
   constructor(
@@ -11,6 +13,8 @@ export class RoleController {
     public readonly getRolesUseCase: GetRolesUseCase,
     public readonly updateRoleUseCase: UpdateRoleUseCase,
     public readonly deleteRoleUseCase: DeleteRoleUseCase,
+    public readonly assignPermissionsToRoleUseCase: AssignPermissionsToRoleUseCase,
+    public readonly getPermissionsToRoleUseCase: GetPermissionsToRoleUseCase,
   ) {}
 
   public createRole = asyncHandler(async (req: Request, res: Response) => {
@@ -56,6 +60,26 @@ export class RoleController {
     res.status(200).json({
       success: true,
       message: 'Role deleted successfully',
+    });
+  });
+
+  public assignPermissions = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { permissionIds } = req.body;
+    const role = await this.assignPermissionsToRoleUseCase.execute({ roleId: Number(id), permissionIds });
+    res.status(200).json({
+      success: true,
+      data: role,
+      message: 'Permissions assigned successfully',
+    });
+  });
+
+  public getPermissions = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const permissions = await this.getPermissionsToRoleUseCase.execute(Number(id));
+    res.status(200).json({
+      success: true,
+      data: permissions,
     });
   });
 }

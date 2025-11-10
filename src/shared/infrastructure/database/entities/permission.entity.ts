@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
 } from 'typeorm';
+import { RoleEntity } from './role.entity';
 
 @Entity('permissions')
 export class PermissionEntity {
@@ -22,4 +24,7 @@ export class PermissionEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @ManyToMany(() => RoleEntity, (role) => role.permissions)
+  roles!: RoleEntity[];
 }

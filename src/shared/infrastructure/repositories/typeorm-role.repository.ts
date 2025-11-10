@@ -23,7 +23,7 @@ export class TypeOrmRoleRepository implements RoleRepository {
   }
 
   async findById(id: number): Promise<Role | null> {
-    const entity = await this.repository.findOne({ where: { id } });
+    const entity = await this.repository.findOne({ where: { id }, relations: ['permissions'] });
     return entity ? new Role(entity) : null;
   }
 
@@ -33,11 +33,7 @@ export class TypeOrmRoleRepository implements RoleRepository {
   }
 
   async update(role: Role): Promise<Role> {
-    const entity = await this.repository.preload(role);
-    if (!entity) {
-      throw new Error('Role not found');
-    }
-    const savedEntity = await this.repository.save(entity);
+    const savedEntity = await this.repository.save(role);
     return new Role(savedEntity);
   }
 

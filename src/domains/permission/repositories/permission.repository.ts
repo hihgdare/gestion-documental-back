@@ -4,6 +4,7 @@ export interface PermissionRepository {
   create(permission: Permission): Promise<Permission>;
   findByName(name: string): Promise<Permission | null>;
   findById(id: number): Promise<Permission | null>;
+  findIn(ids: number[]): Promise<Permission[]>;
   findAll(): Promise<Permission[]>;
   update(permission: Permission): Promise<Permission>;
   delete(id: number): Promise<void>;

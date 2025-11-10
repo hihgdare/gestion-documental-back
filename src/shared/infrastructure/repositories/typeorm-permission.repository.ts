@@ -2,13 +2,18 @@ import { AppDataSource } from '../database/typeorm.config';
 import { PermissionEntity } from '../database/entities/permission.entity';
 import { Permission } from '@domains/permission/entities/permission.entity';
 import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 export class TypeOrmPermissionRepository implements PermissionRepository {
   private repository: Repository<PermissionEntity>;
 
   constructor() {
     this.repository = AppDataSource.getRepository(PermissionEntity);
+  }
+
+  async findIn(ids: number[]): Promise<Permission[]> {
+    const entities = await this.repository.findBy({ id: In(ids) });
+    return entities.map((entity) => new Permission(entity));
   }
 
   async create(permission: Permission): Promise<Permission> {

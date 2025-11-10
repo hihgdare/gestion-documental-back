@@ -8,6 +8,7 @@ import { Role } from '@domains/role/entities/role.entity';
 describe('RoleController', () => {
   let appInstance: App;
   let app: Application;
+  const permissionIds: number[] = [];
 
   beforeAll(async () => {
     appInstance = new App();
@@ -52,6 +53,31 @@ describe('RoleController', () => {
         id: createdId,
         name: updateDto.name,
         description: updateDto.description,
+      });
+    });
+
+    it('should create permissions for role assignment and return 200', async () => {
+      for (let i = 0; i < 2; i++) {
+        const response = await supertest(app)
+          .post('/api/permissions')
+          .send({ name: `test.permission.${i}`, description: `A test permission ${i}` });
+
+        expect(response.status).toBe(201);
+        permissionIds.push(response.body.data.id);
+      }
+    });
+
+    describe('/{id}/permissions', () => {
+      it('should assign permissions to a role and return 200', async () => {
+        const response = await supertest(app)
+          .post(`/api/roles/${createdId}/permissions`)
+          .send({ permissionIds });
+
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Permissions assigned successfully');
+        expect(response.body.data.id).toBe(createdId);
+        expect(response.body.data.permissions).toHaveLength(permissionIds.length);
       });
     });
 

@@ -121,3 +121,7 @@ export const updateRoleSchema = Joi.object({
   name: Joi.string().min(2).max(50).optional(),
   description: Joi.string().max(255).optional(),
 }).min(1);
+
+export const assignPermissionsSchema = Joi.object({
+  permissionIds: Joi.array().items(Joi.number().integer()).required(),
+});

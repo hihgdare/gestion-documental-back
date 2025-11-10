@@ -77,6 +77,7 @@ import { DeletePermissionUseCase } from '@domains/permission/use-cases/delete-pe
 import { CreateRoleUseCase } from '@domains/role/use-cases/create-role.use-case';
 import { GetRoleByIdUseCase, GetRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
 import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
+import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
@@ -86,6 +87,7 @@ import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/reposit
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 
 export class DependencyContainer {
   // Repositories
@@ -165,6 +167,8 @@ export class DependencyContainer {
   private getRolesUseCase!: GetRolesUseCase;
   private updateRoleUseCase!: UpdateRoleUseCase;
   private deleteRoleUseCase!: DeleteRoleUseCase;
+  private assignPermissionsToRoleUseCase!: AssignPermissionsToRoleUseCase;
+  private getPermissionsToRoleUseCase!: GetPermissionsToRoleUseCase;
 
   // Controllers
   private contractController!: ContractController;
@@ -259,8 +263,15 @@ export class DependencyContainer {
     this.getRolesUseCase = new GetRolesUseCase(this.roleRepository);
     this.updateRoleUseCase = new UpdateRoleUseCase(this.roleRepository);
     this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository);
+    this.assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(
+      this.roleRepository,
+      this.permissionRepository,
+    );
+    this.getPermissionsToRoleUseCase = new GetPermissionsToRoleUseCase(
+      this.roleRepository,
+    );
 
-    // Initialize Controllers
+    // Initialize User Controllers
     this.userController = new UserController(
       this.createUserUseCase,
       this.getUserByIdUseCase,
@@ -269,6 +280,7 @@ export class DependencyContainer {
       this.deleteUserUseCase,
     );
 
+    // Initialize Controllers
     this.contractController = new ContractController(
       this.createContractUseCase,
       this.getContractByIdUseCase,
@@ -335,6 +347,8 @@ export class DependencyContainer {
       this.getRolesUseCase,
       this.updateRoleUseCase,
       this.deleteRoleUseCase,
+      this.assignPermissionsToRoleUseCase,
+      this.getPermissionsToRoleUseCase,
     );
 
     this.userController = new UserController(
