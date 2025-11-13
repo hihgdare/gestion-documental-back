@@ -63,3 +63,7 @@ Para iniciar un nuevo módulo en la aplicación, esta es la forma recomendada:
 11. Agregamos las rutas al enrutador principal.
    - Ruta: `src/app.ts`
    - Importa y agrega las rutas de cada módulo.
+12. Agregamos pruebas manuales http para verificar el funcionamiento de las rutas (opcional).
+   - Ruta: `specs/http/<modulo>.http`
+   - Utiliza `http` para probar las rutas HTTP.
+   - Verifica que las respuestas sean las esperadas.

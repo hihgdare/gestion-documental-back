@@ -59,8 +59,8 @@ export class DateUtils {
 }
 
 export class StringUtils {
-  public static isEmpty(value: string | null | undefined): boolean {
-    return !value || value.trim().length === 0;
+  public static isEmpty(value?: string | null): value is null | undefined | '' {
+    return !value?.trim().length;
   }
 
   public static isEmail(email: string): boolean {

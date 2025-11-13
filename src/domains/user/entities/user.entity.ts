@@ -1,120 +1,64 @@
-import { BaseEntity } from '@shared/domain/base-entity';
-import { UUID } from '@shared/utils/common';
-import { Email } from '../value-objects/email';
-import { UserStatus } from '../value-objects/user-status';
+import { BaseEntity, BasicProps } from '@shared/domain/base-entity';
+import { v4 as uuid } from 'uuid';
 import { ValidationError } from '@shared/domain/errors';
+import { BaseProps } from '@shared/infrastructure/entity-props';
+import { Email } from '../value-objects/email';
+import { isValidUserStatus, UserStatus } from '../value-objects/user-status';
+import { Role } from '../../role/entities/role.entity';
 
-export interface UserProps {
-  id?: string;
-  email: string;
+export type UserProps = BaseProps<User>;
+
+export class User extends BaseEntity<User> implements BasicProps<true> {
+  id: string;
+  email: Email;
   firstName: string;
   lastName: string;
   password: string;
   status?: UserStatus;
-  roleId: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+  roles?: Role[];
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 
-export class User extends BaseEntity {
-  private constructor(
-    id: string,
-    private _email: Email,
-    private _firstName: string,
-    private _lastName: string,
-    private _password: string,
-    private _status: UserStatus,
-    private _roleId: string,
-    createdAt: Date,
-    updatedAt: Date,
-  ) {
-    super(id, createdAt, updatedAt);
+  constructor(input: Partial<User>) {
+    User.validateRequired(input);
+    super({
+      ...input,
+      email: Email.create(input.email!),
+      status: isValidUserStatus(input.status) ? input.status : UserStatus.ACTIVE,
+    }, true);
+    this.id = (input.id as string) ?? uuid();
+    this.createdAt = input.createdAt ?? new Date();
+    this.updatedAt = input.updatedAt ?? new Date();
+    this.email = Email.create(input.email!);
+    this.firstName = input.firstName!;
+    this.lastName = input.lastName!;
+    this.password = input.password!;
+    this.status = isValidUserStatus(input.status) ? input.status : UserStatus.ACTIVE;
+    this.roles = input.roles ?? [];
   }
 
-  public static create(props: UserProps): User {
-    const id = props.id || UUID.generate().toString();
-    const email = Email.create(props.email);
-    const status = props.status || UserStatus.ACTIVE;
-
-    this.validateRequired(props);
-
-    return new User(
-      id,
-      email,
-      props.firstName.trim(),
-      props.lastName.trim(),
-      props.password,
-      status,
-      props.roleId,
-      props.createdAt || new Date(),
-      props.updatedAt || new Date(),
-    );
-  }
-
-  public static fromPersistence(props: UserProps): User {
-    const email = Email.create(props.email);
-    const status = props.status || UserStatus.ACTIVE;
-
-    return new User(
-      props.id!,
-      email,
-      props.firstName,
-      props.lastName,
-      props.password,
-      status,
-      props.roleId,
-      props.createdAt!,
-      props.updatedAt!,
-    );
-  }
-
-  private static validateRequired(props: UserProps): void {
+  private static validateRequired(props: Partial<UserProps>): void {
+    if (!Email.isValid(props.email)) {
+      throw new ValidationError('Invalid email format', 'email');
+    }
     if (!props.firstName?.trim()) {
       throw new ValidationError('First name is required', 'firstName');
     }
     if (!props.lastName?.trim()) {
       throw new ValidationError('Last name is required', 'lastName');
     }
-    if (!props.password) {
+    if (!props.password?.trim()) {
       throw new ValidationError('Password is required', 'password');
     }
-    if (!props.roleId) {
-      throw new ValidationError('Role ID is required', 'roleId');
+    if (!props.roles?.length) {
+      throw new ValidationError('At least one role is required', 'roles');
     }
-  }
-
-  // Getters
-  public get email(): Email {
-    return this._email;
-  }
-
-  public get firstName(): string {
-    return this._firstName;
-  }
-
-  public get lastName(): string {
-    return this._lastName;
-  }
-
-  public get fullName(): string {
-    return `${this._firstName} ${this._lastName}`;
-  }
-
-  public get password(): string {
-    return this._password;
-  }
-
-  public get status(): UserStatus {
-    return this._status;
-  }
-
-  public get roleId(): string {
-    return this._roleId;
   }
 
   // Business methods
-  public updateEmail(newEmail: string): void {
-    this._email = Email.create(newEmail);
+  public updateEmail(email: string): void {
+    this.email = Email.create(email);
   }
 
   public updateName(firstName: string, lastName: string): void {
@@ -125,42 +69,46 @@ export class User extends BaseEntity {
       throw new ValidationError('Last name is required', 'lastName');
     }
 
-    this._firstName = firstName.trim();
-    this._lastName = lastName.trim();
+    this.firstName = firstName.trim();
+    this.lastName = lastName.trim();
   }
 
-  public updatePassword(newPassword: string): void {
-    if (!newPassword) {
+  public updatePassword(password: string): void {
+    if (!password?.trim()) {
       throw new ValidationError('Password is required', 'password');
     }
-    this._password = newPassword;
+    this.password = password.trim();
+  }
+
+  public assignRoles(roles: Role[]): void {
+    this.roles = roles;
   }
 
   public activate(): void {
-    this._status = UserStatus.ACTIVE;
+    this.status = UserStatus.ACTIVE;
   }
 
   public deactivate(): void {
-    this._status = UserStatus.INACTIVE;
+    this.status = UserStatus.INACTIVE;
   }
 
   public suspend(): void {
-    this._status = UserStatus.SUSPENDED;
+    this.status = UserStatus.SUSPENDED;
   }
 
   public isActive(): boolean {
-    return this._status === UserStatus.ACTIVE;
+    return this.status === UserStatus.ACTIVE;
   }
 
   public toJSON() {
     return {
       id: this.id,
-      email: this._email.toString(),
-      firstName: this._firstName,
-      lastName: this._lastName,
-      fullName: this.fullName,
-      status: this._status,
-      roleId: this._roleId,
+      email: this.email.toString(),
+      firstName: this.firstName,
+      lastName: this.lastName,
+      fullName: `${this.firstName} ${this.lastName}`,
+      status: this.status,
+      roles: this.roles?.map(role => ({ id: role.id, name: role.name })),
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

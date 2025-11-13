@@ -8,8 +8,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { EnumColumn } from './utils/decorators';
-import { UserEntity } from './user.entity';
+import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
+import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
 
 @Entity('contracts')
 @Index(['rutSociedad'])

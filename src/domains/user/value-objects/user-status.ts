@@ -5,6 +5,6 @@ export enum UserStatus {
   PENDING = 'pending'
 }
 
-export const isValidUserStatus = (status: string): status is UserStatus => {
-  return Object.values(UserStatus).includes(status as UserStatus);
-};
+export const isValidUserStatus = (status?: string | null): status is UserStatus => (
+  Object.values(UserStatus).includes(status as UserStatus)
+);

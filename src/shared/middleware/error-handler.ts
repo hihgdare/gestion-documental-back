@@ -28,11 +28,13 @@ export const errorHandler = (
   const {status, code, message, details} = getErrorData(error);
 
   // Log error for debugging
-  console.error(`[${timestamp}] ${error.name}: ${error.message}`, {
-    stack: error.stack,
-    path: req.originalUrl,
-    method: req.method,
-  });
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(`[${timestamp}] ${error.name}: ${error.message}`, {
+      stack: error.stack,
+      path: req.originalUrl,
+      method: req.method,
+    });
+  }
 
   res.status(status).json({
     error: {

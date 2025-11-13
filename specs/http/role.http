@@ -1,0 +1,37 @@
+@baseUrl = http://localhost:3000/api
+@module = roles
+@name = test.role.tmp
+@description = Test Role
+@id = 1
+
+###
+
+GET {{baseUrl}}/{{module}}
+
+###
+
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "name": "{{name}}",
+  "description": "{{description}}"
+}
+
+###
+
+GET {{baseUrl}}/{{module}}/{{id}}
+
+###
+
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "name": "{{name}}.updated",
+  "description": "{{description}} Updated"
+}
+
+###
+
+DELETE {{baseUrl}}/{{module}}/{{id}}

@@ -130,7 +130,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
       .orderBy('contract.createdAt', 'DESC')
       .getMany();
-    
+
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
@@ -141,7 +141,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
       .orderBy('contract.endDate', 'ASC')
       .getMany();
-    
+
     return contractEntities.map(entity => this.toDomain(entity));
   }
 

@@ -34,7 +34,8 @@ export function initializeDataSource(): DataSource {
   return new DataSource({
     ...options,
     entities: [
-      'src/shared/infrastructure/database/entities/*.ts',
+      'src/shared/infrastructure/database/entities/**/*.ts',
+      'src/application/entities/**/*.ts',
     ],
     migrations: [
       'src/shared/infrastructure/database/migrations/*.ts',
@@ -63,3 +64,13 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
     throw error;
   }
 };
+
+export async function clearDatabase(DataSource?: DataSource): Promise<void> {
+  if (!DataSource) {
+    DataSource = AppDataSource;
+  }
+  if (DataSource.isInitialized) {
+    await DataSource.dropDatabase();
+    await DataSource.synchronize();
+  }
+}

@@ -1,16 +1,20 @@
 import { UserRepository } from '../repositories/user.repository';
 import { User } from '../entities/user.entity';
 import { NotFoundError, ConflictError } from '@shared/domain/errors';
+import { RoleRepository } from '@domains/role/repositories/role.repository';
 
 export interface UpdateUserRequest {
   email?: string;
   firstName?: string;
   lastName?: string;
-  roleId?: string;
+  roleIds?: number[];
 }
 
 export class UpdateUserUseCase {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly roleRepository: RoleRepository,
+  ) {}
 
   public async execute(id: string, request: UpdateUserRequest): Promise<User> {
     const user = await this.userRepository.findById(id);
@@ -35,7 +39,7 @@ export class UpdateUserUseCase {
       );
     }
 
-    return await this.userRepository.update(user);
+    return await this.userRepository.update(id, user);
   }
 }
 

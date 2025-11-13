@@ -1,6 +1,6 @@
-import { ContractRepository } from '../repositories/contract.repository';
-import { Contract, ContractProps } from '../entities/contract.entity';
-import { ContractType, JornadaTrabajo } from '../value-objects/contract-enums';
+import { ContractRepository } from '@domains/contract/repositories/contract.repository';
+import { Contract, ContractProps } from '@domains/contract/entities/contract.entity';
+import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { ConflictError } from '@shared/domain/errors';
 
 export interface CreateContractRequest {
@@ -40,7 +40,7 @@ export class CreateContractUseCase {
     };
 
     const contract = Contract.create(contractProps);
-    
+
     return await this.contractRepository.save(contract);
   }
 }

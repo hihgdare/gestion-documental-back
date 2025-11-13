@@ -4,8 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
-import { EnumColumn } from './utils/decorators';
+import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
+import { RoleEntity } from './role.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -27,8 +30,13 @@ export class UserEntity {
   @EnumColumn({ enum: ['active', 'inactive', 'suspended', 'pending'] })
   status!: 'active' | 'inactive' | 'suspended' | 'pending';
 
-  @Column({ name: 'role_id', type: 'varchar', length: 36 })
-  roleId!: string;
+  @ManyToMany(() => RoleEntity, (role) => role.users)
+  @JoinTable({
+    name: 'user_roles',
+    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
+  })
+  roles?: RoleEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

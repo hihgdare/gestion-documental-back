@@ -7,9 +7,13 @@ import {
   ManyToMany,
 } from 'typeorm';
 import { RoleEntity } from './role.entity';
+import { EntityProps } from '@shared/infrastructure/entity-props';
+import { Permission } from '@domains/permission/entities/permission.entity';
+
+type PermissionProps = EntityProps<Permission>;
 
 @Entity('permissions')
-export class PermissionEntity {
+export class PermissionEntity implements PermissionProps {
   @PrimaryGeneratedColumn()
   id!: number;
 
@@ -27,4 +31,22 @@ export class PermissionEntity {
 
   @ManyToMany(() => RoleEntity, (role) => role.permissions)
   roles!: RoleEntity[];
+
+  static fromDomain(permission: Permission): PermissionEntity {
+    const permissionEntity = new PermissionEntity();
+    permissionEntity.id = permission.id!;
+    permissionEntity.name = permission.name;
+    permissionEntity.description = permission.description;
+    return permissionEntity;
+  }
+
+  static toDomain(entity: PermissionEntity): Permission {
+    return new Permission({
+      id: entity.id,
+      name: entity.name,
+      description: entity.description,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    });
+  }
 }

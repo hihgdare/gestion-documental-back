@@ -5,14 +5,14 @@ export const createUserSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
   password: Joi.string().min(8).required(),
-  roleId: Joi.string().uuid().required(),
+  roleIds: Joi.array().items(Joi.number().integer()).required(),
 });
 
 export const updateUserSchema = Joi.object({
   email: Joi.string().email().optional(),
   firstName: Joi.string().min(2).max(50).optional(),
   lastName: Joi.string().min(2).max(50).optional(),
-  roleId: Joi.string().uuid().optional(),
+  roleIds: Joi.array().items(Joi.number().integer()).optional(),
 }).min(1);
 
 export const getUserByIdSchema = Joi.object({
@@ -124,4 +124,8 @@ export const updateRoleSchema = Joi.object({
 
 export const assignPermissionsSchema = Joi.object({
   permissionIds: Joi.array().items(Joi.number().integer()).required(),
+});
+
+export const assignRoleToUserSchema = Joi.object({
+  roleIds: Joi.array().items(Joi.number().integer()).required(),
 });

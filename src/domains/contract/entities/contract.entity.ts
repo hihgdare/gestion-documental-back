@@ -27,9 +27,9 @@ export interface ContractProps {
   updatedAt?: Date;
 }
 
-export class Contract extends BaseEntity {
+export class Contract extends BaseEntity<Contract, string> {
   private constructor(
-    id: string,
+    public id: string,
     private _rutSociedad: string,
     private _nombreColaborador: string,
     private _startDate: Date,
@@ -48,10 +48,10 @@ export class Contract extends BaseEntity {
     private _nombreProyecto: string | undefined,
     private _jornadaTrabajo: JornadaTrabajo,
     private _status: ContractStatus,
-    createdAt: Date,
-    updatedAt: Date,
+    public createdAt: Date,
+    public updatedAt: Date,
   ) {
-    super(id, createdAt, updatedAt);
+    super({id, createdAt, updatedAt});
   }
 
   public static create(props: ContractProps): Contract {

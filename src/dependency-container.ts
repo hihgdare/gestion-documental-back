@@ -11,6 +11,7 @@ import { RoleController } from '@presentation/controllers/role.controller';
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
+import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 
 // DocumentType domain
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
@@ -67,15 +68,14 @@ import {
 } from '@domains/contract/use-cases/update-contract.use-case';
 
 // Permission domain
-import { CreatePermissionUseCase } from '@domains/permission/use-cases/create-permission.use-case';
-import { GetPermissionsUseCase } from '@domains/permission/use-cases/get-permission.use-case';
-import { GetPermissionByIdUseCase } from '@domains/permission/use-cases/get-permission-by-id.use-case';
+import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
+import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
 import { UpdatePermissionUseCase } from '@domains/permission/use-cases/update-permission.use-case';
 import { DeletePermissionUseCase } from '@domains/permission/use-cases/delete-permission.use-case';
 
 // Role domain
-import { CreateRoleUseCase } from '@domains/role/use-cases/create-role.use-case';
-import { GetRoleByIdUseCase, GetRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
+import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
+import { GetRoleByIdUseCase, GetAllRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
 import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
 import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 
@@ -105,6 +105,7 @@ export class DependencyContainer {
   private getAllUsersUseCase!: GetAllUsersUseCase;
   private updateUserUseCase!: UpdateUserUseCase;
   private deleteUserUseCase!: DeleteUserUseCase;
+  private assignRoleToUserUseCase!: AssignRoleToUserUseCase;
 
   // Use Cases - DocumentType
   private createDocumentTypeUseCase!: CreateDocumentTypeUseCase;
@@ -155,16 +156,16 @@ export class DependencyContainer {
   private deleteContractUseCase!: DeleteContractUseCase;
 
   // Use Cases - Permission
-  private createPermissionUseCase!: CreatePermissionUseCase;
-  private getPermissionsUseCase!: GetPermissionsUseCase;
-  private getPermissionByIdUseCase!: GetPermissionByIdUseCase;
+  private savePermissionUseCase!: SavePermissionUseCase;
+  private findAllPermissionsUseCase!: FindAllPermissionsUseCase;
+  private findPermissionByIdUseCase!: FindPermissionByIdUseCase;
   private updatePermissionUseCase!: UpdatePermissionUseCase;
   private deletePermissionUseCase!: DeletePermissionUseCase;
 
   // Use Cases - Role
-  private createRoleUseCase!: CreateRoleUseCase;
+  private saveRoleUseCase!: SaveRoleUseCase;
   private getRoleByIdUseCase!: GetRoleByIdUseCase;
-  private getRolesUseCase!: GetRolesUseCase;
+  private getAllRolesUseCase!: GetAllRolesUseCase;
   private updateRoleUseCase!: UpdateRoleUseCase;
   private deleteRoleUseCase!: DeleteRoleUseCase;
   private assignPermissionsToRoleUseCase!: AssignPermissionsToRoleUseCase;
@@ -190,11 +191,12 @@ export class DependencyContainer {
     this.roleRepository = new TypeOrmRoleRepository();
 
     // Initialize User use cases
-    this.createUserUseCase = new CreateUserUseCase(this.userRepository);
+    this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
     this.getUserByIdUseCase = new GetUserByIdUseCase(this.userRepository);
     this.getAllUsersUseCase = new GetAllUsersUseCase(this.userRepository);
-    this.updateUserUseCase = new UpdateUserUseCase(this.userRepository);
+    this.updateUserUseCase = new UpdateUserUseCase(this.userRepository, this.roleRepository);
     this.deleteUserUseCase = new DeleteUserUseCase(this.userRepository);
+    this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -251,16 +253,16 @@ export class DependencyContainer {
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
 
     // Initialize Permission use cases
-    this.createPermissionUseCase = new CreatePermissionUseCase(this.permissionRepository);
-    this.getPermissionsUseCase = new GetPermissionsUseCase(this.permissionRepository);
-    this.getPermissionByIdUseCase = new GetPermissionByIdUseCase(this.permissionRepository);
+    this.savePermissionUseCase = new SavePermissionUseCase(this.permissionRepository);
+    this.findAllPermissionsUseCase = new FindAllPermissionsUseCase(this.permissionRepository);
+    this.findPermissionByIdUseCase = new FindPermissionByIdUseCase(this.permissionRepository);
     this.updatePermissionUseCase = new UpdatePermissionUseCase(this.permissionRepository);
     this.deletePermissionUseCase = new DeletePermissionUseCase(this.permissionRepository);
 
     // Initialize Role use cases
-    this.createRoleUseCase = new CreateRoleUseCase(this.roleRepository);
+    this.saveRoleUseCase = new SaveRoleUseCase(this.roleRepository);
     this.getRoleByIdUseCase = new GetRoleByIdUseCase(this.roleRepository);
-    this.getRolesUseCase = new GetRolesUseCase(this.roleRepository);
+    this.getAllRolesUseCase = new GetAllRolesUseCase(this.roleRepository);
     this.updateRoleUseCase = new UpdateRoleUseCase(this.roleRepository);
     this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository);
     this.assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(
@@ -278,6 +280,7 @@ export class DependencyContainer {
       this.getAllUsersUseCase,
       this.updateUserUseCase,
       this.deleteUserUseCase,
+      this.assignRoleToUserUseCase,
     );
 
     // Initialize Controllers
@@ -334,17 +337,17 @@ export class DependencyContainer {
     );
 
     this.permissionController = new PermissionController(
-      this.createPermissionUseCase,
-      this.getPermissionByIdUseCase,
-      this.getPermissionsUseCase,
+      this.savePermissionUseCase,
+      this.findPermissionByIdUseCase,
+      this.findAllPermissionsUseCase,
       this.updatePermissionUseCase,
       this.deletePermissionUseCase,
     );
 
     this.roleController = new RoleController(
-      this.createRoleUseCase,
+      this.saveRoleUseCase,
       this.getRoleByIdUseCase,
-      this.getRolesUseCase,
+      this.getAllRolesUseCase,
       this.updateRoleUseCase,
       this.deleteRoleUseCase,
       this.assignPermissionsToRoleUseCase,
@@ -357,6 +360,7 @@ export class DependencyContainer {
       this.getAllUsersUseCase,
       this.updateUserUseCase,
       this.deleteUserUseCase,
+      this.assignRoleToUserUseCase,
     );
   }
 
