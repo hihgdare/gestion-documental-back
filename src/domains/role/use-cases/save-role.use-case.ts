@@ -1,9 +1,9 @@
 import { CreateRoleDto } from '@presentation/dto/role/role.dto';
 import { ConflictError } from '@shared/domain/errors';
-import { Role } from '../entities/role.entity';
-import { RoleRepository } from '../repositories/role.repository';
+import { Role } from '@domains/role/entities/role.entity';
+import { RoleRepository } from '@domains/role/repositories/role.repository';
 
-export class CreateRoleUseCase {
+export class SaveRoleUseCase {
   constructor(private readonly roleRepository: RoleRepository) {}
 
   async execute(input: CreateRoleDto): Promise<Role> {
@@ -13,6 +13,7 @@ export class CreateRoleUseCase {
     }
 
     const role = new Role(input);
-    return this.roleRepository.create(role);
+    const savedRole = await this.roleRepository.save(role);
+    return savedRole;
   }
 }

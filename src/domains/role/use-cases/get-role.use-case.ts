@@ -1,6 +1,6 @@
 import { NotFoundError } from '@shared/domain/errors';
-import { Role } from '../entities/role.entity';
-import { RoleRepository } from '../repositories/role.repository';
+import { Role } from '@domains/role/entities/role.entity';
+import { RoleRepository } from '@domains/role/repositories/role.repository';
 
 export class GetRoleByIdUseCase {
   constructor(private readonly roleRepository: RoleRepository) {}
@@ -14,7 +14,7 @@ export class GetRoleByIdUseCase {
   }
 }
 
-export class GetRolesUseCase {
+export class GetAllRolesUseCase {
   constructor(private readonly roleRepository: RoleRepository) {}
 
   async execute(): Promise<Role[]> {

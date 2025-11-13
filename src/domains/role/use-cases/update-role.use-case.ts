@@ -1,7 +1,7 @@
 import { UpdateRoleDto } from '@presentation/dto/role/role.dto';
 import { ConflictError, NotFoundError } from '@shared/domain/errors';
-import { Role } from '../entities/role.entity';
-import { RoleRepository } from '../repositories/role.repository';
+import { Role } from '@domains/role/entities/role.entity';
+import { RoleRepository } from '@domains/role/repositories/role.repository';
 
 export class UpdateRoleUseCase {
   constructor(private readonly roleRepository: RoleRepository) {}
@@ -24,7 +24,7 @@ export class UpdateRoleUseCase {
       role.description = input.description;
     }
 
-    return this.roleRepository.update(role);
+    return this.roleRepository.update(id, role);
   }
 }
 

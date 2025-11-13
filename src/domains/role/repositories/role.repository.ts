@@ -1,10 +1,7 @@
+import { Repository } from '@shared/domain/base-entity';
 import { Role } from '../entities/role.entity';
 
-export interface RoleRepository {
-  create(role: Role): Promise<Role>;
+export interface RoleRepository extends Repository<Role, number | null> {
   findByName(name: string): Promise<Role | null>;
-  findById(id: number): Promise<Role | null>;
-  findAll(): Promise<Role[]>;
-  update(role: Role): Promise<Role>;
-  delete(id: number): Promise<void>;
+  findIn(ids: number[]): Promise<Role[]>;
 }

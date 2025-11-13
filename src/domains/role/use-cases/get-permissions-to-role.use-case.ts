@@ -1,5 +1,5 @@
 import { Permission } from "@domains/permission/entities/permission.entity";
-import { RoleRepository } from "../repositories/role.repository";
+import { RoleRepository } from "@domains/role/repositories/role.repository";
 
 export class GetPermissionsToRoleUseCase {
   constructor(

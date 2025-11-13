@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { CreateRoleUseCase } from '@domains/role/use-cases/create-role.use-case';
-import { GetRoleByIdUseCase, GetRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
+import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
+import { GetRoleByIdUseCase, GetAllRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
 import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
 import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
@@ -8,9 +8,9 @@ import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permiss
 
 export class RoleController {
   constructor(
-    public readonly createRoleUseCase: CreateRoleUseCase,
+    public readonly saveRoleUseCase: SaveRoleUseCase,
     public readonly getRoleByIdUseCase: GetRoleByIdUseCase,
-    public readonly getRolesUseCase: GetRolesUseCase,
+    public readonly getAllRolesUseCase: GetAllRolesUseCase,
     public readonly updateRoleUseCase: UpdateRoleUseCase,
     public readonly deleteRoleUseCase: DeleteRoleUseCase,
     public readonly assignPermissionsToRoleUseCase: AssignPermissionsToRoleUseCase,
@@ -18,7 +18,7 @@ export class RoleController {
   ) {}
 
   public createRole = asyncHandler(async (req: Request, res: Response) => {
-    const role = await this.createRoleUseCase.execute(req.body);
+    const role = await this.saveRoleUseCase.execute(req.body);
     res.status(201).json({
       success: true,
       data: role,
@@ -36,7 +36,7 @@ export class RoleController {
   });
 
   public getRoles = asyncHandler(async (req: Request, res: Response) => {
-    const roles = await this.getRolesUseCase.execute();
+    const roles = await this.getAllRolesUseCase.execute();
     res.status(200).json({
       success: true,
       data: roles,
