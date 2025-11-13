@@ -63,6 +63,7 @@ Based on the file structure, the API provides the following features:
 
 - **User Management**:
   - Create, Get, Update, Delete Users.
+  - Assign roles to a user.
 - **Role Management**:
   - Create, Get, Update, Delete Roles.
   - Assign/Unassign permissions to a role.
@@ -90,6 +91,8 @@ bun run dev
 ```
 
 ### Testing
+
+The tests run against an in-memory `SQL.js` database, so no external database is required.
 
 ```bash
 bun test
