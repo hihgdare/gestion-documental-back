@@ -1,9 +1,10 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
 import { Permission } from '@domains/permission/entities/permission.entity';
+import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 
 describe('PermissionController', () => {
   let appInstance: App;
@@ -15,8 +16,11 @@ describe('PermissionController', () => {
     app = appInstance.getApp();
   });
 
+  beforeEach(async () => {
+    await clearDatabase(AppDataSource);
+  });
+
   describe('/api/permissions', () => {
-    let createdId: number;
     const permissionDto = { name: 'test.permission', description: 'A test permission' };
 
     it('should create a new permission and return 201', async () => {
@@ -34,28 +38,38 @@ describe('PermissionController', () => {
         name: expectedPermission.name,
         description: expectedPermission.description,
       });
-
-      createdId = response.body.data.id;
     });
 
     it('should update a permission and return 200', async () => {
+      // Create permission for this test
+      const createResponse = await supertest(app)
+        .post('/api/permissions')
+        .send(permissionDto);
+      const idToUpdate = createResponse.body.data.id;
+
       const updateDto = { ...permissionDto, description: 'Updated permission' };
 
       const response = await supertest(app)
-        .put(`/api/permissions/${createdId}`)
+        .put(`/api/permissions/${idToUpdate}`)
         .send(updateDto);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Permission updated successfully');
       expect(response.body.data).toMatchObject({
-        id: createdId,
+        id: idToUpdate,
         name: updateDto.name,
         description: updateDto.description,
       });
     });
 
     it('should return 409 if permission already exists', async () => {
+      // Create the permission first
+      await supertest(app)
+        .post('/api/permissions')
+        .send(permissionDto);
+
+      // Then try to create it again, expecting 409
       const response = await supertest(app)
         .post('/api/permissions')
         .send(permissionDto);
@@ -65,8 +79,14 @@ describe('PermissionController', () => {
     });
 
     it('should delete a permission and return 200', async () => {
+      // Create permission for this test
+      const createResponse = await supertest(app)
+        .post('/api/permissions')
+        .send(permissionDto);
+      const idToDelete = createResponse.body.data.id;
+
       const response = await supertest(app)
-        .delete(`/api/permissions/${createdId}`);
+        .delete(`/api/permissions/${idToDelete}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);

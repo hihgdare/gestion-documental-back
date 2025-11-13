@@ -1,8 +1,8 @@
-import { AppDataSource } from '../database/typeorm.config';
-import { PermissionEntity } from '../database/entities/permission.entity';
-import { Permission } from '@domains/permission/entities/permission.entity';
-import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
 import { In, Repository } from 'typeorm';
+import { AppDataSource } from '@shared/infrastructure/database/typeorm.config';
+import { Permission } from '@domains/permission/entities/permission.entity';
+import { PermissionEntity } from '@shared/infrastructure/database/entities/permission.entity';
+import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
 
 export class TypeOrmPermissionRepository implements PermissionRepository {
   private repository: Repository<PermissionEntity>;
@@ -11,20 +11,9 @@ export class TypeOrmPermissionRepository implements PermissionRepository {
     this.repository = AppDataSource.getRepository(PermissionEntity);
   }
 
-  async findIn(ids: number[]): Promise<Permission[]> {
-    const entities = await this.repository.findBy({ id: In(ids) });
+  async findAll(): Promise<Permission[]> {
+    const entities = await this.repository.find();
     return entities.map((entity) => new Permission(entity));
-  }
-
-  async create(permission: Permission): Promise<Permission> {
-    const entity = this.repository.create(permission);
-    const savedEntity = await this.repository.save(entity);
-    return new Permission(savedEntity);
-  }
-
-  async findByName(name: string): Promise<Permission | null> {
-    const entity = await this.repository.findOne({ where: { name } });
-    return entity ? new Permission(entity) : null;
   }
 
   async findById(id: number): Promise<Permission | null> {
@@ -32,18 +21,31 @@ export class TypeOrmPermissionRepository implements PermissionRepository {
     return entity ? new Permission(entity) : null;
   }
 
-  async findAll(): Promise<Permission[]> {
-    const entities = await this.repository.find();
+  async findByName(name: string): Promise<Permission | null> {
+    const entity = await this.repository.findOne({ where: { name } });
+    return entity ? new Permission(entity) : null;
+  }
+
+  async findIn(ids: number[]): Promise<Permission[]> {
+    const entities = await this.repository.findBy({ id: In(ids) });
     return entities.map((entity) => new Permission(entity));
   }
 
-  async update(permission: Permission): Promise<Permission> {
-    const entity = await this.repository.findOne({ where: { id: permission.id } });
-    if (!entity) {
+  async save(permission: Permission): Promise<Permission> {
+    const savedEntity = await this.repository.save(permission);
+    return new Permission(savedEntity);
+  }
+
+  async update(id: number, permission: Permission): Promise<Permission> {
+    const result = await this.repository.update(id, permission);
+    if (result.affected === 0) {
       throw new Error('Permission not found');
     }
-    const updatedEntity = await this.repository.save(permission);
-    return new Permission(updatedEntity);
+    const updatedEntity = await this.repository.findOne({ where: { id } });
+    if (!updatedEntity) {
+      throw new Error('Permission not found');
+    }
+    return new Permission(updatedEntity as Permission);
   }
 
   async delete(id: number): Promise<void> {

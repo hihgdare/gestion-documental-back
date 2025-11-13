@@ -1,6 +1,6 @@
 import { UpdatePermissionDto } from '@presentation/dto/permission/permission.dto';
-import { Permission } from '../entities/permission.entity';
-import { PermissionRepository } from '../repositories/permission.repository';
+import { Permission } from '@domains/permission/entities/permission.entity';
+import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
 
 export class UpdatePermissionUseCase {
   constructor(private readonly permissionRepository: PermissionRepository) {}
@@ -23,6 +23,6 @@ export class UpdatePermissionUseCase {
       permission.description = input.description;
     }
 
-    return this.permissionRepository.update(permission);
+    return this.permissionRepository.update(id, permission);
   }
 }

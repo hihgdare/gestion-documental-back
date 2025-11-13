@@ -1,9 +1,9 @@
 import { CreatePermissionDto } from '@presentation/dto/permission/permission.dto';
 import { ConflictError } from '@shared/domain/errors';
-import { Permission } from '../entities/permission.entity';
-import { PermissionRepository } from '../repositories/permission.repository';
+import { Permission } from '@domains/permission/entities/permission.entity';
+import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
 
-export class CreatePermissionUseCase {
+export class SavePermissionUseCase {
   constructor(private readonly permissionRepository: PermissionRepository) {}
 
   async execute(input: CreatePermissionDto): Promise<Permission> {
@@ -13,6 +13,6 @@ export class CreatePermissionUseCase {
     }
 
     const permission = new Permission(input);
-    return this.permissionRepository.create(permission);
+    return this.permissionRepository.save(permission);
   }
 }

@@ -1,4 +1,4 @@
-import { PermissionRepository } from '../repositories/permission.repository';
+import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
 
 export class DeletePermissionUseCase {
   constructor(private readonly permissionRepository: PermissionRepository) {}
