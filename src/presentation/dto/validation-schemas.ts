@@ -1,5 +1,12 @@
 import Joi from 'joi';
 
+// Auth schemas
+export const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+// User schemas
 export const createUserSchema = Joi.object({
   email: Joi.string().email().required(),
   firstName: Joi.string().min(2).max(50).required(),

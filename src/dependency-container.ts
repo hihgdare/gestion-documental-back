@@ -1,11 +1,16 @@
 // Dependency Injection Container
 import { UserController } from '@presentation/controllers/user.controller';
 import { ContractController } from '@presentation/controllers/contract.controller';
+import { AuthController } from '@presentation/controllers/auth.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
+
+// Auth domain
+import { LoginUseCase } from '@domains/auth/use-cases/login.use-case';
+import { VerifyTokenUseCase } from '@domains/auth/use-cases/verify-token.use-case';
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
@@ -34,10 +39,20 @@ import {
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 
+// Services
+import { JwtService } from '@shared/infrastructure/security/jwt.service';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
   private contractRepository!: TypeOrmContractRepository;
+
+  // Services
+  private jwtService!: JwtService;
+
+  // Use Cases - Auth
+  private loginUseCase!: LoginUseCase;
+  private verifyTokenUseCase!: VerifyTokenUseCase;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -66,6 +81,7 @@ export class DependencyContainer {
   private deleteContractUseCase!: DeleteContractUseCase;
 
   // Controllers
+  private authController!: AuthController;
   private userController!: UserController;
   private contractController!: ContractController;
 
@@ -73,6 +89,13 @@ export class DependencyContainer {
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
     this.contractRepository = new TypeOrmContractRepository();
+
+    // Initialize services
+    this.jwtService = new JwtService();
+
+    // Initialize Auth use cases
+    this.loginUseCase = new LoginUseCase(this.userRepository, this.jwtService);
+    this.verifyTokenUseCase = new VerifyTokenUseCase(this.userRepository, this.jwtService);
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository);
@@ -101,6 +124,11 @@ export class DependencyContainer {
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
 
     // Initialize Controllers
+    this.authController = new AuthController(
+      this.loginUseCase,
+      this.verifyTokenUseCase,
+    );
+
     this.userController = new UserController(
       this.createUserUseCase,
       this.getUserByIdUseCase,
@@ -131,6 +159,10 @@ export class DependencyContainer {
   }
 
   // Getters for controllers
+  public getAuthController(): AuthController {
+    return this.authController;
+  }
+
   public getUserController(): UserController {
     return this.userController;
   }

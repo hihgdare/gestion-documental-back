@@ -8,6 +8,7 @@ import 'express-async-errors';
 
 import { errorHandler } from '@shared/middleware/error-handler';
 import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
+import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { DependencyContainer } from './dependency-container';
@@ -92,6 +93,7 @@ export class App {
         message: 'Gestion Documental API',
         version: '1.0.0',
         endpoints: {
+          auth: '/api/auth',
           users: '/api/users',
           contracts: '/api/contracts',
           health: '/health',
@@ -100,10 +102,12 @@ export class App {
     });
 
     // Get controllers from dependency container
+    const authController = this.dependencyContainer.getAuthController();
     const userController = this.dependencyContainer.getUserController();
     const contractController = this.dependencyContainer.getContractController();
 
     // API routes
+    this.app.use('/api/auth', createAuthRoutes(authController));
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
 
