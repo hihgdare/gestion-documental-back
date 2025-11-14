@@ -4,6 +4,7 @@
     "composite": true,
   },
   "include": [
+    "types.d.ts",
     "src/**/*"
   ],
   "exclude": [
