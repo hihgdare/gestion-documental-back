@@ -50,3 +50,54 @@ export const updateContractSchema = Joi.object({
 export const getContractByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
+
+export const createDocumentTypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
+});
+
+export const updateDocumentTypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).optional(),
+}).min(1);
+
+export const getDocumentTypeByIdSchema = Joi.object({
+  id: Joi.string().uuid().required(),
+});
+
+export const createDocumentSubtypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
+  documentTypeId: Joi.string().uuid().required(),
+});
+
+export const updateDocumentSubtypeSchema = Joi.object({
+  name: Joi.string().min(2).max(100).optional(),
+  documentTypeId: Joi.string().uuid().optional(),
+}).min(1);
+
+export const getDocumentSubtypeByIdSchema = Joi.object({
+  id: Joi.string().uuid().required(),
+});
+
+export const createDocumentSchema = Joi.object({
+  documentTypeId: Joi.string().uuid().required(),
+  documentSubtypeId: Joi.string().uuid().required(),
+  name: Joi.string().min(2).max(255).required(),
+  issuedDate: Joi.date().iso().required(),
+  expirationDate: Joi.date().iso().greater(Joi.ref('issuedDate')).optional(),
+  contractId: Joi.string().uuid().required(),
+  description: Joi.string().max(1000).optional(),
+  documentUrl: Joi.string().uri().optional(),
+});
+
+export const updateDocumentSchema = Joi.object({
+  documentTypeId: Joi.string().uuid().optional(),
+  documentSubtypeId: Joi.string().uuid().optional(),
+  name: Joi.string().min(2).max(255).optional(),
+  issuedDate: Joi.date().iso().optional(),
+  expirationDate: Joi.date().iso().optional(),
+  description: Joi.string().max(1000).optional(),
+  documentUrl: Joi.string().uri().optional(),
+}).min(1);
+
+export const getDocumentByIdSchema = Joi.object({
+  id: Joi.string().uuid().required(),
+});

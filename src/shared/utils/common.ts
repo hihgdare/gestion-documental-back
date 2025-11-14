@@ -48,6 +48,11 @@ export class DateUtils {
     return date1.getTime() < date2.getTime();
   }
 
+  public static daysBetween(date1: Date, date2: Date): number {
+    const diffTime = date2.getTime() - date1.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
   public static formatISO(date: Date): string {
     return date.toISOString();
   }
