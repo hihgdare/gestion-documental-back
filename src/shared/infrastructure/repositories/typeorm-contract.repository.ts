@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
-import { Contract, ContractProps } from '@domains/contract/entities/contract.entity';
+import { Contract, CreateContractProps, UpdateContractProps } from '@domains/contract/entities/contract.entity';
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
@@ -25,17 +25,18 @@ export class TypeOrmContractRepository implements ContractRepository {
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
-  async save(contract: Contract): Promise<Contract> {
-    const contractEntity = this.toEntity(contract);
-    const savedEntity = await this.repository.save(contractEntity);
+  async save(contract: CreateContractProps): Promise<Contract> {
+    const domain = new Contract(contract);
+    const entity = this.toEntity(domain);
+    const savedEntity = await this.repository.save(entity as ContractEntity);
     return this.toDomain(savedEntity);
   }
 
-  async update(contract: Contract): Promise<Contract> {
-    const contractEntity = this.toEntity(contract);
-    await this.repository.update(contract.id, contractEntity);
-    const updatedEntity = await this.repository.findOne({ where: { id: contract.id } });
-    return this.toDomain(updatedEntity!);
+  async update(contract: UpdateContractProps): Promise<Contract> {
+    const domain = new Contract(contract);
+    const entity = this.toEntity(domain);
+    const savedEntity = await this.repository.save(entity as ContractEntity);
+    return this.toDomain(savedEntity);
   }
 
   async delete(id: string): Promise<void> {
@@ -146,7 +147,7 @@ export class TypeOrmContractRepository implements ContractRepository {
   }
 
   private toDomain(entity: ContractEntity): Contract {
-    const props: ContractProps = {
+    return new Contract({
       id: entity.id,
       rutSociedad: entity.rutSociedad,
       nombreColaborador: entity.nombreColaborador,
@@ -168,13 +169,12 @@ export class TypeOrmContractRepository implements ContractRepository {
       status: entity.status as ContractStatus,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-    };
-    return Contract.fromPersistence(props);
+    });
   }
 
-  private toEntity(contract: Contract): Partial<ContractEntity> {
+  private toEntity<C extends Contract>(contract: C): Partial<ContractEntity> {
     return {
-      id: contract.id,
+      id: contract?.id,
       rutSociedad: contract.rutSociedad,
       nombreColaborador: contract.nombreColaborador,
       startDate: contract.startDate,

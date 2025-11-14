@@ -13,39 +13,35 @@ export interface SoftDeleteProps extends DateProps {
   deletedAt: Date | null;
 }
 
-/**
- * Kn = Type of the key. It could be nullable.
- * K = Type of the key, excluding null.
- */
-export abstract class BaseEntity<ClassName extends BaseEntity<ClassName, IdType>, IdType = ClassName['id']> {
+export type NotNullId<Cl extends BasicProps<boolean>> = Partial<Omit<Cl, 'id'>> & {id: NonNullable<Cl['id']>};
+
+export abstract class BaseEntity<Cl extends BaseEntity<Cl, IdType>, IdType = Cl['id']> {
   abstract id: unknown;
   abstract createdAt: Date;
   abstract updatedAt: Date;
 
-  constructor(data: Partial<ClassName>, isUUID: boolean = false) {
-    Object.assign(this, {
-      ...data,
-      id: data?.id ?? (isUUID ? uuid() : null),
-      createdAt: data?.createdAt || new Date(),
-      updatedAt: data?.updatedAt || new Date(),
+  constructor(data: Partial<Cl>, isUUID: boolean = false) {
+    Object.assign(this, data, {
+      id: data.id ?? (isUUID ? uuid() : null),
+      createdAt: data.createdAt || new Date(),
+      updatedAt: data.updatedAt || new Date(),
     });
   }
 
-  equals(other: ClassName): boolean {
+  equals(other: Cl): boolean {
     return this.id !== null && this.id === other.id;
   }
 
   abstract toJSON(): unknown;
 }
 
-export abstract class SoftDeleteEntity<ClassName extends SoftDeleteEntity<ClassName, IdType>, IdType = ClassName['id']> extends BaseEntity<ClassName, IdType> {
+export abstract class SoftDeleteEntity<Cl extends SoftDeleteEntity<Cl, IdType>, IdType = Cl['id']> extends BaseEntity<Cl, IdType> {
   abstract deletedAt: Date | null;
 
-  constructor(data: ClassName | Partial<ClassName>, isUUID: boolean = false) {
-    super({
-      ...data,
-      deletedAt: data?.deletedAt ?? null,
-    }, isUUID);
+  constructor(data: Cl | Partial<Cl>, isUUID: boolean = false) {
+    super(Object.assign(data, {
+      deletedAt: data.deletedAt ?? null,
+    }), isUUID);
   }
 
   softDelete(): void {
@@ -63,10 +59,10 @@ export abstract class SoftDeleteEntity<ClassName extends SoftDeleteEntity<ClassN
   }
 }
 
-export interface Repository<ClassName extends BaseEntity<ClassName, IdType>, IdType = ClassName['id']> {
-  findById(id: Exclude<IdType, null>): Promise<ClassName | null>;
-  findAll(): Promise<ClassName[]>;
-  save(request: Partial<Omit<ClassName, 'id'>>): Promise<ClassName>;
-  update(id: Exclude<IdType, null>, request: Partial<Omit<ClassName, 'id'>>): Promise<ClassName>;
+export interface Repository<Cl extends BaseEntity<Cl, IdType>, IdType = Cl['id']> {
+  findById(id: Exclude<IdType, null>): Promise<Cl | null>;
+  findAll(): Promise<Cl[]>;
+  save(request: Partial<Omit<Cl, 'id'>>): Promise<Cl>;
+  update(request: NotNullId<Cl>): Promise<Cl>;
   delete(id: Exclude<IdType, null>): Promise<void>;
 }
