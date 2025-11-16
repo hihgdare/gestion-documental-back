@@ -44,47 +44,78 @@ export class DocumentController {
       documentUrl: dto.documentUrl,
     });
 
-    res.status(201).json(this.toResponseDto(document));
+    res.status(201).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Document created successfully',
+    });
   });
 
   getDocumentById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const document = await this.getDocumentByIdUseCase.execute(id);
-    res.json(this.toResponseDto(document));
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+    });
   });
 
   getAllDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const documents = await this.getAllDocumentsUseCase.execute();
-    res.json(documents.map((doc) => this.toResponseDto(doc)));
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => this.toResponseDto(doc)),
+      count: documents.length,
+    });
   });
 
   getDocumentsByContractId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { contractId } = req.params;
     const documents = await this.getDocumentsByContractIdUseCase.execute(contractId);
-    res.json(documents.map((doc) => this.toResponseDto(doc)));
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => this.toResponseDto(doc)),
+      count: documents.length,
+    });
   });
 
   getDocumentsByDocumentTypeId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { documentTypeId } = req.params;
     const documents = await this.getDocumentsByDocumentTypeIdUseCase.execute(documentTypeId);
-    res.json(documents.map((doc) => this.toResponseDto(doc)));
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => this.toResponseDto(doc)),
+      count: documents.length,
+    });
   });
 
   getDocumentsByDocumentSubtypeId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { documentSubtypeId } = req.params;
     const documents = await this.getDocumentsByDocumentSubtypeIdUseCase.execute(documentSubtypeId);
-    res.json(documents.map((doc) => this.toResponseDto(doc)));
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => this.toResponseDto(doc)),
+      count: documents.length,
+    });
   });
 
   getExpiredDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const documents = await this.getExpiredDocumentsUseCase.execute();
-    res.json(documents.map((doc) => this.toResponseDto(doc)));
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => this.toResponseDto(doc)),
+      count: documents.length,
+    });
   });
 
   getExpiringDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { days } = req.params;
     const documents = await this.getExpiringDocumentsUseCase.execute(parseInt(days, 10));
-    res.json(documents.map((doc) => this.toResponseDto(doc)));
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => this.toResponseDto(doc)),
+      count: documents.length,
+    });
   });
 
   updateDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -101,13 +132,20 @@ export class DocumentController {
       documentUrl: dto.documentUrl,
     });
 
-    res.json(this.toResponseDto(document));
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Document updated successfully',
+    });
   });
 
   deleteDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     await this.deleteDocumentUseCase.execute(id);
-    res.status(204).send();
+    res.status(200).json({
+      success: true,
+      message: 'Document deleted successfully',
+    });
   });
 
   private toResponseDto(document: Document): DocumentResponseDto {
