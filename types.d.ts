@@ -4,6 +4,10 @@ interface Array<T> {
   includes<U>(searchElement: U, fromIndex?: number): searchElement is T;
 }
 
+interface ArrayConstructor {
+    isArray<T>(arg: unknown): arg is T[];
+}
+
 type DateType = number | string | Date;
 
 /** Avoid nested Partials */
@@ -15,4 +19,4 @@ interface ObjectConstructor {
 
 type RecordKey = string | number | symbol;
 
-type Join<A extends object, B extends object> = Omit<A, keyof B> & B;
+type Overlap<A extends object, B extends object> = Omit<A, keyof B> & B;

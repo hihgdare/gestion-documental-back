@@ -4,6 +4,7 @@ import { Contract, CreateContractProps, UpdateContractProps } from '@domains/con
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
+import { NotFoundError } from '@shared/domain/errors';
 
 export class TypeOrmContractRepository implements ContractRepository {
   private repository: Repository<ContractEntity>;
@@ -28,19 +29,25 @@ export class TypeOrmContractRepository implements ContractRepository {
   async save(contract: CreateContractProps): Promise<Contract> {
     const domain = new Contract(contract);
     const entity = this.toEntity(domain);
-    const savedEntity = await this.repository.save(entity as ContractEntity);
+    const savedEntity = await this.repository.save(entity);
     return this.toDomain(savedEntity);
   }
 
-  async update(contract: UpdateContractProps): Promise<Contract> {
-    const domain = new Contract(contract);
-    const entity = this.toEntity(domain);
-    const savedEntity = await this.repository.save(entity as ContractEntity);
+  async update(props: UpdateContractProps): Promise<Contract> {
+    const entity = await this.repository.findOne({ where: { id: props.id } });
+    if (!entity) {
+      throw new NotFoundError('Contract not found');
+    }
+    const domain = this.toDomain(entity);
+    Object.assign(domain, props);
+    const updatedDomain = new Contract(domain);
+    const updatedEntity = this.toEntity(updatedDomain);
+    const savedEntity = await this.repository.save(updatedEntity);
     return this.toDomain(savedEntity);
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.repository.softDelete(id);
   }
 
   async findByRutSociedad(rutSociedad: string): Promise<Contract[]> {
@@ -167,18 +174,21 @@ export class TypeOrmContractRepository implements ContractRepository {
       nombreProyecto: entity.nombreProyecto,
       jornadaTrabajo: entity.jornadaTrabajo as JornadaTrabajo,
       status: entity.status as ContractStatus,
+      employeeId: entity.employeeId,
+      managerId: entity.managerId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      deletedAt: entity.deletedAt,
     });
   }
 
-  private toEntity<C extends Contract>(contract: C): Partial<ContractEntity> {
+  private toEntity(contract: Contract): ContractEntity {
     return {
-      id: contract?.id,
+      id: contract.id,
       rutSociedad: contract.rutSociedad,
       nombreColaborador: contract.nombreColaborador,
       startDate: contract.startDate,
-      endDate: contract.endDate || undefined,
+      endDate: contract.endDate,
       contractType: contract.contractType,
       administradorContratoMandante: contract.administradorContratoMandante,
       administradorContratoEmpresa: contract.administradorContratoEmpresa,
@@ -193,8 +203,11 @@ export class TypeOrmContractRepository implements ContractRepository {
       nombreProyecto: contract.nombreProyecto,
       jornadaTrabajo: contract.jornadaTrabajo,
       status: contract.status,
+      employeeId: contract.employeeId,
+      managerId: contract.managerId,
       createdAt: contract.createdAt,
       updatedAt: contract.updatedAt,
+      deletedAt: contract.deletedAt || undefined,
     };
   }
 }

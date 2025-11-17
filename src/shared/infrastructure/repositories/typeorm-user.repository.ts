@@ -1,18 +1,19 @@
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { type UserRepository } from '@domains/user/repositories/user.repository';
-import { User } from '@domains/user/entities/user.entity';
+import { CreateUserProps, UpdateUserProps, User } from '@domains/user/entities/user.entity';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import { UserEntity } from '../database/entities/user.entity';
 import { AppDataSource } from '../database/typeorm.config';
-import { Role } from '@domains/role/entities/role.entity';
 import { RoleEntity } from '../database/entities/role.entity';
-import { Email } from '@domains/user/value-objects/email';
+import { NotFoundError } from '@shared/domain/errors';
 
 export class TypeOrmUserRepository implements UserRepository {
   private repository: Repository<UserEntity>;
+  private roleRepository: Repository<RoleEntity>;
 
   constructor() {
     this.repository = AppDataSource.getRepository(UserEntity);
+    this.roleRepository = AppDataSource.getRepository(RoleEntity);
   }
 
   async findAll(): Promise<User[]> {
@@ -20,13 +21,13 @@ export class TypeOrmUserRepository implements UserRepository {
       order: { createdAt: 'DESC' },
       relations: ['roles'],
     });
-    return userEntities.map(entity => this.toDomain(entity));
+    return userEntities.map(UserEntity.toDomain);
   }
 
   async findById(id: string): Promise<User | null> {
     const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles'] });
     if (!userEntity) return null;
-    return this.toDomain(userEntity);
+    return UserEntity.toDomain(userEntity);
   }
 
   async findByRoleId(roleId: number): Promise<User[]> {
@@ -35,107 +36,71 @@ export class TypeOrmUserRepository implements UserRepository {
       order: { createdAt: 'DESC' },
       relations: ['roles'],
     });
-    return userEntities.map(entity => this.toDomain(entity));
+    return userEntities.map(UserEntity.toDomain);
   }
 
-  async assignRoleId(userId: string, roleId: number): Promise<void> {
-    await this.repository.createQueryBuilder()
-      .relation(UserEntity, 'roles')
-      .of(userId)
-      .add(roleId);
-  }
-
-  async save(user: User): Promise<User> {
-    const userEntity = this.toEntity(user);
-    const savedEntity = await this.repository.save(userEntity);
-    return this.toDomain(savedEntity);
-  }
-
-  async update(id: string, user: User): Promise<User> {
-    const userEntity = this.toEntity(user);
-    await this.repository.update(id, {
-      email: userEntity.email,
-      firstName: userEntity.firstName,
-      lastName: userEntity.lastName,
-      password: userEntity.password,
-      status: userEntity.status,
-    });
-    const current = await this.repository.findOne({ where: { id }, relations: ['roles'] });
-    if (current) {
-      await this.repository
-        .createQueryBuilder()
-        .relation(UserEntity, 'roles')
-        .of(id)
-        .remove(current.roles || []);
+  async save(props: CreateUserProps): Promise<User> {
+    const domain = new User(props);
+    const entity = UserEntity.fromDomain(domain);
+    if (props.roles) {
+      entity.roles = await this.roleRepository.findBy({ id: In(props.roles.map(r => r.id)) });
     }
-    if (userEntity.roles && userEntity.roles.length) {
-      await this.repository
-        .createQueryBuilder()
-        .relation(UserEntity, 'roles')
-        .of(id)
-        .add(userEntity.roles);
+    const savedEntity = await this.repository.save(entity);
+    return UserEntity.toDomain(savedEntity);
+  }
+
+  async update(props: UpdateUserProps): Promise<User> {
+    const entity = await this.repository.findOne({ where: { id: props.id } });
+    if (!entity) {
+      throw new NotFoundError('User not found');
     }
-    const updatedEntity = await this.repository.findOne({ where: { id }, relations: ['roles'] });
-    return this.toDomain(updatedEntity!);
+
+    if (props.email) {
+      entity.email = props.email;
+    }
+    if (props.firstName) {
+      entity.firstName = props.firstName;
+    }
+    if (props.lastName) {
+      entity.lastName = props.lastName;
+    }
+    if (props.password) {
+      entity.password = props.password;
+    }
+    if (props.status) {
+      entity.status = props.status as any;
+    }
+
+    if (props.roles) {
+      entity.roles = await this.roleRepository.findBy({ id: In(props.roles.map(r => r.id)) });
+    }
+
+    const savedEntity = await this.repository.save(entity);
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles'] });
+    return UserEntity.toDomain(reloadedEntity!);
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.repository.softDelete(id);
   }
 
   async findByEmail(email: string): Promise<User | null> {
     const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles'] });
     if (!userEntity) return null;
-    return this.toDomain(userEntity);
+    return UserEntity.toDomain(userEntity);
   }
 
   async findByStatus(status: UserStatus): Promise<User[]> {
     const userEntities = await this.repository.find({
-      where: { status },
+      where: { status: status as any },
       order: { createdAt: 'DESC' },
       relations: ['roles'],
     });
-    return userEntities.map(entity => this.toDomain(entity));
+    return userEntities.map(UserEntity.toDomain);
   }
 
   async existsByEmail(email: string): Promise<boolean> {
     const count = await this.repository.count({ where: { email } });
     return count > 0;
-  }
-
-  private toDomain(entity: UserEntity): User {
-    const roles = entity.roles ? entity.roles.map(roleEntity => new Role(roleEntity)) : [];
-    return new User({
-      id: entity.id,
-      email: Email.create(entity.email),
-      firstName: entity.firstName,
-      lastName: entity.lastName,
-      password: entity.password,
-      status: entity.status as unknown as UserStatus,
-      roles: roles,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    });
-  }
-
-  private toEntity(user: User): UserEntity {
-    const userEntity = new UserEntity();
-    userEntity.id = user.id;
-    userEntity.email = user.email?.toString() || String(user.email);
-    userEntity.firstName = user.firstName;
-    userEntity.lastName = user.lastName;
-    userEntity.password = user.password;
-    userEntity.status = user.status;
-    userEntity.roles = (user.roles || []).map(role => {
-      const roleEntity = new RoleEntity();
-      roleEntity.id = role.id;
-      roleEntity.name = role.name;
-      roleEntity.description = role.description;
-      return roleEntity;
-    });
-    userEntity.createdAt = user.createdAt;
-    userEntity.updatedAt = user.updatedAt;
-
-    return userEntity;
   }
 }

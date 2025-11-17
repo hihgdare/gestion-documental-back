@@ -1,19 +1,48 @@
-import { BaseEntity } from "@shared/domain/base-entity";
-import { BaseProps } from "@shared/infrastructure/entity-props";
+import { EntityUtils } from "@shared/utils/common";
+import { ValidationError } from "@shared/domain/errors";
 
-export type PermissionProps = BaseProps<Permission>;
-
-export class Permission extends BaseEntity<Permission, number | null> {
+export interface CreatePermissionProps {
   name: string;
   description?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
-  constructor(data: Partial<Permission>) {
-    super(data);
-    this.name = data.name!;
-    this.description = data.description;
+export interface UpdatePermissionProps extends CreatePermissionProps {
+  id: number;
+}
+
+export interface PermissionJson {
+  id?: number;
+  name: string;
+  description?: string;
+}
+
+export class Permission {
+  id?: number;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+
+  constructor(props: CreatePermissionProps) {
+    Permission.validate(props);
+    EntityUtils.assign(this as Permission, props, {
+      createdAt: 'date',
+      updatedAt: 'date',
+    });
   }
 
-  toJSON(): PermissionProps {
+  private static validate(props: CreatePermissionProps): void {
+    if (!props.name?.trim()) {
+      throw new ValidationError('Permission name is required', 'name');
+    }
+    if (props.name.length > 255) {
+      throw new ValidationError('Permission name is too long', 'name');
+    }
+  }
+
+  toJSON(): PermissionJson {
     return {
       id: this.id,
       name: this.name,

@@ -1,15 +1,15 @@
 @baseUrl = http://localhost:3000/api
-@module = 'permissions'
-@name = 'test.permission.tmp'
-@description = 'Test Permission'
+@module = permissions
+@name = test.permission.http
+@description = A temporary permission for http tests
 @id = 1
 
 ###
-
+# @name Get all permissions
 GET {{baseUrl}}/{{module}}
 
 ###
-
+# @name Create a new permission
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
 
@@ -19,11 +19,11 @@ Content-Type: application/json
 }
 
 ###
-
+# @name Get permission by id
 GET {{baseUrl}}/{{module}}/{{id}}
 
 ###
-
+# @name Update a permission
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
 
@@ -33,5 +33,5 @@ Content-Type: application/json
 }
 
 ###
-
+# @name Delete a permission
 DELETE {{baseUrl}}/{{module}}/{{id}}

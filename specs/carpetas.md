@@ -17,24 +17,20 @@ Para iniciar un nuevo módulo en la aplicación, esta es la forma recomendada:
 1. Iniciamos creando la entidad de dominio.
    - Ruta: `src/domains/<modulo>/entities/<modulo>.entity.ts`.
    - Representa la estructura básica de los datos.
-   - Puede extender `BaseEntity` para tener los campos comunes (id, createdAt, updatedAt), o `SoftDeleteEntity` (deletedAt) para permitir eliminación suave.
 2. Creamos el repositorio de dominio.
    - Ruta: `src/domains/<modulo>/repositories/<modulo>.repository.ts`
    - Define las operaciones CRUD básicas y otras consultas necesarias.
-   - Puede extender de `Repository<T>` para aprovechar las operaciones CRUD básicas.
-   - Puede agregar otros métodos para consultas personalizadas.
    - Si no necesita operaciones adicionales, puede usar `type` en lugar de `interface` para definirlo.
 3. Implementamos los casos de uso.
    - Ruta: `src/domains/<modulo>/use-cases/<tarea(s)>-<modulo>.use-case.ts`
    - Define la lógica de negocio para cada operación.
    - Utiliza el repositorio para interactuar con la persistencia de datos.
-   - Si el repositorio extiende de `Repository`, se necesitará implementar minimo el CRUD básico.
+   - Se recomienda implementar minimo el CRUD básico.
      - `(save|update|delete|find).<modulo>.use-case.ts`
      - Agregue tambien los casos de uso adicionales que necesite.
 4. Creamos la entidad de infraestructura.
    - Ruta: `src/shared/infrastructure/database/entities/<modulo>.entity.ts`
    - Representa la estructura de los datos en la base de datos.
-   - Puede implementar las propiedades básicas utilizando `EntityProps` para extraerlas de la entidad de dominio.
    - Aquí se definen todos los campos, y sus posibles relaciones.
 5. Creamos el repositorio de infraestructura.
    - Ruta: `src/shared/infrastructure/database/repositories/<type>-<modulo>.repository.ts`
@@ -63,7 +59,8 @@ Para iniciar un nuevo módulo en la aplicación, esta es la forma recomendada:
 11. Agregamos las rutas al enrutador principal.
    - Ruta: `src/app.ts`
    - Importa y agrega las rutas de cada módulo.
-12. Agregamos pruebas manuales http para verificar el funcionamiento de las rutas (opcional).
+12. Podemos agregar pruebas manuales http para verificar el funcionamiento de las rutas (opcional).
    - Ruta: `specs/http/<modulo>.http`
    - Utiliza `http` para probar las rutas HTTP.
    - Verifica que las respuestas sean las esperadas.
+      - En VSC o similares se pueden probar estas rutas utilizando el plugin `REST Client`.

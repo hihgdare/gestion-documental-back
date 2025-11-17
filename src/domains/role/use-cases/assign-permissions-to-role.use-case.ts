@@ -1,6 +1,6 @@
 import { RoleRepository } from '@domains/role/repositories/role.repository';
 import { PermissionRepository } from '@domains/permission/repositories/permission.repository';
-import { Role } from '@domains/role/entities/role.entity';
+import { Role, UpdateRoleProps } from '@domains/role/entities/role.entity';
 
 export class AssignPermissionsToRoleUseCase {
   constructor(
@@ -22,6 +22,15 @@ export class AssignPermissionsToRoleUseCase {
 
     role.permissions = permissions;
 
-    return this.roleRepository.update(input.roleId, role);
+    const updateProps: UpdateRoleProps = {
+      id: input.roleId,
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions,
+      parent: role.parent,
+      children: role.children,
+    };
+
+    return this.roleRepository.update(updateProps);
   }
 }

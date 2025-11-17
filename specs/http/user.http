@@ -1,0 +1,38 @@
+@baseUrl = http://localhost:3000/api
+@module = users
+@email = test.user@example.com
+@firstName = Test
+@lastName = User
+@password = Secret123!
+@roleIds = [2]
+@id = 1
+
+### Get all users
+GET {{baseUrl}}/{{module}}
+
+### Create a new user
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "firstName": "{{firstName}}",
+  "lastName": "{{lastName}}",
+  "password": "{{password}}",
+  "roleIds": {{roleIds}}
+}
+
+### Get user by id
+GET {{baseUrl}}/{{module}}/{{id}}
+
+### Update a user
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "firstName": "{{firstName}}.updated",
+  "lastName": "{{lastName}} Updated"
+}
+
+### Delete a user
+DELETE {{baseUrl}}/{{module}}/{{id}}

@@ -35,6 +35,19 @@ export interface UpdateContractProps extends CreateContractProps {
   id: string;
 }
 
+export type ContractJson = Overlap<BaseContractProps, {
+  id: string;
+  startDate?: string;
+  endDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  duration?: number | null;
+  isActive: boolean;
+  isExpired: boolean;
+}>
+
+
 export class Contract {
   id: string;
   rutSociedad: string;
@@ -66,11 +79,11 @@ export class Contract {
       id: 'uuid',
       startDate: 'date',
       endDate: 'dateNullable',
-      contractType: type => isValid(type, ContractType) ? type : ContractType.CONSULTORIA,
-      jornadaTrabajo: jornada => isValid(jornada, JornadaTrabajo) ? jornada : JornadaTrabajo.COMPLETA,
-      status: status => isValid(status, ContractStatus) ? status : ContractStatus.DRAFT,
-      dotacionPersonal: dotacion => dotacion || 0,
-      dotacionVehiculos: dotacion => dotacion || 0,
+      contractType: (type?: string) => isValid(type, ContractType) ? type : ContractType.CONSULTORIA,
+      jornadaTrabajo: (jornada?: string) => isValid(jornada, JornadaTrabajo) ? jornada : JornadaTrabajo.COMPLETA,
+      status: (status?: string) => isValid(status, ContractStatus) ? status : ContractStatus.DRAFT,
+      dotacionPersonal: (dotacion?: number) => dotacion || 0,
+      dotacionVehiculos: (dotacion?: number) => dotacion || 0,
       createdAt: 'date',
       updatedAt: 'date',
       deletedAt: 'dateNullable',
@@ -182,11 +195,33 @@ export class Contract {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // days
   }
 
-  public toJSON() {
-    return Object.assign({}, this, {
+  public toJSON(): ContractJson {
+    return {
+      id: this.id,
+      rutSociedad: this.rutSociedad,
+      nombreColaborador: this.nombreColaborador,
+      administradorContratoMandante: this.administradorContratoMandante,
+      administradorContratoEmpresa: this.administradorContratoEmpresa,
+      rutAdministradorContrato: this.rutAdministradorContrato,
+      contractNumber: this.contractNumber,
+      nombreMandante: this.nombreMandante,
+      division: this.division,
+      area: this.area,
+      descripcionServicio: this.descripcionServicio,
+      nombreProyecto: this.nombreProyecto,
+      contractType: this.contractType,
+      jornadaTrabajo: this.jornadaTrabajo,
+      status: this.status,
+      dotacionPersonal: this.dotacionPersonal,
+      dotacionVehiculos: this.dotacionVehiculos,
+      startDate: this.startDate?.toISOString(),
+      endDate: this.endDate?.toISOString() ?? null,
       duration: this.getDuration(),
       isActive: this.isActive(),
       isExpired: this.isExpired(),
-    });
+      createdAt: this.createdAt?.toISOString(),
+      updatedAt: this.updatedAt?.toISOString(),
+      deletedAt: this.deletedAt?.toISOString() ?? null,
+    };
   }
 }

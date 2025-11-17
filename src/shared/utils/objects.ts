@@ -1,11 +1,10 @@
+import { toArray } from "./array";
+
 /** Takes an object and return a new object with the same keys except the specified keys */
-export function except<T extends object, K extends keyof T>(obj: T, keys: readonly K[]): Omit<T, K> {
-  const k = Array.isArray(keys) ? keys.slice() : [keys];
-  const result = { ...obj };
-  for (const key of k) {
-    delete result[key as keyof T];
-  }
-  return result;
+export function except<T extends object, K extends RecordKey>(obj: T, keys: K | readonly K[]): Omit<T, K> {
+  const excludeKeys = toArray(keys);
+  const includeKeys = Object.keys(obj).filter((key) => !excludeKeys.includes(key)) as (keyof T)[];
+  return only(obj, includeKeys);
 }
 
 /** Check if the given value is a plain object */
@@ -33,8 +32,14 @@ export function notEmpty<T extends object>(obj: T): FlatPartial<T> {
   return result;
 }
 
-export function recordReplace<O extends object, K extends keyof O>(obj: O, key: RecordKey, value: unknown) {
-  if (key in obj) {
-    obj[key as K] = value as O[K];
-  }
+export const only = <T extends object, K extends RecordKey>(obj: T, keys: K | readonly K[]): Pick<T, Extract<K, keyof T>> => (
+  toArray(keys).reduce((result, key) => {
+    // @ts-expect-error only copy keys that are in both: the object and the keys array
+    if (key in obj) result[key] = obj[key];
+    return result;
+  }, {} as Pick<T, Extract<K, keyof T>>)
+)
+
+export function recordReplace<O extends object>(obj: O, key: RecordKey, value: unknown) {
+  if (key in obj) obj[key as keyof O] = value as O[keyof O];
 }

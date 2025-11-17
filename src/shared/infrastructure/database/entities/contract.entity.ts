@@ -7,6 +7,7 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
@@ -30,7 +31,7 @@ export class ContractEntity {
   startDate!: Date;
 
   @Column({ name: 'end_date', type: 'date', nullable: true })
-  endDate?: Date;
+  endDate?: Date | null;
 
   @EnumColumn({
     name: 'contract_type',
@@ -90,10 +91,19 @@ export class ContractEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date;
+
   // Relations
+  @Column({ name: 'employee_id', type: 'uuid', nullable: true })
+  employeeId?: string;
+
   @ManyToOne(() => UserEntity)
   @JoinColumn({ name: 'employee_id' })
   employee?: UserEntity;
+
+  @Column({ name: 'manager_id', type: 'uuid', nullable: true })
+  managerId?: string;
 
   @ManyToOne(() => UserEntity)
   @JoinColumn({ name: 'manager_id' })

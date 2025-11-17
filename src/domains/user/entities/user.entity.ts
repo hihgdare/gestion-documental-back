@@ -1,14 +1,39 @@
-import { BaseEntity, BasicProps } from '@shared/domain/base-entity';
-import { v4 as uuid } from 'uuid';
 import { ValidationError } from '@shared/domain/errors';
-import { BaseProps } from '@shared/infrastructure/entity-props';
 import { Email } from '../value-objects/email';
 import { isValidUserStatus, UserStatus } from '../value-objects/user-status';
-import { Role } from '../../role/entities/role.entity';
+import { Role, RoleJson } from '../../role/entities/role.entity';
+import { EntityUtils } from '@shared/utils/common';
 
-export type UserProps = BaseProps<User>;
+interface BaseUserProps {
+  email: string;
+  firstName: string;
+  lastName: string;
+  status?: string;
+  roles: Role[];
+  createdAt?: DateType;
+  updatedAt?: DateType;
+  deletedAt?: DateType | null;
+}
 
-export class User extends BaseEntity<User> implements BasicProps<true> {
+export interface CreateUserProps extends BaseUserProps {
+  id?: string;
+  password: string;
+}
+
+export interface UpdateUserProps extends CreateUserProps {
+  id: string;
+}
+
+export type UserJson = Overlap<BaseUserProps, {
+  id: string;
+  fullName: string;
+  roles?: RoleJson[];
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+}>
+
+export class User {
   id: string;
   email: Email;
   firstName: string;
@@ -20,25 +45,19 @@ export class User extends BaseEntity<User> implements BasicProps<true> {
   updatedAt: Date;
   deletedAt: Date | null;
 
-  constructor(input: Partial<User>) {
-    User.validateRequired(input);
-    super({
-      ...input,
-      email: Email.create(input.email!),
-      status: isValidUserStatus(input.status) ? input.status : UserStatus.ACTIVE,
-    }, true);
-    this.id = (input.id as string) ?? uuid();
-    this.createdAt = input.createdAt ?? new Date();
-    this.updatedAt = input.updatedAt ?? new Date();
-    this.email = Email.create(input.email!);
-    this.firstName = input.firstName!;
-    this.lastName = input.lastName!;
-    this.password = input.password!;
-    this.status = isValidUserStatus(input.status) ? input.status : UserStatus.ACTIVE;
-    this.roles = input.roles ?? [];
+  constructor(props: CreateUserProps) {
+    User.validateRequired(props);
+    EntityUtils.assign(this as User, props, {
+      id: 'uuid',
+      email: 'email',
+      status: (status: string) => isValidUserStatus(status) ? status : UserStatus.ACTIVE,
+      createdAt: 'date',
+      updatedAt: 'date',
+      deletedAt: 'dateNullable',
+    });
   }
 
-  private static validateRequired(props: Partial<UserProps>): void {
+  private static validateRequired(props: CreateUserProps): void {
     if (!Email.isValid(props.email)) {
       throw new ValidationError('Invalid email format', 'email');
     }
@@ -100,7 +119,7 @@ export class User extends BaseEntity<User> implements BasicProps<true> {
     return this.status === UserStatus.ACTIVE;
   }
 
-  public toJSON() {
+  public toJSON(): UserJson {
     return {
       id: this.id,
       email: this.email.toString(),
@@ -108,9 +127,10 @@ export class User extends BaseEntity<User> implements BasicProps<true> {
       lastName: this.lastName,
       fullName: `${this.firstName} ${this.lastName}`,
       status: this.status,
-      roles: this.roles?.map(role => ({ id: role.id, name: role.name })),
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
+      roles: this.roles?.map(role => role.toJSON()) ?? [],
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+      deletedAt: this.deletedAt?.toISOString() ?? null,
     };
   }
 }

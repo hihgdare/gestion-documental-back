@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { mapObject } from './objects';
 import { isFunction, isString } from './compare';
+import { Email } from '@domains/user/value-objects/email';
 
 export class UUID {
   private constructor(private readonly value: string) {
@@ -73,12 +74,13 @@ export class DateUtils {
 }
 
 type DefaultParsersKeys = keyof typeof defaultParsers;
-type ParserMethod = (value?: unknown) => unknown;
-type Parser = ParserMethod | DefaultParsersKeys;
+type ParsersList<T extends object> = Partial<Record<keyof T, ParserMethod | DefaultParsersKeys>>;
+type ParserMethod = Function; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
 const defaultParsers = Object.freeze({
   date: (value?: DateType) => DateUtils.parse(value),
   dateNullable: (value?: DateType) => DateUtils.parse(value, true),
+  email: (value?: string | Email) => Email.create(value),
   uuid: (value?: string) => value ?? uuidv4(),
 } as const);
 
@@ -86,9 +88,9 @@ export class EntityUtils {
   /**
    * @param a Main object
    * @param b Object with parameters to assign
-   * @param {Record<RecordKey, Parser>} parserList List of parsers (optional)
+   * @param parserList List of parsers (optional)
    */
-  static assign<A extends object, B extends Record<keyof A | RecordKey, unknown>, P extends Partial<Record<keyof A, Parser>>>(
+  static assign<A extends object, B extends object, P extends ParsersList<A>>(
     a: A,
     b: B,
     parserList?: P,
@@ -99,13 +101,10 @@ export class EntityUtils {
       return isString(parser) && parserKeys.includes(parser) ? defaultParsers[parser] : undefined;
     })) as Record<keyof P, ParserMethod | undefined>;
     Object.keys(a).forEach(key => {
-      type Item = A[keyof A];
       const parser = parsers?.[key];
       if (key in b) {
-        Object.assign(a, { [key]: b[key] ?? null });
-      }
-      if (typeof parser === 'function') {
-        a[key] = parser(b[key]) as Item;
+        // @ts-expect-error: We know that the key is in `a` and `b`
+        a[key] = isFunction(parser) ? parser(b[key]) : b[key];
       }
     });
     return a;

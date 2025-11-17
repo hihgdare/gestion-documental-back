@@ -2,7 +2,7 @@ import { ValidationError } from '@shared/domain/errors';
 
 export class Email {
   private constructor(
-    private readonly value: string,
+    private readonly value?: string,
     field?: string,
   ) {
     if (!Email.isValid(value)) {
@@ -10,12 +10,12 @@ export class Email {
     }
   }
 
-  static create(value: string | Email, field?: string): Email {
+  static create(value?: string | Email, field?: string): Email {
     return value instanceof Email ? value : new Email(value, field);
   }
 
   toString(): string {
-    return this.value;
+    return this.value!;
   }
 
   equals(other: Email): boolean {

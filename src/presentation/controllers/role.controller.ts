@@ -21,7 +21,7 @@ export class RoleController {
     const role = await this.saveRoleUseCase.execute(req.body);
     res.status(201).json({
       success: true,
-      data: role,
+      data: role.toJSON(),
       message: 'Role created successfully',
     });
   });
@@ -46,10 +46,10 @@ export class RoleController {
 
   public updateRole = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const role = await this.updateRoleUseCase.execute(Number(id), req.body);
+    const role = await this.updateRoleUseCase.execute({ id: Number(id), ...req.body });
     res.status(200).json({
       success: true,
-      data: role,
+      data: role.toJSON(),
       message: 'Role updated successfully',
     });
   });
@@ -69,7 +69,7 @@ export class RoleController {
     const role = await this.assignPermissionsToRoleUseCase.execute({ roleId: Number(id), permissionIds });
     res.status(200).json({
       success: true,
-      data: role,
+      data: role.toJSON(),
       message: 'Permissions assigned successfully',
     });
   });

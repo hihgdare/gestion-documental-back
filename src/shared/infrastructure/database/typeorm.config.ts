@@ -57,7 +57,9 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
       console.log('✅ Database type:', DataSource.options.type);
     } else {
       // Already initialized (tests may initialize DB multiple times)
-      console.log('⚠️ Database connection already initialized');
+      if (process.env.NODE_ENV !== 'test') {
+        console.log('⚠️ Database connection already initialized');
+      }
     }
   } catch (error) {
     console.error('❌ Error during database initialization:', error);

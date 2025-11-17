@@ -1,6 +1,7 @@
 import { UserRepository } from '../repositories/user.repository';
 import { RoleRepository } from '../../role/repositories/role.repository';
-import { User } from '../entities/user.entity';
+import { UpdateUserProps, User } from '../entities/user.entity';
+import { NotFoundError } from '@shared/domain/errors';
 
 export class AssignRoleToUserUseCase {
   constructor(
@@ -22,6 +23,16 @@ export class AssignRoleToUserUseCase {
 
     user.assignRoles(roles);
 
-    return this.userRepository.update(user.id, user);
+    const props: UpdateUserProps = {
+      id: user.id,
+      email: user.email.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      password: user.password,
+      roles: user.roles,
+      status: user.status,
+    };
+
+    return this.userRepository.update(props);
   }
 }
