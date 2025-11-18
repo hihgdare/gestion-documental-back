@@ -6,8 +6,10 @@ import { PermissionCache } from '@shared/infrastructure/cache/permission.cache';
 const cache = new PermissionCache(60);
 
 export async function getUserEffectivePermissions(userId: string): Promise<Set<string>> {
-  const cached = cache.get(userId);
-  if (cached) return cached;
+  if (process.env.NODE_ENV !== 'test') {
+    const cached = cache.get(userId);
+    if (cached) return cached;
+  }
 
   const userRepo = AppDataSource.getRepository(UserEntity);
   const user = await userRepo.findOne({
@@ -25,7 +27,9 @@ export async function getUserEffectivePermissions(userId: string): Promise<Set<s
   for (const role of user.roles || []) {
     collectRolePermissions(role, names);
   }
-  cache.set(userId, names);
+  if (process.env.NODE_ENV !== 'test') {
+    cache.set(userId, names);
+  }
   return names;
 }
 

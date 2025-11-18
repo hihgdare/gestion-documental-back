@@ -15,6 +15,7 @@ import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subty
 import { createDocumentRoutes } from '@presentation/routes/document.routes';
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
+import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { DependencyContainer } from './dependency-container';
 
 export class App {
@@ -105,6 +106,11 @@ export class App {
           health: '/health',
           permissions: '/api/permissions',
           roles: '/api/roles',
+          auth: {
+            login: '/api/auth/login',
+            logout: '/api/auth/logout',
+            permissions: '/api/auth/permissions',
+          },
         },
       });
     });
@@ -117,6 +123,7 @@ export class App {
     const documentController = this.dependencyContainer.getDocumentController();
     const permissionController = this.dependencyContainer.getPermissionController();
     const roleController = this.dependencyContainer.getRoleController();
+    const authController = this.dependencyContainer.getAuthController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
@@ -126,6 +133,9 @@ export class App {
     this.app.use('/api/documents', createDocumentRoutes(documentController));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
+
+    // Auth routes
+    this.app.use('/api/auth', createAuthRoutes(authController));
 
     // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {

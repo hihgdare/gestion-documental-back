@@ -1,8 +1,9 @@
 @baseUrl = http://localhost:3000/api
-@roleId = 2
-@permissionIds = [2]
+@roleId = 1
+@permissionIds = [1]
 
 ### Assign permissions to a role
+
 POST {{baseUrl}}/roles/{{roleId}}/permissions
 Content-Type: application/json
 

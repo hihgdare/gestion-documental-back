@@ -8,9 +8,10 @@ export function EnumColumn(options: EnumColumnOptions) {
   if (process.env.NODE_ENV === 'test' || process.env.DB_TYPE === 'sqljs') {
     // sqljs does not support enum types, so we simulate it
     const length = options.enum.reduce((max: number, val) => Math.max(max, String(val).length), 0) || 5;
+    const { enum: _enum, ...rest } = options as any;
     return Column({
       type: 'varchar',
-      ...options,
+      ...rest,
       length,
       default: String(options.default) || String(options.enum[0]),
     });

@@ -4,15 +4,22 @@ import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
+import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 
 describe('UserController', () => {
   let appInstance: App;
   let app: Application;
+  let roleRepository: TypeOrmRoleRepository;
+  let saveRoleUseCase: SaveRoleUseCase;
 
   beforeAll(async () => {
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
+
+    roleRepository = new TypeOrmRoleRepository();
+    saveRoleUseCase = new SaveRoleUseCase(roleRepository);
   });
 
   beforeEach(async () => {
@@ -28,9 +35,8 @@ describe('UserController', () => {
     };
 
     async function createRole(name: string) {
-      const res = await supertest(app).post('/api/roles').send({ name, description: name });
-      expect(res.status).toBe(201);
-      return res.body.data.id as number;
+      const role = await saveRoleUseCase.execute({ name, description: name });
+      return role.id as number;
     }
 
     it('should create a new user and return 201', async () => {

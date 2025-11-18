@@ -1,37 +1,44 @@
 @baseUrl = http://localhost:3000/api
 @module = roles
-@name = test.role.tmp
 @description = Test Role
-@id = 1
 
 ###
 
+# @name get-all
 GET {{baseUrl}}/{{module}}
 
 ###
 
+# @name create
+# @prompt name
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
 
 {
-  "name": "{{name}}",
+  "name": "{{ name }}",
   "description": "{{description}}"
 }
 
 ###
 
+@id = {{ create.response.body.data.id }}
+@name = {{ create.response.body.data.name }}
+
+# @name get
 GET {{baseUrl}}/{{module}}/{{id}}
 
 ###
 
+# @name update
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
 
 {
-  "name": "{{name}}.updated",
+  "name": "{{ name }}.updated",
   "description": "{{description}} Updated"
 }
 
 ###
 
+# @name delete
 DELETE {{baseUrl}}/{{module}}/{{id}}

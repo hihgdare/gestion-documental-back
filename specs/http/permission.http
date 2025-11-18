@@ -1,29 +1,38 @@
 @baseUrl = http://localhost:3000/api
 @module = permissions
-@name = test.permission.http
-@description = A temporary permission for http tests
-@id = 1
+@description = Test permission
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MDFiYzk5Zi1hODg1LTQ4YzctYTdlMS04NTBhMmMzMDY0YzYiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3NjM0MjYxODEsImV4cCI6MTc2MzQyOTc4MX0.cukcEvkoTwzgvkdLNBIWl6l_mQ3xAsIyJxgn1MWAChM
 
 ###
-# @name Get all permissions
+
+# @name get-all
 GET {{baseUrl}}/{{module}}
+Authorization: Bearer {{token}}
 
 ###
-# @name Create a new permission
+
+# @name create
+# @prompt name
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
 
 {
-  "name": "{{name}}",
+  "name": "{{ name }}",
   "description": "{{description}}"
 }
 
 ###
-# @name Get permission by id
+
+@id = {{ create.response.body.data.id }}
+@name = {{ create.response.body.data.name }}
+
+# @name get
 GET {{baseUrl}}/{{module}}/{{id}}
 
 ###
-# @name Update a permission
+
+# @name update
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
 
@@ -33,5 +42,6 @@ Content-Type: application/json
 }
 
 ###
-# @name Delete a permission
+
+# @name delete
 DELETE {{baseUrl}}/{{module}}/{{id}}

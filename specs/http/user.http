@@ -1,38 +1,45 @@
 @baseUrl = http://localhost:3000/api
 @module = users
-@email = test.user@example.com
 @firstName = Test
 @lastName = User
 @password = Secret123!
-@roleIds = [2]
-@id = 1
 
-### Get all users
+###
+# @name get-all
 GET {{baseUrl}}/{{module}}
 
-### Create a new user
+###
+# @name create
+# @prompt email
+# @prompt roleId
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
 
 {
-  "email": "{{email}}",
-  "firstName": "{{firstName}}",
-  "lastName": "{{lastName}}",
-  "password": "{{password}}",
-  "roleIds": {{roleIds}}
+  "email": "{{ email }}",
+  "firstName": "{{ firstName }}",
+  "lastName": "{{ lastName }}",
+  "password": "{{ password }}",
+  "roleIds": [{{ roleId }}]
 }
 
-### Get user by id
+###
+@id = {{ create.response.body.data.id }}
+@email = {{ create.response.body.data.email }}
+
+# @name get
 GET {{baseUrl}}/{{module}}/{{id}}
 
-### Update a user
+###
+# @name update
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
 
 {
-  "firstName": "{{firstName}}.updated",
-  "lastName": "{{lastName}} Updated"
+  "firstName": "{{ firstName }} - Updated",
+  "lastName": "{{ lastName }} - Updated"
 }
 
-### Delete a user
+###
+# @name delete
 DELETE {{baseUrl}}/{{module}}/{{id}}

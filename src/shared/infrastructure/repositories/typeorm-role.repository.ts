@@ -63,12 +63,12 @@ export class TypeOrmRoleRepository implements RoleRepository {
     } else {
       entity.permissions = [];
     }
-    
+
     if (props.parent) {
-        const parent = await this.repository.findOne({where: {id: props.parent.id}});
-        if(parent) entity.parent = parent;
+      const parent = await this.repository.findOne({where: {id: props.parent.id}});
+      if(parent) entity.parent = parent;
     } else {
-        entity.parent = null;
+      entity.parent = null;
     }
 
     const savedEntity = await this.repository.save(entity);

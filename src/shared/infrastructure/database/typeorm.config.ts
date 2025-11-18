@@ -1,5 +1,8 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { SqljsConnectionOptions } from 'typeorm/driver/sqljs/SqljsConnectionOptions.js';
+import { UserEntity } from './entities/user.entity';
+import { RoleEntity } from './entities/role.entity';
+import { PermissionEntity } from './entities/permission.entity';
 
 type Mode = 'development' | 'production' | 'test';
 
@@ -16,6 +19,7 @@ export function initializeDataSource(): DataSource {
       autoSave: false, // disable auto-save for in-memory testing
       synchronize: true,
       logging: false,
+      entities: [UserEntity, RoleEntity, PermissionEntity], // Explicitly list entities for test
     } satisfies SqljsConnectionOptions;
   } else {
     options = {
@@ -29,14 +33,14 @@ export function initializeDataSource(): DataSource {
       logging: mode === 'development',
       charset: 'utf8mb4',
       timezone: 'Z',
+      entities: [
+        'src/shared/infrastructure/database/entities/**/*.ts',
+        'src/domains/**/*.entity.ts',
+      ],
     } satisfies DataSourceOptions;
   }
   return new DataSource({
     ...options,
-    entities: [
-      'src/shared/infrastructure/database/entities/**/*.ts',
-      'src/application/entities/**/*.ts',
-    ],
     migrations: [
       'src/shared/infrastructure/database/migrations/*.ts',
     ],
@@ -53,8 +57,10 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
   try {
     if (!DataSource.isInitialized) {
       await DataSource.initialize();
-      console.log('✅ Database connection initialized successfully');
-      console.log('✅ Database type:', DataSource.options.type);
+      if (process.env.NODE_ENV !== 'test') {
+        console.log('✅ Database connection initialized successfully');
+        console.log('✅ Database type:', DataSource.options.type);
+      }
     } else {
       // Already initialized (tests may initialize DB multiple times)
       if (process.env.NODE_ENV !== 'test') {

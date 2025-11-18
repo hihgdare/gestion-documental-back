@@ -25,7 +25,7 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles'] });
+    const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles', 'roles.permissions'] });
     if (!userEntity) return null;
     return UserEntity.toDomain(userEntity);
   }
@@ -34,7 +34,7 @@ export class TypeOrmUserRepository implements UserRepository {
     const userEntities = await this.repository.find({
       where: { roles: { id: roleId } },
       order: { createdAt: 'DESC' },
-      relations: ['roles'],
+      relations: ['roles', 'roles.permissions'],
     });
     return userEntities.map(UserEntity.toDomain);
   }
@@ -42,11 +42,21 @@ export class TypeOrmUserRepository implements UserRepository {
   async save(props: CreateUserProps): Promise<User> {
     const domain = new User(props);
     const entity = UserEntity.fromDomain(domain);
-    if (props.roles) {
-      entity.roles = await this.roleRepository.findBy({ id: In(props.roles.map(r => r.id)) });
+
+    if (props.roles && props.roles.length > 0) {
+      const roleIds = props.roles.map(r => r.id).filter((id): id is number => id !== undefined);
+      if (roleIds.length > 0) {
+        entity.roles = await this.roleRepository.findBy({ id: In(roleIds) });
+      } else {
+        entity.roles = [];
+      }
+    } else {
+      entity.roles = [];
     }
+
     const savedEntity = await this.repository.save(entity);
-    return UserEntity.toDomain(savedEntity);
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions'] });
+    return UserEntity.toDomain(reloadedEntity!);
   }
 
   async update(props: UpdateUserProps): Promise<User> {
@@ -76,7 +86,7 @@ export class TypeOrmUserRepository implements UserRepository {
     }
 
     const savedEntity = await this.repository.save(entity);
-    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles'] });
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions'] });
     return UserEntity.toDomain(reloadedEntity!);
   }
 
@@ -85,7 +95,7 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles'] });
+    const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles', 'roles.permissions'] });
     if (!userEntity) return null;
     return UserEntity.toDomain(userEntity);
   }

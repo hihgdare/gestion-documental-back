@@ -12,6 +12,8 @@ import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case'
 import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
+import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
+import { GetAuthenticatedUserPermissionsUseCase } from '@domains/user/use-cases/get-authenticated-user-permissions.use-case';
 
 // DocumentType domain
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
@@ -88,6 +90,7 @@ import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/t
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
+import { AuthController } from '@presentation/controllers/auth.controller';
 
 export class DependencyContainer {
   // Repositories
@@ -106,6 +109,8 @@ export class DependencyContainer {
   private updateUserUseCase!: UpdateUserUseCase;
   private deleteUserUseCase!: DeleteUserUseCase;
   private assignRoleToUserUseCase!: AssignRoleToUserUseCase;
+  private loginUserUseCase!: LoginUserUseCase;
+  private getAuthenticatedUserPermissionsUseCase!: GetAuthenticatedUserPermissionsUseCase;
 
   // Use Cases - DocumentType
   private createDocumentTypeUseCase!: CreateDocumentTypeUseCase;
@@ -179,6 +184,7 @@ export class DependencyContainer {
   private permissionController!: PermissionController;
   private roleController!: RoleController;
   private userController!: UserController;
+  private authController!: AuthController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -197,6 +203,8 @@ export class DependencyContainer {
     this.updateUserUseCase = new UpdateUserUseCase(this.userRepository, this.roleRepository);
     this.deleteUserUseCase = new DeleteUserUseCase(this.userRepository);
     this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
+    this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
+    this.getAuthenticatedUserPermissionsUseCase = new GetAuthenticatedUserPermissionsUseCase();
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -271,16 +279,6 @@ export class DependencyContainer {
     );
     this.getPermissionsToRoleUseCase = new GetPermissionsToRoleUseCase(
       this.roleRepository,
-    );
-
-    // Initialize User Controllers
-    this.userController = new UserController(
-      this.createUserUseCase,
-      this.getUserByIdUseCase,
-      this.getAllUsersUseCase,
-      this.updateUserUseCase,
-      this.deleteUserUseCase,
-      this.assignRoleToUserUseCase,
     );
 
     // Initialize Controllers
@@ -362,6 +360,11 @@ export class DependencyContainer {
       this.deleteUserUseCase,
       this.assignRoleToUserUseCase,
     );
+
+    this.authController = new AuthController(
+      this.loginUserUseCase,
+      this.getAuthenticatedUserPermissionsUseCase,
+    );
   }
 
   // Getters for controllers
@@ -393,6 +396,10 @@ export class DependencyContainer {
     return this.roleController;
   }
 
+  public getAuthController(): AuthController {
+    return this.authController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -420,5 +427,26 @@ export class DependencyContainer {
 
   public getRoleRepository(): TypeOrmRoleRepository {
     return this.roleRepository;
+  }
+
+  // Getters for specific Use Cases (if needed for testing or direct access)
+  public getCreateUserUseCase(): CreateUserUseCase {
+    return this.createUserUseCase;
+  }
+
+  public getLoginUserUseCase(): LoginUserUseCase {
+    return this.loginUserUseCase;
+  }
+
+  public getSaveRoleUseCase(): SaveRoleUseCase {
+    return this.saveRoleUseCase;
+  }
+
+  public getSavePermissionUseCase(): SavePermissionUseCase {
+    return this.savePermissionUseCase;
+  }
+
+  public getAssignPermissionsToRoleUseCase(): AssignPermissionsToRoleUseCase {
+    return this.assignPermissionsToRoleUseCase;
   }
 }

@@ -16,7 +16,9 @@ export default tseslint.config(
       '@stylistic': stylistic,
     },
     rules: {
+      "@stylistic/eol-last": ["error", "always"],
       "@stylistic/indent": ["error", 2],
+      "@stylistic/no-trailing-spaces": "error",
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/interface-name-prefix": "off",

@@ -3,13 +3,14 @@ import { Email } from '../value-objects/email';
 import { isValidUserStatus, UserStatus } from '../value-objects/user-status';
 import { Role, RoleJson } from '../../role/entities/role.entity';
 import { EntityUtils } from '@shared/utils/common';
+import { toArray } from '@shared/utils/array';
 
 interface BaseUserProps {
   email: string;
   firstName: string;
   lastName: string;
   status?: string;
-  roles: Role[];
+  roles?: Role[];
   createdAt?: DateType;
   updatedAt?: DateType;
   deletedAt?: DateType | null;
@@ -132,5 +133,22 @@ export class User {
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt?.toISOString() ?? null,
     };
+  }
+
+  public getPermissions(): string[] {
+    const permissions = new Set<string>();
+    this.roles?.forEach(role => {
+      role.permissions?.forEach(permission => {
+        permissions.add(permission.name);
+      });
+    });
+    return Array.from(permissions);
+  }
+
+  public can(permissionNames: string | string[], all?: boolean): boolean {
+    const userPermissions = this.getPermissions();
+    return all
+      ? toArray(permissionNames).every(permission => userPermissions.includes(permission))
+      : toArray(permissionNames).some(permission => userPermissions.includes(permission));
   }
 }

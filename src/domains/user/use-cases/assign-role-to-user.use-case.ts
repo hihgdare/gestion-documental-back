@@ -12,7 +12,7 @@ export class AssignRoleToUserUseCase {
   async execute(input: { userId: string; roleIds: number[] }): Promise<User> {
     const user = await this.userRepository.findById(input.userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     const roles = await this.roleRepository.findIn(input.roleIds);
