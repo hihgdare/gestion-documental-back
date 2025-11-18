@@ -16,6 +16,23 @@ export class TypeOrmUserRepository implements UserRepository {
     this.roleRepository = AppDataSource.getRepository(RoleEntity);
   }
 
+  async assignRoleToUser(userId: string, roleId: number): Promise<void> {
+    const user = await this.repository.findOne({ where: { id: userId }, relations: ['roles'] });
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const role = await this.roleRepository.findOne({ where: { id: roleId } });
+    if (!role) {
+      throw new NotFoundError('Role not found');
+    }
+
+    if (!user.roles?.find(r => r.id === role.id)) {
+      (user.roles ??= []).push(role);
+      await this.repository.save(user);
+    }
+  }
+
   async findAll(): Promise<User[]> {
     const userEntities = await this.repository.find({
       order: { createdAt: 'DESC' },

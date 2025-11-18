@@ -17,6 +17,7 @@ import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { DependencyContainer } from './dependency-container';
+import { runInitialSeedIfEmpty } from '@shared/infrastructure/database/seed/initial-seed';
 
 export class App {
   private app: Application;
@@ -33,6 +34,8 @@ export class App {
 
     // Initialize dependencies
     await this.dependencyContainer.initialize();
+
+    await runInitialSeedIfEmpty();
 
     // Setup middleware
     this.setupMiddleware();

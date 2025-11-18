@@ -15,6 +15,12 @@ export class TypeOrmRoleRepository implements RoleRepository {
     this.permissionRepository = AppDataSource.getRepository(PermissionEntity);
   }
 
+  async assignPermissionsToRole(roleId: number, permissionIds: number[]): Promise<void> {
+    await this.repository.update(roleId, {
+      permissions: await this.permissionRepository.findBy({ id: In(permissionIds) }),
+    });
+  }
+
   async findAll(): Promise<Role[]> {
     const entities = await this.repository.find({ relations: ['permissions', 'parent', 'children'] });
     return entities.map(RoleEntity.toDomain);
