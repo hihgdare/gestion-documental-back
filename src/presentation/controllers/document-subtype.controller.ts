@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { CreateDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/create-document-subtype.use-case';
-import { 
-  GetDocumentSubtypeByIdUseCase, 
+import {
+  GetDocumentSubtypeByIdUseCase,
   GetAllDocumentSubtypesUseCase,
-  GetDocumentSubtypesByDocumentTypeIdUseCase
+  GetDocumentSubtypesByDocumentTypeIdUseCase,
 } from '@domains/document-subtype/use-cases/get-document-subtype.use-case';
 import { UpdateDocumentSubtypeUseCase, DeleteDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/update-document-subtype.use-case';
 import { asyncHandler } from '@shared/middleware/validation';

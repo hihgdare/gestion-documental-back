@@ -27,7 +27,7 @@ export class CreateDocumentSubtypeUseCase {
     };
 
     const documentSubtype = DocumentSubtype.create(documentSubtypeProps);
-    
+
     return await this.documentSubtypeRepository.save(documentSubtype);
   }
 }

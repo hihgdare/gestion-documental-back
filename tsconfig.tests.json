@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.shared.json",
+  "compilerOptions": {
+    "composite": true
+  },
+  "include": [
+    "types.d.ts",
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

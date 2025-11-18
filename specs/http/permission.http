@@ -1,0 +1,47 @@
+@baseUrl = http://localhost:3000/api
+@module = permissions
+@description = Test permission
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MDFiYzk5Zi1hODg1LTQ4YzctYTdlMS04NTBhMmMzMDY0YzYiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJpYXQiOjE3NjM0MjYxODEsImV4cCI6MTc2MzQyOTc4MX0.cukcEvkoTwzgvkdLNBIWl6l_mQ3xAsIyJxgn1MWAChM
+
+###
+
+# @name get-all
+GET {{baseUrl}}/{{module}}
+Authorization: Bearer {{token}}
+
+###
+
+# @name create
+# @prompt name
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "name": "{{ name }}",
+  "description": "{{description}}"
+}
+
+###
+
+@id = {{ create.response.body.data.id }}
+@name = {{ create.response.body.data.name }}
+
+# @name get
+GET {{baseUrl}}/{{module}}/{{id}}
+
+###
+
+# @name update
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "name": "{{name}}.updated",
+  "description": "{{description}} Updated"
+}
+
+###
+
+# @name delete
+DELETE {{baseUrl}}/{{module}}/{{id}}

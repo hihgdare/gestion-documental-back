@@ -29,7 +29,7 @@ export class CreateDocumentUseCase {
     };
 
     const document = Document.create(documentProps);
-    
+
     return await this.documentRepository.save(document);
   }
 }

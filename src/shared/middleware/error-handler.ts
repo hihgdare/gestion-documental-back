@@ -28,11 +28,13 @@ export const errorHandler = (
   const {status, code, message, details} = getErrorData(error);
 
   // Log error for debugging
-  console.error(`[${timestamp}] ${error.name}: ${error.message}`, {
-    stack: error.stack,
-    path: req.originalUrl,
-    method: req.method,
-  });
+  if (process.env.NODE_ENV !== 'test') {
+    console.error(`[${timestamp}] ${error.name}: ${error.message}`, {
+      stack: error.stack,
+      path: req.originalUrl,
+      method: req.method,
+    });
+  }
 
   res.status(status).json({
     error: {
@@ -46,9 +48,7 @@ export const errorHandler = (
 };
 
 function getErrorData(error: Error): {status: number, code: string, message?: string, details?: unknown} {
-  if (error instanceof DomainError) {
-    return { status: 400, code: 'DOMAIN_ERROR' };
-  } else if (error instanceof UnauthorizedError) {
+  if (error instanceof UnauthorizedError) {
     return { status: 401, code: 'UNAUTHORIZED' };
   } else if (error instanceof ValidationError) {
     return {
@@ -62,6 +62,8 @@ function getErrorData(error: Error): {status: number, code: string, message?: st
     return { status: 404, code: 'NOT_FOUND' };
   } else if (error instanceof ConflictError) {
     return { status: 409, code: 'CONFLICT' };
+  } else if (error instanceof DomainError) {
+    return { status: 400, code: 'DOMAIN_ERROR' };
   } else {
     return {
       status: 500,

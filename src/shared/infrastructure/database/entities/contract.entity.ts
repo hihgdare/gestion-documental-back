@@ -7,8 +7,10 @@ import {
   Index,
   ManyToOne,
   JoinColumn,
+  DeleteDateColumn,
 } from 'typeorm';
-import { UserEntity } from './user.entity';
+import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
+import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
 
 @Entity('contracts')
 @Index(['rutSociedad'])
@@ -29,11 +31,10 @@ export class ContractEntity {
   startDate!: Date;
 
   @Column({ name: 'end_date', type: 'date', nullable: true })
-  endDate?: Date;
+  endDate?: Date | null;
 
-  @Column({
+  @EnumColumn({
     name: 'contract_type',
-    type: 'enum',
     enum: ['indefinido', 'plazo_fijo', 'obra_faena', 'consultoria', 'honorarios'],
   })
   contractType!: string;
@@ -71,16 +72,14 @@ export class ContractEntity {
   @Column({ name: 'nombre_proyecto', type: 'varchar', length: 255, nullable: true })
   nombreProyecto?: string;
 
-  @Column({
+  @EnumColumn({
     name: 'jornada_trabajo',
-    type: 'enum',
     enum: ['completa', 'parcial', 'turno', 'especial'],
     default: 'completa',
   })
   jornadaTrabajo!: string;
 
-  @Column({
-    type: 'enum',
+  @EnumColumn({
     enum: ['draft', 'active', 'suspended', 'terminated', 'expired'],
     default: 'draft',
   })
@@ -92,10 +91,19 @@ export class ContractEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date;
+
   // Relations
+  @Column({ name: 'employee_id', type: 'uuid', nullable: true })
+  employeeId?: string;
+
   @ManyToOne(() => UserEntity)
   @JoinColumn({ name: 'employee_id' })
   employee?: UserEntity;
+
+  @Column({ name: 'manager_id', type: 'uuid', nullable: true })
+  managerId?: string;
 
   @ManyToOne(() => UserEntity)
   @JoinColumn({ name: 'manager_id' })

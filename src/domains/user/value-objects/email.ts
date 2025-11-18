@@ -1,29 +1,33 @@
 import { ValidationError } from '@shared/domain/errors';
-import { StringUtils } from '@shared/utils/common';
 
 export class Email {
-  private constructor(private readonly value: string) {
-    if (!this.isValid(value)) {
-      throw new ValidationError('Invalid email format', 'email');
+  private constructor(
+    private readonly value?: string,
+    field?: string,
+  ) {
+    if (!Email.isValid(value)) {
+      throw new ValidationError('Invalid email format', field || 'email');
     }
   }
 
-  public static create(value: string): Email {
-    return new Email(value);
+  static create(value?: string | Email, field?: string): Email {
+    return value instanceof Email ? value : new Email(value, field);
   }
 
-  public toString(): string {
-    return this.value;
+  toString(): string {
+    return this.value!;
   }
 
-  public equals(other: Email): boolean {
+  equals(other: Email): boolean {
     return this.value === other.value;
   }
 
-  private isValid(value: string): boolean {
-    if (StringUtils.isEmpty(value)) {
-      return false;
-    }
-    return StringUtils.isEmail(value);
+  static isValid(value?: string | Email): boolean {
+    if (value instanceof Email) return true;
+    if (typeof value !== 'string') return false;
+    const v = value.trim();
+    if (!v) return false;
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(v);
   }
 }

@@ -1,120 +1,84 @@
-import { BaseEntity } from '@shared/domain/base-entity';
-import { UUID } from '@shared/utils/common';
-import { Email } from '../value-objects/email';
-import { UserStatus } from '../value-objects/user-status';
 import { ValidationError } from '@shared/domain/errors';
+import { Email } from '../value-objects/email';
+import { isValidUserStatus, UserStatus } from '../value-objects/user-status';
+import { Role, RoleJson } from '../../role/entities/role.entity';
+import { EntityUtils } from '@shared/utils/common';
+import { toArray } from '@shared/utils/array';
 
-export interface UserProps {
-  id?: string;
+interface BaseUserProps {
   email: string;
+  firstName: string;
+  lastName: string;
+  status?: string;
+  roles?: Role[];
+  createdAt?: DateType;
+  updatedAt?: DateType;
+  deletedAt?: DateType | null;
+}
+
+export interface CreateUserProps extends BaseUserProps {
+  id?: string;
+  password: string;
+}
+
+export interface UpdateUserProps extends CreateUserProps {
+  id: string;
+}
+
+export type UserJson = Overlap<BaseUserProps, {
+  id: string;
+  fullName: string;
+  roles?: RoleJson[];
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+}>
+
+export class User {
+  id: string;
+  email: Email;
   firstName: string;
   lastName: string;
   password: string;
   status?: UserStatus;
-  roleId: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+  roles?: Role[];
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 
-export class User extends BaseEntity {
-  private constructor(
-    id: string,
-    private _email: Email,
-    private _firstName: string,
-    private _lastName: string,
-    private _password: string,
-    private _status: UserStatus,
-    private _roleId: string,
-    createdAt: Date,
-    updatedAt: Date,
-  ) {
-    super(id, createdAt, updatedAt);
+  constructor(props: CreateUserProps) {
+    User.validateRequired(props);
+    EntityUtils.assign(this as User, props, {
+      id: 'uuid',
+      email: 'email',
+      status: (status: string) => isValidUserStatus(status) ? status : UserStatus.ACTIVE,
+      createdAt: 'date',
+      updatedAt: 'date',
+      deletedAt: 'dateNullable',
+    });
   }
 
-  public static create(props: UserProps): User {
-    const id = props.id || UUID.generate().toString();
-    const email = Email.create(props.email);
-    const status = props.status || UserStatus.ACTIVE;
-
-    this.validateRequired(props);
-
-    return new User(
-      id,
-      email,
-      props.firstName.trim(),
-      props.lastName.trim(),
-      props.password,
-      status,
-      props.roleId,
-      props.createdAt || new Date(),
-      props.updatedAt || new Date(),
-    );
-  }
-
-  public static fromPersistence(props: UserProps): User {
-    const email = Email.create(props.email);
-    const status = props.status || UserStatus.ACTIVE;
-
-    return new User(
-      props.id!,
-      email,
-      props.firstName,
-      props.lastName,
-      props.password,
-      status,
-      props.roleId,
-      props.createdAt!,
-      props.updatedAt!,
-    );
-  }
-
-  private static validateRequired(props: UserProps): void {
+  private static validateRequired(props: CreateUserProps): void {
+    if (!Email.isValid(props.email)) {
+      throw new ValidationError('Invalid email format', 'email');
+    }
     if (!props.firstName?.trim()) {
       throw new ValidationError('First name is required', 'firstName');
     }
     if (!props.lastName?.trim()) {
       throw new ValidationError('Last name is required', 'lastName');
     }
-    if (!props.password) {
+    if (!props.password?.trim()) {
       throw new ValidationError('Password is required', 'password');
     }
-    if (!props.roleId) {
-      throw new ValidationError('Role ID is required', 'roleId');
+    if (!props.roles?.length) {
+      throw new ValidationError('At least one role is required', 'roles');
     }
-  }
-
-  // Getters
-  public get email(): Email {
-    return this._email;
-  }
-
-  public get firstName(): string {
-    return this._firstName;
-  }
-
-  public get lastName(): string {
-    return this._lastName;
-  }
-
-  public get fullName(): string {
-    return `${this._firstName} ${this._lastName}`;
-  }
-
-  public get password(): string {
-    return this._password;
-  }
-
-  public get status(): UserStatus {
-    return this._status;
-  }
-
-  public get roleId(): string {
-    return this._roleId;
   }
 
   // Business methods
-  public updateEmail(newEmail: string): void {
-    this._email = Email.create(newEmail);
+  public updateEmail(email: string): void {
+    this.email = Email.create(email);
   }
 
   public updateName(firstName: string, lastName: string): void {
@@ -125,44 +89,66 @@ export class User extends BaseEntity {
       throw new ValidationError('Last name is required', 'lastName');
     }
 
-    this._firstName = firstName.trim();
-    this._lastName = lastName.trim();
+    this.firstName = firstName.trim();
+    this.lastName = lastName.trim();
   }
 
-  public updatePassword(newPassword: string): void {
-    if (!newPassword) {
+  public updatePassword(password: string): void {
+    if (!password?.trim()) {
       throw new ValidationError('Password is required', 'password');
     }
-    this._password = newPassword;
+    this.password = password.trim();
+  }
+
+  public assignRoles(roles: Role[]): void {
+    this.roles = roles;
   }
 
   public activate(): void {
-    this._status = UserStatus.ACTIVE;
+    this.status = UserStatus.ACTIVE;
   }
 
   public deactivate(): void {
-    this._status = UserStatus.INACTIVE;
+    this.status = UserStatus.INACTIVE;
   }
 
   public suspend(): void {
-    this._status = UserStatus.SUSPENDED;
+    this.status = UserStatus.SUSPENDED;
   }
 
   public isActive(): boolean {
-    return this._status === UserStatus.ACTIVE;
+    return this.status === UserStatus.ACTIVE;
   }
 
-  public toJSON() {
+  public toJSON(): UserJson {
     return {
       id: this.id,
-      email: this._email.toString(),
-      firstName: this._firstName,
-      lastName: this._lastName,
-      fullName: this.fullName,
-      status: this._status,
-      roleId: this._roleId,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
+      email: this.email.toString(),
+      firstName: this.firstName,
+      lastName: this.lastName,
+      fullName: `${this.firstName} ${this.lastName}`,
+      status: this.status,
+      roles: this.roles?.map(role => role.toJSON()) ?? [],
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
+      deletedAt: this.deletedAt?.toISOString() ?? null,
     };
+  }
+
+  public getPermissions(): string[] {
+    const permissions = new Set<string>();
+    this.roles?.forEach(role => {
+      role.permissions?.forEach(permission => {
+        permissions.add(permission.name);
+      });
+    });
+    return Array.from(permissions);
+  }
+
+  public can(permissionNames: string | string[], all?: boolean): boolean {
+    const userPermissions = this.getPermissions();
+    return all
+      ? toArray(permissionNames).every(permission => userPermissions.includes(permission))
+      : toArray(permissionNames).some(permission => userPermissions.includes(permission));
   }
 }

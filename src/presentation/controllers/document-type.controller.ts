@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
 import { GetDocumentTypeByIdUseCase, GetAllDocumentTypesUseCase } from '@domains/document-type/use-cases/get-document-type.use-case';
 import { UpdateDocumentTypeUseCase, DeleteDocumentTypeUseCase } from '@domains/document-type/use-cases/update-document-type.use-case';
-import { 
+import {
   GetDocumentTypeWithSubtypesUseCase,
-  GetAllDocumentTypesWithSubtypesUseCase
+  GetAllDocumentTypesWithSubtypesUseCase,
 } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
 
