@@ -23,6 +23,7 @@ export const AppDataSource = new DataSource({
   ],
   charset: 'utf8mb4',
   timezone: '+00:00',
+  dateStrings: true,
 });
 
 export const initializeDatabase = async (): Promise<void> => {
