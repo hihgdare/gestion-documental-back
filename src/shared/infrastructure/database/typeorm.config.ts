@@ -22,7 +22,7 @@ export const AppDataSource = new DataSource({
     'src/shared/infrastructure/database/subscribers/*.ts',
   ],
   charset: 'utf8mb4',
-  timezone: 'Z',
+  timezone: '+00:00',
 });
 
 export const initializeDatabase = async (): Promise<void> => {
