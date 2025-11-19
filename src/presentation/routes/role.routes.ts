@@ -18,7 +18,7 @@ export const createRoleRoutes = (roleController: RoleController): Router => {
 
   // Role Permissions
   router.get('/:id/permissions', authorize('role:read'), roleController.getPermissions);
-  router.post('/:id/permissions', authorize('role:assign_permissions'), validateRequest(assignPermissionsSchema), roleController.assignPermissions);
+  router.post('/:id/permissions', authorize('role:assign:permission'), validateRequest(assignPermissionsSchema), roleController.assignPermissions);
 
   return router;
 };
