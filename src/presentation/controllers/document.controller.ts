@@ -32,7 +32,7 @@ export class DocumentController {
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const dto: CreateDocumentDto = req.body;
-    
+
     const document = await this.createDocumentUseCase.execute({
       documentTypeId: dto.documentTypeId,
       documentSubtypeId: dto.documentSubtypeId,

@@ -4,7 +4,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/?(*.)+(spec|test).ts'],
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
@@ -16,6 +16,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
     '^@domains/(.*)$': '<rootDir>/src/domains/$1',
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',

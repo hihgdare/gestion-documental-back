@@ -5,14 +5,14 @@ export const createUserSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
   password: Joi.string().min(8).required(),
-  roleId: Joi.string().uuid().required(),
+  roleIds: Joi.array().items(Joi.number().integer()).required(),
 });
 
 export const updateUserSchema = Joi.object({
   email: Joi.string().email().optional(),
   firstName: Joi.string().min(2).max(50).optional(),
   lastName: Joi.string().min(2).max(50).optional(),
-  roleId: Joi.string().uuid().optional(),
+  roleIds: Joi.array().items(Joi.number().integer()).optional(),
 }).min(1);
 
 export const getUserByIdSchema = Joi.object({
@@ -100,4 +100,32 @@ export const updateDocumentSchema = Joi.object({
 
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
+});
+
+export const createPermissionSchema = Joi.object({
+  name: Joi.string().min(2).max(50).required(),
+  description: Joi.string().max(255).optional(),
+});
+
+export const updatePermissionSchema = Joi.object({
+  name: Joi.string().min(2).max(50).optional(),
+  description: Joi.string().max(255).optional(),
+}).min(1);
+
+export const createRoleSchema = Joi.object({
+  name: Joi.string().min(2).max(50).required(),
+  description: Joi.string().max(255).optional(),
+});
+
+export const updateRoleSchema = Joi.object({
+  name: Joi.string().min(2).max(50).optional(),
+  description: Joi.string().max(255).optional(),
+}).min(1);
+
+export const assignPermissionsSchema = Joi.object({
+  permissionIds: Joi.array().items(Joi.number().integer()).required(),
+});
+
+export const assignRoleToUserSchema = Joi.object({
+  roleIds: Joi.array().items(Joi.number().integer()).required(),
 });

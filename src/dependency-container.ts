@@ -4,27 +4,32 @@ import { ContractController } from '@presentation/controllers/contract.controlle
 import { DocumentTypeController } from '@presentation/controllers/document-type.controller';
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
 import { DocumentController } from '@presentation/controllers/document.controller';
+import { PermissionController } from '@presentation/controllers/permission.controller';
+import { RoleController } from '@presentation/controllers/role.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
+import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
+import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
+import { GetAuthenticatedUserPermissionsUseCase } from '@domains/user/use-cases/get-authenticated-user-permissions.use-case';
 
 // DocumentType domain
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
 import { GetDocumentTypeByIdUseCase, GetAllDocumentTypesUseCase } from '@domains/document-type/use-cases/get-document-type.use-case';
 import { UpdateDocumentTypeUseCase, DeleteDocumentTypeUseCase } from '@domains/document-type/use-cases/update-document-type.use-case';
-import { 
+import {
   GetDocumentTypeWithSubtypesUseCase,
-  GetAllDocumentTypesWithSubtypesUseCase
+  GetAllDocumentTypesWithSubtypesUseCase,
 } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 
 // DocumentSubtype domain
 import { CreateDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/create-document-subtype.use-case';
-import { 
-  GetDocumentSubtypeByIdUseCase, 
+import {
+  GetDocumentSubtypeByIdUseCase,
   GetAllDocumentSubtypesUseCase,
-  GetDocumentSubtypesByDocumentTypeIdUseCase
+  GetDocumentSubtypesByDocumentTypeIdUseCase,
 } from '@domains/document-subtype/use-cases/get-document-subtype.use-case';
 import { UpdateDocumentSubtypeUseCase, DeleteDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/update-document-subtype.use-case';
 
@@ -64,12 +69,28 @@ import {
   DeleteContractUseCase,
 } from '@domains/contract/use-cases/update-contract.use-case';
 
+// Permission domain
+import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
+import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
+import { UpdatePermissionUseCase } from '@domains/permission/use-cases/update-permission.use-case';
+import { DeletePermissionUseCase } from '@domains/permission/use-cases/delete-permission.use-case';
+
+// Role domain
+import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
+import { GetRoleByIdUseCase, GetAllRolesUseCase } from '@domains/role/use-cases/get-role.use-case';
+import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
+import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
+
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
+import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
+import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
+import { AuthController } from '@presentation/controllers/auth.controller';
 
 export class DependencyContainer {
   // Repositories
@@ -78,6 +99,8 @@ export class DependencyContainer {
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
   private documentRepository!: TypeOrmDocumentRepository;
+  private permissionRepository!: TypeOrmPermissionRepository;
+  private roleRepository!: TypeOrmRoleRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -85,6 +108,9 @@ export class DependencyContainer {
   private getAllUsersUseCase!: GetAllUsersUseCase;
   private updateUserUseCase!: UpdateUserUseCase;
   private deleteUserUseCase!: DeleteUserUseCase;
+  private assignRoleToUserUseCase!: AssignRoleToUserUseCase;
+  private loginUserUseCase!: LoginUserUseCase;
+  private getAuthenticatedUserPermissionsUseCase!: GetAuthenticatedUserPermissionsUseCase;
 
   // Use Cases - DocumentType
   private createDocumentTypeUseCase!: CreateDocumentTypeUseCase;
@@ -134,12 +160,31 @@ export class DependencyContainer {
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
 
+  // Use Cases - Permission
+  private savePermissionUseCase!: SavePermissionUseCase;
+  private findAllPermissionsUseCase!: FindAllPermissionsUseCase;
+  private findPermissionByIdUseCase!: FindPermissionByIdUseCase;
+  private updatePermissionUseCase!: UpdatePermissionUseCase;
+  private deletePermissionUseCase!: DeletePermissionUseCase;
+
+  // Use Cases - Role
+  private saveRoleUseCase!: SaveRoleUseCase;
+  private getRoleByIdUseCase!: GetRoleByIdUseCase;
+  private getAllRolesUseCase!: GetAllRolesUseCase;
+  private updateRoleUseCase!: UpdateRoleUseCase;
+  private deleteRoleUseCase!: DeleteRoleUseCase;
+  private assignPermissionsToRoleUseCase!: AssignPermissionsToRoleUseCase;
+  private getPermissionsToRoleUseCase!: GetPermissionsToRoleUseCase;
+
   // Controllers
-  private userController!: UserController;
   private contractController!: ContractController;
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
   private documentController!: DocumentController;
+  private permissionController!: PermissionController;
+  private roleController!: RoleController;
+  private userController!: UserController;
+  private authController!: AuthController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -148,13 +193,18 @@ export class DependencyContainer {
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
     this.documentRepository = new TypeOrmDocumentRepository();
+    this.permissionRepository = new TypeOrmPermissionRepository();
+    this.roleRepository = new TypeOrmRoleRepository();
 
     // Initialize User use cases
-    this.createUserUseCase = new CreateUserUseCase(this.userRepository);
+    this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
     this.getUserByIdUseCase = new GetUserByIdUseCase(this.userRepository);
     this.getAllUsersUseCase = new GetAllUsersUseCase(this.userRepository);
-    this.updateUserUseCase = new UpdateUserUseCase(this.userRepository);
+    this.updateUserUseCase = new UpdateUserUseCase(this.userRepository, this.roleRepository);
     this.deleteUserUseCase = new DeleteUserUseCase(this.userRepository);
+    this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
+    this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
+    this.getAuthenticatedUserPermissionsUseCase = new GetAuthenticatedUserPermissionsUseCase();
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -210,15 +260,28 @@ export class DependencyContainer {
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
 
-    // Initialize Controllers
-    this.userController = new UserController(
-      this.createUserUseCase,
-      this.getUserByIdUseCase,
-      this.getAllUsersUseCase,
-      this.updateUserUseCase,
-      this.deleteUserUseCase,
+    // Initialize Permission use cases
+    this.savePermissionUseCase = new SavePermissionUseCase(this.permissionRepository);
+    this.findAllPermissionsUseCase = new FindAllPermissionsUseCase(this.permissionRepository);
+    this.findPermissionByIdUseCase = new FindPermissionByIdUseCase(this.permissionRepository);
+    this.updatePermissionUseCase = new UpdatePermissionUseCase(this.permissionRepository);
+    this.deletePermissionUseCase = new DeletePermissionUseCase(this.permissionRepository);
+
+    // Initialize Role use cases
+    this.saveRoleUseCase = new SaveRoleUseCase(this.roleRepository);
+    this.getRoleByIdUseCase = new GetRoleByIdUseCase(this.roleRepository);
+    this.getAllRolesUseCase = new GetAllRolesUseCase(this.roleRepository);
+    this.updateRoleUseCase = new UpdateRoleUseCase(this.roleRepository);
+    this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository);
+    this.assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(
+      this.roleRepository,
+      this.permissionRepository,
+    );
+    this.getPermissionsToRoleUseCase = new GetPermissionsToRoleUseCase(
+      this.roleRepository,
     );
 
+    // Initialize Controllers
     this.contractController = new ContractController(
       this.createContractUseCase,
       this.getContractByIdUseCase,
@@ -270,6 +333,38 @@ export class DependencyContainer {
       this.updateDocumentUseCase,
       this.deleteDocumentUseCase,
     );
+
+    this.permissionController = new PermissionController(
+      this.savePermissionUseCase,
+      this.findPermissionByIdUseCase,
+      this.findAllPermissionsUseCase,
+      this.updatePermissionUseCase,
+      this.deletePermissionUseCase,
+    );
+
+    this.roleController = new RoleController(
+      this.saveRoleUseCase,
+      this.getRoleByIdUseCase,
+      this.getAllRolesUseCase,
+      this.updateRoleUseCase,
+      this.deleteRoleUseCase,
+      this.assignPermissionsToRoleUseCase,
+      this.getPermissionsToRoleUseCase,
+    );
+
+    this.userController = new UserController(
+      this.createUserUseCase,
+      this.getUserByIdUseCase,
+      this.getAllUsersUseCase,
+      this.updateUserUseCase,
+      this.deleteUserUseCase,
+      this.assignRoleToUserUseCase,
+    );
+
+    this.authController = new AuthController(
+      this.loginUserUseCase,
+      this.getAuthenticatedUserPermissionsUseCase,
+    );
   }
 
   // Getters for controllers
@@ -293,6 +388,18 @@ export class DependencyContainer {
     return this.documentController;
   }
 
+  public getPermissionController(): PermissionController {
+    return this.permissionController;
+  }
+
+  public getRoleController(): RoleController {
+    return this.roleController;
+  }
+
+  public getAuthController(): AuthController {
+    return this.authController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -312,5 +419,34 @@ export class DependencyContainer {
 
   public getDocumentRepository(): TypeOrmDocumentRepository {
     return this.documentRepository;
+  }
+
+  public getPermissionRepository(): TypeOrmPermissionRepository {
+    return this.permissionRepository;
+  }
+
+  public getRoleRepository(): TypeOrmRoleRepository {
+    return this.roleRepository;
+  }
+
+  // Getters for specific Use Cases (if needed for testing or direct access)
+  public getCreateUserUseCase(): CreateUserUseCase {
+    return this.createUserUseCase;
+  }
+
+  public getLoginUserUseCase(): LoginUserUseCase {
+    return this.loginUserUseCase;
+  }
+
+  public getSaveRoleUseCase(): SaveRoleUseCase {
+    return this.saveRoleUseCase;
+  }
+
+  public getSavePermissionUseCase(): SavePermissionUseCase {
+    return this.savePermissionUseCase;
+  }
+
+  public getAssignPermissionsToRoleUseCase(): AssignPermissionsToRoleUseCase {
+    return this.assignPermissionsToRoleUseCase;
   }
 }

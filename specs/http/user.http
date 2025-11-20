@@ -1,0 +1,45 @@
+@baseUrl = http://localhost:3000/api
+@module = users
+@firstName = Test
+@lastName = User
+@password = Secret123!
+
+###
+# @name get-all
+GET {{baseUrl}}/{{module}}
+
+###
+# @name create
+# @prompt email
+# @prompt roleId
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "email": "{{ email }}",
+  "firstName": "{{ firstName }}",
+  "lastName": "{{ lastName }}",
+  "password": "{{ password }}",
+  "roleIds": [{{ roleId }}]
+}
+
+###
+@id = {{ create.response.body.data.id }}
+@email = {{ create.response.body.data.email }}
+
+# @name get
+GET {{baseUrl}}/{{module}}/{{id}}
+
+###
+# @name update
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "firstName": "{{ firstName }} - Updated",
+  "lastName": "{{ lastName }} - Updated"
+}
+
+###
+# @name delete
+DELETE {{baseUrl}}/{{module}}/{{id}}

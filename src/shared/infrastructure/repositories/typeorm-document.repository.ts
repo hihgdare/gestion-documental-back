@@ -1,4 +1,4 @@
-import { Repository, LessThanOrEqual, MoreThan } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
 import { type DocumentRepository } from '@domains/document/repositories/document.repository';
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentEntity } from '../database/entities/document.entity';

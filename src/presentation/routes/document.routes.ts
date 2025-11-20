@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { DocumentController } from '../controllers/document.controller';
 import { validateRequest } from '@shared/middleware/validation';
-import { createDocumentSchema, updateDocumentSchema, getDocumentByIdSchema } from '../dto/validation-schemas';
+import { createDocumentSchema, updateDocumentSchema } from '../dto/validation-schemas';
 
 export const createDocumentRoutes = (controller: DocumentController): Router => {
   const router = Router();

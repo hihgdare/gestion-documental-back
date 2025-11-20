@@ -1,19 +1,11 @@
 import { ContractRepository } from '../repositories/contract.repository';
-import { Contract } from '../entities/contract.entity';
+import { Contract, UpdateContractProps } from '../entities/contract.entity';
 import { NotFoundError } from '@shared/domain/errors';
-
-export interface UpdateContractRequest {
-  nombreColaborador?: string;
-  descripcionServicio?: string;
-  dotacionPersonal?: number;
-  dotacionVehiculos?: number;
-  endDate?: Date;
-}
 
 export class UpdateContractUseCase {
   constructor(private readonly contractRepository: ContractRepository) {}
 
-  public async execute(id: string, request: UpdateContractRequest): Promise<Contract> {
+  public async execute(id: string, request: UpdateContractProps): Promise<Contract> {
     const contract = await this.contractRepository.findById(id);
     if (!contract) {
       throw new NotFoundError('Contract', id);

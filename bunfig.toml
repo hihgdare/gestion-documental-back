@@ -4,7 +4,7 @@ install.cache = true
 install.production = false
 
 # TypeScript configuration for Bun
-[bun.test]
+[test]
 preload = ["./test-setup.ts"]
 
 # Development configuration

@@ -1,10 +1,10 @@
+/// <reference types="bun" />
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 
 // Global test setup for Bun
 beforeAll(() => {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
-  process.env.DB_DATABASE = 'gestion_documental_test';
 });
 
 afterAll(() => {

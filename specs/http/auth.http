@@ -1,0 +1,29 @@
+@baseUrl = http://localhost:3000/api
+@module = auth
+@password = Secret123!
+
+### Login
+
+# @name login
+# @prompt email
+POST {{baseUrl}}/{{module}}/login
+Content-Type: application/json
+
+{
+  "email": "{{ email }}",
+  "password": "{{password}}"
+}
+
+### Permissions (requires token)
+
+@token = {{ login.response.body.token }}
+
+# @name get-permissions
+GET {{baseUrl}}/{{module}}/permissions
+Authorization: Bearer {{token}}
+
+### Logout
+
+# @name logout
+POST {{baseUrl}}/{{module}}/logout
+Authorization: Bearer {{token}}

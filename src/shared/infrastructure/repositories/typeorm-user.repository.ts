@@ -1,100 +1,133 @@
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { type UserRepository } from '@domains/user/repositories/user.repository';
-import { User, type UserProps } from '@domains/user/entities/user.entity';
+import { CreateUserProps, UpdateUserProps, User } from '@domains/user/entities/user.entity';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import { UserEntity } from '../database/entities/user.entity';
 import { AppDataSource } from '../database/typeorm.config';
+import { RoleEntity } from '../database/entities/role.entity';
+import { NotFoundError } from '@shared/domain/errors';
 
 export class TypeOrmUserRepository implements UserRepository {
   private repository: Repository<UserEntity>;
+  private roleRepository: Repository<RoleEntity>;
 
   constructor() {
     this.repository = AppDataSource.getRepository(UserEntity);
+    this.roleRepository = AppDataSource.getRepository(RoleEntity);
   }
 
-  async findById(id: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { id } });
-    if (!userEntity) return null;
-    return this.toDomain(userEntity);
+  async assignRoleToUser(userId: string, roleId: number): Promise<void> {
+    const user = await this.repository.findOne({ where: { id: userId }, relations: ['roles'] });
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const role = await this.roleRepository.findOne({ where: { id: roleId } });
+    if (!role) {
+      throw new NotFoundError('Role not found');
+    }
+
+    if (!user.roles?.find(r => r.id === role.id)) {
+      (user.roles ??= []).push(role);
+      await this.repository.save(user);
+    }
   }
 
   async findAll(): Promise<User[]> {
     const userEntities = await this.repository.find({
       order: { createdAt: 'DESC' },
+      relations: ['roles'],
     });
-    return userEntities.map(entity => this.toDomain(entity));
+    return userEntities.map(UserEntity.toDomain);
   }
 
-  async save(user: User): Promise<User> {
-    const userEntity = this.toEntity(user);
-    const savedEntity = await this.repository.save(userEntity);
-    return this.toDomain(savedEntity);
+  async findById(id: string): Promise<User | null> {
+    const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles', 'roles.permissions'] });
+    if (!userEntity) return null;
+    return UserEntity.toDomain(userEntity);
   }
 
-  async update(user: User): Promise<User> {
-    const userEntity = this.toEntity(user);
-    await this.repository.update(user.id, userEntity);
-    const updatedEntity = await this.repository.findOne({ where: { id: user.id } });
-    return this.toDomain(updatedEntity!);
+  async findByRoleId(roleId: number): Promise<User[]> {
+    const userEntities = await this.repository.find({
+      where: { roles: { id: roleId } },
+      order: { createdAt: 'DESC' },
+      relations: ['roles', 'roles.permissions'],
+    });
+    return userEntities.map(UserEntity.toDomain);
+  }
+
+  async save(props: CreateUserProps): Promise<User> {
+    const domain = new User(props);
+    const entity = UserEntity.fromDomain(domain);
+
+    if (props.roles && props.roles.length > 0) {
+      const roleIds = props.roles.map(r => r.id).filter((id): id is number => id !== undefined);
+      if (roleIds.length > 0) {
+        entity.roles = await this.roleRepository.findBy({ id: In(roleIds) });
+      } else {
+        entity.roles = [];
+      }
+    } else {
+      entity.roles = [];
+    }
+
+    const savedEntity = await this.repository.save(entity);
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions'] });
+    return UserEntity.toDomain(reloadedEntity!);
+  }
+
+  async update(props: UpdateUserProps): Promise<User> {
+    const entity = await this.repository.findOne({ where: { id: props.id } });
+    if (!entity) {
+      throw new NotFoundError('User not found');
+    }
+
+    if (props.email) {
+      entity.email = props.email;
+    }
+    if (props.firstName) {
+      entity.firstName = props.firstName;
+    }
+    if (props.lastName) {
+      entity.lastName = props.lastName;
+    }
+    if (props.password) {
+      entity.password = props.password;
+    }
+    if (props.status) {
+      entity.status = props.status as any;
+    }
+
+    if (props.roles) {
+      entity.roles = await this.roleRepository.findBy({ id: In(props.roles.map(r => r.id)) });
+    }
+
+    const savedEntity = await this.repository.save(entity);
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions'] });
+    return UserEntity.toDomain(reloadedEntity!);
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.repository.softDelete(id);
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { email } });
+    const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles', 'roles.permissions'] });
     if (!userEntity) return null;
-    return this.toDomain(userEntity);
+    return UserEntity.toDomain(userEntity);
   }
 
-  async findByStatus(status: string): Promise<User[]> {
+  async findByStatus(status: UserStatus): Promise<User[]> {
     const userEntities = await this.repository.find({
-      where: { status },
+      where: { status: status as any },
       order: { createdAt: 'DESC' },
+      relations: ['roles'],
     });
-    return userEntities.map(entity => this.toDomain(entity));
-  }
-
-  async findByRoleId(roleId: string): Promise<User[]> {
-    const userEntities = await this.repository.find({
-      where: { roleId },
-      order: { createdAt: 'DESC' },
-    });
-    return userEntities.map(entity => this.toDomain(entity));
+    return userEntities.map(UserEntity.toDomain);
   }
 
   async existsByEmail(email: string): Promise<boolean> {
     const count = await this.repository.count({ where: { email } });
     return count > 0;
-  }
-
-  private toDomain(entity: UserEntity): User {
-    const props: UserProps = {
-      id: entity.id,
-      email: entity.email,
-      firstName: entity.firstName,
-      lastName: entity.lastName,
-      password: entity.password,
-      status: entity.status as unknown as UserStatus,
-      roleId: entity.roleId,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    };
-    return User.fromPersistence(props);
-  }
-
-  private toEntity(user: User): Partial<UserEntity> {
-    return {
-      id: user.id,
-      email: user.email.toString(),
-      firstName: user.firstName,
-      lastName: user.lastName,
-      password: user.password,
-      status: user.status,
-      roleId: user.roleId,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
   }
 }

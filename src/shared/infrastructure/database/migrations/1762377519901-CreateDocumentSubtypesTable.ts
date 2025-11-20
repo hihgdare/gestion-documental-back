@@ -70,7 +70,7 @@ export class CreateDocumentSubtypesTable1762377519901 implements MigrationInterf
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop foreign key first
     await queryRunner.dropForeignKey('document_subtypes', 'FK_DOCUMENT_SUBTYPES_DOCUMENT_TYPE');
-    
+
     // Then drop the table
     await queryRunner.dropTable('document_subtypes');
   }

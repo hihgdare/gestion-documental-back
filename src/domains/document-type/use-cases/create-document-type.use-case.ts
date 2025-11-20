@@ -22,7 +22,7 @@ export class CreateDocumentTypeUseCase {
     };
 
     const documentType = DocumentType.create(documentTypeProps);
-    
+
     return await this.documentTypeRepository.save(documentType);
   }
 }
