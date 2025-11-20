@@ -2,9 +2,9 @@ import { Router } from 'express';
 import { UserController } from '../controllers/user.controller';
 import { validateRequest } from '@shared/middleware/validation';
 import {
+  assignRoleToUserSchema,
   createUserSchema,
   updateUserSchema,
-  getUserByIdSchema,
 } from '../dto/validation-schemas';
 
 export const createUserRoutes = (userController: UserController): Router => {
@@ -24,6 +24,9 @@ export const createUserRoutes = (userController: UserController): Router => {
 
   // DELETE /api/users/:id - Delete user
   router.delete('/:id', userController.deleteUser);
+
+  // POST /api/users/:id/roles - assign roles to user
+  router.post('/:id/roles', validateRequest(assignRoleToUserSchema), userController.assignRoleToUser);
 
   return router;
 };

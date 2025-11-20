@@ -1,8 +1,7 @@
-import { Repository } from '@shared/domain/base-entity';
-import { Contract } from '../entities/contract.entity';
+import { Contract, CreateContractProps, UpdateContractProps } from '../entities/contract.entity';
 import { ContractStatus, ContractType, JornadaTrabajo } from '../value-objects/contract-enums';
 
-export interface ContractRepository extends Repository<Contract> {
+export interface ContractRepository {
   findByRutSociedad(rutSociedad: string): Promise<Contract[]>;
   findByNombreColaborador(nombre: string): Promise<Contract[]>;
   findByStatus(status: ContractStatus): Promise<Contract[]>;
@@ -15,4 +14,9 @@ export interface ContractRepository extends Repository<Contract> {
   findActiveContracts(): Promise<Contract[]>;
   findExpiredContracts(): Promise<Contract[]>;
   findContractsEndingBefore(date: Date): Promise<Contract[]>;
+  findById(id: string): Promise<Contract | null>;
+  findAll(): Promise<Contract[]>;
+  save(contract: CreateContractProps): Promise<Contract>;
+  update(contract: UpdateContractProps): Promise<Contract>;
+  delete(id: string): Promise<void>;
 }

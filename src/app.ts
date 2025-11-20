@@ -9,9 +9,16 @@ import 'express-async-errors';
 import { errorHandler } from '@shared/middleware/error-handler';
 import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { createUserRoutes } from '@presentation/routes/user.routes';
-import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createColaboratorRoutes } from '@presentation/routes/colaborators.routes';
+import { createContractRoutes } from '@presentation/routes/contract.routes';
+import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
+import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
+import { createDocumentRoutes } from '@presentation/routes/document.routes';
+import { createPermissionRoutes } from '@presentation/routes/permission.routes';
+import { createRoleRoutes } from '@presentation/routes/role.routes';
+import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { DependencyContainer } from './dependency-container';
+import { runInitialSeedIfEmpty } from '@shared/infrastructure/database/seed/initial-seed';
 
 export class App {
   private app: Application;
@@ -25,16 +32,18 @@ export class App {
   public async initialize(): Promise<void> {
     // Initialize database
     await initializeDatabase();
-    
+
     // Initialize dependencies
     await this.dependencyContainer.initialize();
-    
+
+    await runInitialSeedIfEmpty();
+
     // Setup middleware
     this.setupMiddleware();
-    
+
     // Setup routes
     this.setupRoutes();
-    
+
     // Setup error handling
     this.setupErrorHandling();
   }
@@ -42,7 +51,7 @@ export class App {
   private setupMiddleware(): void {
     // Security middleware
     this.app.use(helmet());
-    
+
     // CORS configuration
     this.app.use(cors({
       origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
@@ -96,7 +105,17 @@ export class App {
           users: '/api/users',
           contracts: '/api/contracts',
           colaborators: '/api/colaborators',
+          documentTypes: '/api/document-types',
+          documentSubtypes: '/api/document-subtypes',
+          documents: '/api/documents',
           health: '/health',
+          permissions: '/api/permissions',
+          roles: '/api/roles',
+          auth: {
+            login: '/api/auth/login',
+            logout: '/api/auth/logout',
+            permissions: '/api/auth/permissions',
+          },
         },
       });
     });
@@ -105,11 +124,25 @@ export class App {
     const userController = this.dependencyContainer.getUserController();
     const contractController = this.dependencyContainer.getContractController();
     const colaboratorController = this.dependencyContainer.getColaboratorController();
+    const documentTypeController = this.dependencyContainer.getDocumentTypeController();
+    const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
+    const documentController = this.dependencyContainer.getDocumentController();
+    const permissionController = this.dependencyContainer.getPermissionController();
+    const roleController = this.dependencyContainer.getRoleController();
+    const authController = this.dependencyContainer.getAuthController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
     this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
+    this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
+    this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
+    this.app.use('/api/documents', createDocumentRoutes(documentController));
+    this.app.use('/api/permissions', createPermissionRoutes(permissionController));
+    this.app.use('/api/roles', createRoleRoutes(roleController));
+
+    // Auth routes
+    this.app.use('/api/auth', createAuthRoutes(authController));
 
     // 404 handler for undefined routes
     this.app.use('*', (req: Request, res: Response) => {

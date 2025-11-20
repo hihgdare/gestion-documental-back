@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import stylistic from '@stylistic/eslint-plugin';
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -11,13 +12,23 @@ export default tseslint.config(
       ecmaVersion: 2020,
       globals: globals.node,
     },
+    plugins: {
+      '@stylistic': stylistic,
+    },
     rules: {
+      "@stylistic/eol-last": ["error", "always"],
+      "@stylistic/indent": ["error", 2],
+      "@stylistic/no-trailing-spaces": "error",
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/interface-name-prefix": "off",
       "@typescript-eslint/no-empty-function": "off",
       "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["error", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
       "comma-dangle": ["error", "always-multiline"],
       "no-var": "error",
       "prefer-const": "error",
