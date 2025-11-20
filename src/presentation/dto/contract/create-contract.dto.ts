@@ -3,8 +3,8 @@ import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/co
 export interface CreateContractDto {
   rutSociedad: string;
   nombreColaborador: string;
-  startDate: string; // ISO date string
-  endDate?: string; // ISO date string, optional
+  startDate: Date; // ISO date string
+  endDate: Date; // ISO date string
   contractType: ContractType;
   administradorContratoMandante: string;
   administradorContratoEmpresa: string;

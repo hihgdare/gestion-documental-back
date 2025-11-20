@@ -52,9 +52,9 @@ export class User {
       id: 'uuid',
       email: 'email',
       status: (status: string) => isValidUserStatus(status) ? status : UserStatus.ACTIVE,
-      createdAt: 'date',
-      updatedAt: 'date',
-      deletedAt: 'dateNullable',
+      createdAt: 'datetime',
+      updatedAt: 'datetime',
+      deletedAt: 'datetimeNullable',
     });
   }
 

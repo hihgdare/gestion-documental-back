@@ -25,4 +25,5 @@ export interface ContractResponseDto {
   isExpired: boolean;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
+  deletedAt?: string | null; // ISO date string, optional
 }

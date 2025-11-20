@@ -1,7 +1,8 @@
-import { DateUtils, EntityUtils } from '@shared/utils/common';
+import { EntityUtils } from '@shared/utils/common';
 import { ContractStatus, ContractType, JornadaTrabajo } from '../value-objects/contract-enums';
 import { ValidationError } from '@shared/domain/errors';
-import { isValid } from '@shared/utils/objects';
+import { isValid, parseEnum } from '@shared/utils/objects';
+import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 
 interface BaseContractProps {
   rutSociedad: string;
@@ -16,12 +17,14 @@ interface BaseContractProps {
   descripcionServicio?: string;
   nombreProyecto?: string;
   startDate?: DateType,
-  endDate?: DateType | null,
+  endDate?: DateType,
   contractType?: string;
   jornadaTrabajo?: string;
   status?: string;
   dotacionPersonal?: number;
   dotacionVehiculos?: number;
+  employeeId?: string;
+  managerId?: string;
   createdAt?: DateType;
   updatedAt?: DateType;
   deletedAt?: DateType | null;
@@ -31,20 +34,20 @@ export interface CreateContractProps extends BaseContractProps {
   id?: string;
 }
 
-export interface UpdateContractProps extends CreateContractProps {
+export type UpdateContractProps = Overlap<Partial<BaseContractProps>, {
   id: string;
-}
+}>;
 
 export type ContractJson = Overlap<BaseContractProps, {
   id: string;
   startDate?: string;
-  endDate?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string | null;
+  endDate?: string;
   duration?: number | null;
   isActive: boolean;
   isExpired: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
 }>
 
 
@@ -53,7 +56,7 @@ export class Contract {
   rutSociedad: string;
   nombreColaborador: string;
   startDate: Date;
-  endDate: Date | null;
+  endDate: Date;
   contractType: ContractType;
   administradorContratoMandante: string;
   administradorContratoEmpresa: string;
@@ -68,25 +71,26 @@ export class Contract {
   nombreProyecto?: string;
   jornadaTrabajo: JornadaTrabajo;
   status: ContractStatus;
+  employeeId?: string;
+  managerId?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 
   constructor(props: CreateContractProps) {
     Contract.validateRequired(props);
-    Contract.validateDates(props.startDate, props.endDate);
     EntityUtils.assign(this as Contract, props, {
       id: 'uuid',
       startDate: 'date',
-      endDate: 'dateNullable',
-      contractType: (type?: string) => isValid(type, ContractType) ? type : ContractType.CONSULTORIA,
-      jornadaTrabajo: (jornada?: string) => isValid(jornada, JornadaTrabajo) ? jornada : JornadaTrabajo.COMPLETA,
-      status: (status?: string) => isValid(status, ContractStatus) ? status : ContractStatus.DRAFT,
+      endDate: 'date',
+      contractType: (type?: string) => parseEnum(type, ContractType) ?? ContractType.CONSULTORIA,
+      jornadaTrabajo: (jornada?: string) => parseEnum(jornada, JornadaTrabajo) ?? JornadaTrabajo.COMPLETA,
+      status: (status?: string) => parseEnum(status, ContractStatus) ?? ContractStatus.DRAFT,
       dotacionPersonal: (dotacion?: number) => dotacion || 0,
       dotacionVehiculos: (dotacion?: number) => dotacion || 0,
-      createdAt: 'date',
-      updatedAt: 'date',
-      deletedAt: 'dateNullable',
+      createdAt: 'datetime',
+      updatedAt: 'datetime',
+      deletedAt: 'datetimeNullable',
     });
   }
 
@@ -122,19 +126,6 @@ export class Contract {
       throw new ValidationError('Invalid contract status', 'status');
     }
   }
-
-  private static validateDates(startDate?: DateType, endDate?: DateType | null): void {
-    const now = new Date();
-
-    if (DateUtils.isBefore(startDate, now)) {
-      throw new ValidationError('Start date is required', 'startDate');
-    }
-
-    if (endDate && DateUtils.isBefore(endDate, startDate)) {
-      throw new ValidationError('End date cannot be before start date', 'endDate');
-    }
-  }
-
   // Business methods
   public activate(): void {
     if (this.status === ContractStatus.TERMINATED) {
@@ -173,11 +164,12 @@ export class Contract {
     this.dotacionVehiculos = vehiculos;
   }
 
-  public extendContract(newEndDate: Date): void {
-    if (DateUtils.isBefore(newEndDate, this.startDate)) {
-      throw new ValidationError('New end date cannot be before start date', 'endDate');
+  public extendContract(endDate?: DateType): void {
+    endDate = DateUtils.parse(endDate, true) ?? undefined;
+    if (!endDate || !DateUtils.isAfter(endDate, this.startDate)) {
+      throw new ValidationError('New end date must be after start date', 'endDate');
     }
-    this.endDate = newEndDate;
+    this.endDate = endDate;
   }
 
   public isActive(): boolean {
@@ -214,14 +206,14 @@ export class Contract {
       status: this.status,
       dotacionPersonal: this.dotacionPersonal,
       dotacionVehiculos: this.dotacionVehiculos,
-      startDate: this.startDate?.toISOString(),
-      endDate: this.endDate?.toISOString() ?? null,
+      startDate: DateUtils.toString(this.startDate),
+      endDate: DateUtils.toString(this.endDate),
       duration: this.getDuration(),
       isActive: this.isActive(),
       isExpired: this.isExpired(),
-      createdAt: this.createdAt?.toISOString(),
-      updatedAt: this.updatedAt?.toISOString(),
-      deletedAt: this.deletedAt?.toISOString() ?? null,
+      createdAt: DateTimeUtils.toString(this.createdAt),
+      updatedAt: DateTimeUtils.toString(this.updatedAt),
+      deletedAt: DateTimeUtils.toString(this.deletedAt, true),
     };
   }
 }

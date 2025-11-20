@@ -5,6 +5,7 @@ import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/
 import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
 import { NotFoundError } from '@shared/domain/errors';
+import { DateUtils } from '@shared/utils/date';
 
 export class TypeOrmContractRepository implements ContractRepository {
   private repository: Repository<ContractEntity>;
@@ -122,6 +123,13 @@ export class TypeOrmContractRepository implements ContractRepository {
     return this.toDomain(contractEntity);
   }
 
+  async existsByContractNumber(contractNumber: string): Promise<boolean> {
+    const count = await this.repository.count({
+      where: { contractNumber },
+    });
+    return count > 0;
+  }
+
   async findActiveContracts(): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
       where: { status: ContractStatus.ACTIVE },
@@ -158,7 +166,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       id: entity.id,
       rutSociedad: entity.rutSociedad,
       nombreColaborador: entity.nombreColaborador,
-      startDate: entity.startDate,
+      startDate: DateUtils.parse(entity.startDate),
       endDate: entity.endDate,
       contractType: entity.contractType as ContractType,
       administradorContratoMandante: entity.administradorContratoMandante,

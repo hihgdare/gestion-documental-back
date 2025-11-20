@@ -1,0 +1,45 @@
+@baseUrl = http://localhost:3000/api
+@module = contracts
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMjczZjBlZi1kMzg2LTQyZjUtYmU2Ni0xODk5NzI2YzViYzAiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImlhdCI6MTc2MzYwMDQ3NywiZXhwIjoxNzYzNjA0MDc3fQ.iBBoU5NyZDxj6acZwLjRH0w95UggxZ3pG-NF41AzZn0
+
+###
+
+# @name create
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2025-11-20",
+  "endDate": "2025-12-10",
+  "nombreColaborador": "Willem",
+  "contractNumber": "23456789",
+  "administradorContratoMandante": "Yo",
+  "administradorContratoEmpresa": "Yo",
+  "nombreMandante": "Cualquiera",
+  "division": "Mi casa",
+  "area": "Mi cuarto",
+  "descripcionServicio": "contrato de prueba 1",
+  "nombreProyecto": "MiProyecto",
+  "rutSociedad": "12.345.678-5",
+  "contractType": "obra_faena",
+  "rutAdministradorContrato": "23.456.789-6",
+  "jornadaTrabajo": "turno"
+}
+
+@id = {{ create.response.body.data.id }}
+
+###
+
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombreColaborador": "WillemF",
+  "descripcionServicio": "contrato de prueba 2",
+  "dotacionPersonal": 1,
+  "dotacionVehiculos": 1,
+  "endDate": "2025-12-10"
+}
+
