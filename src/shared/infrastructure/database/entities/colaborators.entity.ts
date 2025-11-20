@@ -8,8 +8,6 @@ import {
 } from 'typeorm';
 
 @Entity('colaborators')
-@Index(['numeroDocumento'], { unique: true })
-@Index(['email'], { unique: true })
 @Index(['nombre', 'apellidoPaterno'])
 @Index(['status'])
 export class ColaboratorEntity {
