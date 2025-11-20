@@ -3,6 +3,7 @@ import { SqljsConnectionOptions } from 'typeorm/driver/sqljs/SqljsConnectionOpti
 import { UserEntity } from './entities/user.entity';
 import { RoleEntity } from './entities/role.entity';
 import { PermissionEntity } from './entities/permission.entity';
+import { date } from 'joi';
 
 type Mode = 'development' | 'production' | 'test';
 
@@ -32,7 +33,8 @@ export function initializeDataSource(): DataSource {
       synchronize: mode === 'development',
       logging: mode === 'development',
       charset: 'utf8mb4',
-      timezone: 'Z',
+      timezone: '+00:00', // Guarda las fechas en UTC para evitar problemas de zona horaria
+      dateStrings: true,
       entities: [
         'src/shared/infrastructure/database/entities/**/*.ts',
         'src/domains/**/*.entity.ts',
