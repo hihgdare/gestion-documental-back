@@ -39,7 +39,7 @@ describe('RoleController', () => {
       'role:create',
       'role:update',
       'role:delete',
-      'role:assign_permissions',
+      'role:assign:permission',
       'permission:create',
     ];
 
@@ -66,7 +66,7 @@ describe('RoleController', () => {
 
     const pUpdate = await permissionRepository.findByName('role:update');
     const pDelete = await permissionRepository.findByName('role:delete');
-    const pAssign = await permissionRepository.findByName('role:assign_permissions');
+    const pAssign = await permissionRepository.findByName('role:assign:permission');
     expect(pUpdate).not.toBeNull();
     expect(pDelete).not.toBeNull();
     expect(pAssign).not.toBeNull();
@@ -97,7 +97,7 @@ describe('RoleController', () => {
     expect(perms.has('role:create')).toBe(true);
     expect(perms.has('role:update')).toBe(true);
     expect(perms.has('role:delete')).toBe(true);
-    expect(perms.has('role:assign_permissions')).toBe(true);
+    expect(perms.has('role:assign:permission')).toBe(true);
   });
 
   describe('/api/roles', () => {

@@ -41,9 +41,9 @@ export async function runInitialSeedIfEmpty(): Promise<void> {
     await assignRoleToUserUseCase.execute({ userId: existingUser.id, roleIds: [adminRole.id] });
   }
 
-  const modules = ['permission', 'role', 'user'];
   const actions = ['create', 'read', 'update', 'delete'];
-  const permissionNames = modules.flatMap(m => actions.map(a => `${m}:${a}`));
+  const basePermissionNames = ['permission', 'role', 'user'].flatMap(m => actions.map(a => `${m}:${a}`));
+  const permissionNames = [...basePermissionNames, 'role:assign:permission', 'user:assign:role'];
 
   const currentPermissions = await permissionRepository.findAll();
   const existingNames = new Set(currentPermissions.map(p => p.name));
