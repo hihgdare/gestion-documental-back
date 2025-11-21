@@ -141,22 +141,33 @@ export const createDocumentSchema = Joi.object({
   documentTypeId: Joi.string().uuid().required(),
   documentSubtypeId: Joi.string().uuid().required(),
   name: Joi.string().min(2).max(255).required(),
-  issuedDate: Joi.date().iso().required(),
-  expirationDate: Joi.date().iso().greater(Joi.ref('issuedDate')).optional(),
+  issuedDate: Joi.date().required().messages({
+    'date.base': 'issuedDate must be a valid date',
+    'any.required': 'issuedDate is required'
+  }),
+  expirationDate: Joi.date().optional().greater(Joi.ref('issuedDate')).allow(null).messages({
+    'date.greater': 'expirationDate must be after issuedDate',
+    'date.base': 'expirationDate must be a valid date'
+  }),
   contractId: Joi.string().uuid().required(),
-  description: Joi.string().max(1000).optional(),
-  documentUrl: Joi.string().uri().optional(),
+  description: Joi.string().max(1000).optional().allow('', null),
+  documentUrl: Joi.string().uri().optional().allow('', null),
 });
 
 export const updateDocumentSchema = Joi.object({
   documentTypeId: Joi.string().uuid().optional(),
   documentSubtypeId: Joi.string().uuid().optional(),
   name: Joi.string().min(2).max(255).optional(),
-  issuedDate: Joi.date().iso().optional(),
-  expirationDate: Joi.date().iso().optional(),
-  description: Joi.string().max(1000).optional(),
-  documentUrl: Joi.string().uri().optional(),
-}).min(1);
+  issuedDate: Joi.date().optional().messages({
+    'date.base': 'issuedDate must be a valid date'
+  }),
+  expirationDate: Joi.date().optional().allow(null).messages({
+    'date.base': 'expirationDate must be a valid date'
+  }),
+  contractId: Joi.string().uuid().optional(),
+  description: Joi.string().max(1000).optional().allow(null, ''),
+  documentUrl: Joi.string().uri().optional().allow(null, ''),
+}).min(1).unknown(true); // Permitir campos desconocidos
 
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),

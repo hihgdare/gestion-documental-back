@@ -112,6 +112,31 @@ export class EntityUtils {
     });
     return a;
   }
+
+  /**
+   * Retorna un transformer de TypeORM para columnas de tipo 'date'
+   * que preserva el formato YYYY-MM-DD sin conversión de zona horaria
+   */
+  public static getDateOnlyTransformer() {
+    return {
+      to(value: Date | string | null | undefined): string | null {
+        if (!value) return null;
+        
+        const date = value instanceof Date ? value : new Date(value);
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      },
+      from(value: string | Date | null | undefined): Date | null {
+        if (!value) return null;
+        
+        const dateStr = typeof value === 'string' ? value : value.toISOString().split('T')[0];
+        return new Date(dateStr + 'T00:00:00.000Z');
+      }
+    };
+  }
+  
 }
 
 export class StringUtils {

@@ -11,6 +11,7 @@ import {
 import { DocumentTypeEntity } from './document-type.entity';
 import { DocumentSubtypeEntity } from './document-subtype.entity';
 import { ContractEntity } from './contract.entity';
+import { DateUtils } from '@shared/utils/common';
 
 @Entity('documents')
 @Index(['contractId'])
