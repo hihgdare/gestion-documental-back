@@ -28,8 +28,8 @@ export class Permission {
   constructor(props: CreatePermissionProps) {
     Permission.validate(props);
     EntityUtils.assign(this as Permission, props, {
-      createdAt: 'date',
-      updatedAt: 'date',
+      createdAt: 'datetime',
+      updatedAt: 'datetime',
     });
   }
 

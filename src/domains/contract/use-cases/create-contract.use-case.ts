@@ -3,12 +3,12 @@ import { Contract, CreateContractProps } from '@domains/contract/entities/contra
 import { ConflictError } from '@shared/domain/errors';
 
 export class CreateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) {}
+  constructor(private readonly contractRepository: ContractRepository) { }
 
   public async execute(request: CreateContractProps): Promise<Contract> {
     // Check if contract number already exists
-    const existingContract = await this.contractRepository.findByContractNumber(request.contractNumber);
-    if (existingContract) {
+    const contractExists = await this.contractRepository.existsByContractNumber(request.contractNumber);
+    if (contractExists) {
       throw new ConflictError('Contract with this number already exists');
     }
 

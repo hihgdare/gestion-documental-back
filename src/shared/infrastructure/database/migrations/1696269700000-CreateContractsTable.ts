@@ -33,7 +33,7 @@ export class CreateContractsTable1696269700000 implements MigrationInterface {
           {
             name: 'end_date',
             type: 'date',
-            isNullable: true,
+            isNullable: false,
           },
           {
             name: 'contract_type',

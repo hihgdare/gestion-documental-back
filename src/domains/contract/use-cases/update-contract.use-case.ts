@@ -1,14 +1,15 @@
 import { ContractRepository } from '../repositories/contract.repository';
 import { Contract, UpdateContractProps } from '../entities/contract.entity';
 import { NotFoundError } from '@shared/domain/errors';
+import { only } from '@shared/utils/objects';
 
 export class UpdateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) {}
+  constructor(private readonly contractRepository: ContractRepository) { }
 
-  public async execute(id: string, request: UpdateContractProps): Promise<Contract> {
-    const contract = await this.contractRepository.findById(id);
+  public async execute(request: UpdateContractProps): Promise<Contract> {
+    const contract = await this.contractRepository.findById(request.id);
     if (!contract) {
-      throw new NotFoundError('Contract', id);
+      throw new NotFoundError('Contract', request.id);
     }
 
     if (request.nombreColaborador) {
@@ -30,12 +31,21 @@ export class UpdateContractUseCase {
       contract.extendContract(new Date(request.endDate));
     }
 
-    return await this.contractRepository.update(contract);
+    const updateFields = only(contract, [
+      'id',
+      'endDate',
+      'nombreColaborador',
+      'descripcionServicio',
+      'dotacionPersonal',
+      'dotacionVehiculos',
+    ]);
+
+    return await this.contractRepository.update(updateFields);
   }
 }
 
 export class ActivateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) {}
+  constructor(private readonly contractRepository: ContractRepository) { }
 
   public async execute(id: string): Promise<Contract> {
     const contract = await this.contractRepository.findById(id);
@@ -49,7 +59,7 @@ export class ActivateContractUseCase {
 }
 
 export class SuspendContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) {}
+  constructor(private readonly contractRepository: ContractRepository) { }
 
   public async execute(id: string): Promise<Contract> {
     const contract = await this.contractRepository.findById(id);
@@ -63,7 +73,7 @@ export class SuspendContractUseCase {
 }
 
 export class TerminateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) {}
+  constructor(private readonly contractRepository: ContractRepository) { }
 
   public async execute(id: string): Promise<Contract> {
     const contract = await this.contractRepository.findById(id);
@@ -77,7 +87,7 @@ export class TerminateContractUseCase {
 }
 
 export class DeleteContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) {}
+  constructor(private readonly contractRepository: ContractRepository) { }
 
   public async execute(id: string): Promise<void> {
     const contract = await this.contractRepository.findById(id);

@@ -54,7 +54,7 @@ function getErrorData(error: Error): {status: number, code: string, message?: st
     return {
       status: 400,
       code: 'VALIDATION_ERROR',
-      details: { field: error.field },
+      details: { field: error.field, value: error.value },
     };
   } else if (error instanceof ForbiddenError) {
     return { status: 403, code: 'FORBIDDEN' };

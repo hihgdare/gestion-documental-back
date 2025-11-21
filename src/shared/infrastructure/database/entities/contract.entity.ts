@@ -30,8 +30,8 @@ export class ContractEntity {
   @Column({ name: 'start_date', type: 'date' })
   startDate!: Date;
 
-  @Column({ name: 'end_date', type: 'date', nullable: true })
-  endDate?: Date | null;
+  @Column({ name: 'end_date', type: 'date' })
+  endDate!: Date;
 
   @EnumColumn({
     name: 'contract_type',

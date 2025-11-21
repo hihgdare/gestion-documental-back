@@ -11,6 +11,7 @@ export interface ContractRepository {
   findByArea(area: string): Promise<Contract[]>;
   findByJornadaTrabajo(jornada: JornadaTrabajo): Promise<Contract[]>;
   findByContractNumber(contractNumber: string): Promise<Contract | null>;
+  existsByContractNumber(contractNumber: string): Promise<boolean>;
   findActiveContracts(): Promise<Contract[]>;
   findExpiredContracts(): Promise<Contract[]>;
   findContractsEndingBefore(date: Date): Promise<Contract[]>;
