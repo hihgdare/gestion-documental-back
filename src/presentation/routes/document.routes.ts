@@ -19,7 +19,7 @@ export const createDocumentRoutes = (controller: DocumentController): Router => 
   router.get('/:id', controller.getDocumentById);
 
   // PUT routes
-  router.put('/:id', validateRequest(updateDocumentSchema), controller.updateDocument);
+  router.put('/:id', validateRequest(updateDocumentSchema, true), controller.updateDocument);
 
   // DELETE routes
   router.delete('/:id', controller.deleteDocument);
