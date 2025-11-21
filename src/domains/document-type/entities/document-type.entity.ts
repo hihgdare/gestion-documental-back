@@ -1,5 +1,4 @@
-import { BaseEntity } from '@shared/domain/base-entity';
-import { UUID } from '@shared/utils/common';
+import { EntityUtils } from '@shared/utils/common';
 import { ValidationError } from '@shared/domain/errors';
 
 export interface DocumentTypeProps {
@@ -9,27 +8,24 @@ export interface DocumentTypeProps {
   updatedAt?: Date;
 }
 
-export class DocumentType extends BaseEntity {
-  private constructor(
-    id: string,
-    private _name: string,
-    createdAt: Date,
-    updatedAt: Date,
-  ) {
-    super(id, createdAt, updatedAt);
+export class DocumentType {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+
+  constructor(props: DocumentTypeProps) {
+    DocumentType.validateRequired(props);
+    
+    EntityUtils.assign(this as DocumentType, props, {
+      id: 'uuid',
+      createdAt: 'date',
+      updatedAt: 'date',
+    });
   }
 
   public static create(props: DocumentTypeProps): DocumentType {
-    const id = props.id || UUID.generate().toString();
-
-    this.validateRequired(props);
-
-    return new DocumentType(
-      id,
-      props.name.trim(),
-      props.createdAt || new Date(),
-      props.updatedAt || new Date(),
-    );
+    return new DocumentType(props);
   }
 
   private static validateRequired(props: DocumentTypeProps): void {
@@ -59,18 +55,14 @@ export class DocumentType extends BaseEntity {
       throw new ValidationError('El nombre del tipo de documento no puede exceder 100 caracteres');
     }
 
-    this._name = name.trim();
-  }
-
-  // Getters
-  get name(): string {
-    return this._name;
+    this.name = name.trim();
+    this.updatedAt = new Date();
   }
 
   public toJSON() {
     return {
       id: this.id,
-      name: this._name,
+      name: this.name,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

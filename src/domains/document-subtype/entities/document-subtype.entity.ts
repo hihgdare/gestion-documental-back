@@ -1,5 +1,4 @@
-import { BaseEntity } from '@shared/domain/base-entity';
-import { UUID } from '@shared/utils/common';
+import { EntityUtils } from '@shared/utils/common';
 import { ValidationError } from '@shared/domain/errors';
 
 export interface DocumentSubtypeProps {
@@ -10,29 +9,25 @@ export interface DocumentSubtypeProps {
   updatedAt?: Date;
 }
 
-export class DocumentSubtype extends BaseEntity {
-  private constructor(
-    id: string,
-    private _name: string,
-    private _documentTypeId: string,
-    createdAt: Date,
-    updatedAt: Date,
-  ) {
-    super(id, createdAt, updatedAt);
+export class DocumentSubtype {
+  id: string;
+  name: string;
+  documentTypeId: string;
+  createdAt: Date;
+  updatedAt: Date;
+
+  constructor(props: DocumentSubtypeProps) {
+    DocumentSubtype.validateRequired(props);
+    
+    EntityUtils.assign(this as DocumentSubtype, props, {
+      id: 'uuid',
+      createdAt: 'date',
+      updatedAt: 'date',
+    });
   }
 
   public static create(props: DocumentSubtypeProps): DocumentSubtype {
-    const id = props.id || UUID.generate().toString();
-
-    this.validateRequired(props);
-
-    return new DocumentSubtype(
-      id,
-      props.name.trim(),
-      props.documentTypeId,
-      props.createdAt || new Date(),
-      props.updatedAt || new Date(),
-    );
+    return new DocumentSubtype(props);
   }
 
   private static validateRequired(props: DocumentSubtypeProps): void {
@@ -66,7 +61,8 @@ export class DocumentSubtype extends BaseEntity {
       throw new ValidationError('El nombre del subtipo de documento no puede exceder 100 caracteres');
     }
 
-    this._name = name.trim();
+    this.name = name.trim();
+    this.updatedAt = new Date();
   }
 
   public updateDocumentTypeId(documentTypeId: string): void {
@@ -74,23 +70,15 @@ export class DocumentSubtype extends BaseEntity {
       throw new ValidationError('El ID del tipo de documento es requerido');
     }
 
-    this._documentTypeId = documentTypeId;
-  }
-
-  // Getters
-  get name(): string {
-    return this._name;
-  }
-
-  get documentTypeId(): string {
-    return this._documentTypeId;
+    this.documentTypeId = documentTypeId;
+    this.updatedAt = new Date();
   }
 
   public toJSON() {
     return {
       id: this.id,
-      name: this._name,
-      documentTypeId: this._documentTypeId,
+      name: this.name,
+      documentTypeId: this.documentTypeId,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
