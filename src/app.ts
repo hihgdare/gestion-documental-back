@@ -9,6 +9,7 @@ import 'express-async-errors';
 import { errorHandler } from '@shared/middleware/error-handler';
 import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { createUserRoutes } from '@presentation/routes/user.routes';
+import { createColaboratorRoutes } from '@presentation/routes/colaborators.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
 import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
@@ -103,6 +104,7 @@ export class App {
         endpoints: {
           users: '/api/users',
           contracts: '/api/contracts',
+          colaborators: '/api/colaborators',
           documentTypes: '/api/document-types',
           documentSubtypes: '/api/document-subtypes',
           documents: '/api/documents',
@@ -121,6 +123,7 @@ export class App {
     // Get controllers from dependency container
     const userController = this.dependencyContainer.getUserController();
     const contractController = this.dependencyContainer.getContractController();
+    const colaboratorController = this.dependencyContainer.getColaboratorController();
     const documentTypeController = this.dependencyContainer.getDocumentTypeController();
     const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
     const documentController = this.dependencyContainer.getDocumentController();
@@ -131,6 +134,7 @@ export class App {
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
+    this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
     this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
     this.app.use('/api/documents', createDocumentRoutes(documentController));

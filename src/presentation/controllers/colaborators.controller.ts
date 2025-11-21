@@ -1,0 +1,150 @@
+import { Request, Response } from 'express';
+import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
+import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
+import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
+import { CreateColaboratorDto } from '@presentation/dto/colaborator/create-colaborator.dto';
+import { UpdateColaboratorDto } from '@presentation/dto/colaborator/update-colaborator.dto';
+import { toColaboratorResponseDto, ColaboratorResponseDto } from '@presentation/dto/colaborator/colaborator-response.dto';
+import { asyncHandler } from '@shared/middleware/validation';
+
+export class ColaboratorController {
+  constructor(
+    private readonly createColaboratorUseCase: CreateColaboratorUseCase,
+    private readonly getColaboratorUseCase: GetColaboratorUseCase,
+    private readonly updateColaboratorUseCase: UpdateColaboratorUseCase
+  ) {}
+
+  public createColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const dto: CreateColaboratorDto = req.body;
+    const colaboratorRequest = {
+      ...dto,
+      fechaNacimiento: new Date(dto.fechaNacimiento),
+    };
+    
+    const colaborator = await this.createColaboratorUseCase.execute(colaboratorRequest);
+    res.status(201).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+      message: 'Colaborator created successfully',
+    });
+  });
+
+  public getColaboratorById = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const colaborator = await this.getColaboratorUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+    });
+  });
+
+  public getAllColaborators = asyncHandler(async (req: Request, res: Response) => {
+    const colaborators = await this.getColaboratorUseCase.getAll();
+    res.status(200).json({
+      success: true,
+      data: colaborators.map((colaborator: any) => toColaboratorResponseDto(colaborator)),
+      count: colaborators.length,
+    });
+  });
+
+  public getColaboratorByDocumentNumber = asyncHandler(async (req: Request, res: Response) => {
+    const { numeroDocumento } = req.params;
+    const colaborator = await this.getColaboratorUseCase.getByDocumentNumber(numeroDocumento);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+    });
+  });
+
+  public getColaboratorByEmail = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.params;
+    const colaborator = await this.getColaboratorUseCase.getByEmail(email);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+    });
+  });
+
+  public getActiveColaborators = asyncHandler(async (req: Request, res: Response) => {
+    const colaborators = await this.getColaboratorUseCase.getActiveColaborators();
+    res.status(200).json({
+      success: true,
+      data: colaborators.map((colaborator: any) => toColaboratorResponseDto(colaborator)),
+      count: colaborators.length,
+    });
+  });
+
+  public searchColaboratorsByName = asyncHandler(async (req: Request, res: Response) => {
+    const { name } = req.query;
+    if (!name || typeof name !== 'string') {
+      res.status(400).json({
+        success: false,
+        message: 'Name parameter is required',
+      });
+      return;
+    }
+    
+    const colaborators = await this.getColaboratorUseCase.searchByName(name);
+    res.status(200).json({
+      success: true,
+      data: colaborators.map((colaborator: any) => toColaboratorResponseDto(colaborator)),
+      count: colaborators.length,
+    });
+  });
+
+  public updateColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const dto: UpdateColaboratorDto = req.body;
+    
+    const colaborator = await this.updateColaboratorUseCase.execute({
+      id,
+      ...dto,
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+      message: 'Colaborator updated successfully',
+    });
+  });
+
+  public activateColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const colaborator = await this.updateColaboratorUseCase.activate(id);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+      message: 'Colaborator activated successfully',
+    });
+  });
+
+  public suspendColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const colaborator = await this.updateColaboratorUseCase.suspend(id);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+      message: 'Colaborator suspended successfully',
+    });
+  });
+
+  public deactivateColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const colaborator = await this.updateColaboratorUseCase.deactivate(id);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+      message: 'Colaborator deactivated successfully',
+    });
+  });
+
+  public terminateColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const colaborator = await this.updateColaboratorUseCase.terminate(id);
+    res.status(200).json({
+      success: true,
+      data: toColaboratorResponseDto(colaborator),
+      message: 'Colaborator terminated successfully',
+    });
+  });
+}
