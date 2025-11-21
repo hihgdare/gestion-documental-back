@@ -1,5 +1,6 @@
-import { EntityUtils, DateUtils } from '@shared/utils/common';
+import { EntityUtils } from '@shared/utils/common';
 import { ValidationError } from '@shared/domain/errors';
+import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 
 export interface DocumentProps {
   id?: string;
@@ -163,15 +164,15 @@ export class Document {
       documentTypeId: this.documentTypeId,
       documentSubtypeId: this.documentSubtypeId,
       name: this.name,
-      issuedDate: this.issuedDate,
-      expirationDate: this.expirationDate,
+      issuedDate: DateUtils.toString(this.issuedDate),
+      expirationDate: DateUtils.toString(this.expirationDate),
       contractId: this.contractId,
       description: this.description,
       documentUrl: this.documentUrl,
       isExpired: this.isExpired(),
       daysUntilExpiration: this.daysUntilExpiration(),
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
+      createdAt: DateTimeUtils.toString(this.createdAt),
+      updatedAt: DateTimeUtils.toString(this.updatedAt),
     };
   }
 }

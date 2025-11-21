@@ -155,15 +155,15 @@ export class DocumentController {
       documentTypeId: json.documentTypeId,
       documentSubtypeId: json.documentSubtypeId,
       name: json.name,
-      issuedDate: json.issuedDate.toISOString(),
-      expirationDate: json.expirationDate?.toISOString(),
+      issuedDate: json.issuedDate,
+      expirationDate: json.expirationDate ? json.expirationDate : undefined,
       contractId: json.contractId,
       description: json.description,
       documentUrl: json.documentUrl,
       isExpired: document.isExpired(),
       daysUntilExpiration: document.daysUntilExpiration(),
-      createdAt: json.createdAt.toISOString(),
-      updatedAt: json.updatedAt.toISOString(),
+      createdAt: json.createdAt,
+      updatedAt: json.updatedAt,
     };
   }
 }

@@ -33,6 +33,14 @@ export class DateUtils {
     return !!date && date.toString() !== 'Invalid Date';
   }
 
+  public static daysBetween(date1?: DateType | null, date2?: DateType | null): number | null {
+    const d1 = DateUtils.parse(date1, true);
+    const d2 = DateUtils.parse(date2, true);
+    if (!d1 || !d2) return null;
+    const diffTime = d2.getTime() - d1.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
   public static parse(date?: DateType | null, nullable?: false): Date;
   public static parse(date?: DateType | null, nullable?: boolean): Date | null;
   public static parse(date?: DateType | null, nullable?: boolean): Date | null {

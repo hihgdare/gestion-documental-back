@@ -7,7 +7,7 @@ export const createDocumentRoutes = (controller: DocumentController): Router => 
   const router = Router();
 
   // POST routes
-  router.post('/', validateRequest(createDocumentSchema), controller.createDocument);
+  router.post('/', validateRequest(createDocumentSchema, true), controller.createDocument);
 
   // GET routes - specific routes before parameterized routes
   router.get('/expired', controller.getExpiredDocuments);

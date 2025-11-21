@@ -88,11 +88,17 @@ export const createDocumentSchema = Joi.object({
   documentTypeId: Joi.string().uuid().required(),
   documentSubtypeId: Joi.string().uuid().required(),
   name: Joi.string().min(2).max(255).required(),
-  issuedDate: Joi.date().iso().required(),
-  expirationDate: Joi.date().iso().greater(Joi.ref('issuedDate')).optional(),
+  issuedDate: Joi.date().required().messages({
+    'date.base': 'issuedDate must be a valid date',
+    'any.required': 'issuedDate is required'
+  }),
+  expirationDate: Joi.date().optional().greater(Joi.ref('issuedDate')).allow(null).messages({
+    'date.greater': 'expirationDate must be after issuedDate',
+    'date.base': 'expirationDate must be a valid date'
+  }),
   contractId: Joi.string().uuid().required(),
-  description: Joi.string().max(1000).optional(),
-  documentUrl: Joi.string().uri().optional(),
+  description: Joi.string().max(1000).optional().allow('', null),
+  documentUrl: Joi.string().uri().optional().allow('', null),
 });
 
 export const updateDocumentSchema = Joi.object({
