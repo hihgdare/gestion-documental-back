@@ -37,8 +37,8 @@ export class Document {
       id: 'uuid',
       issuedDate: 'date',
       expirationDate: 'dateNullable',
-      createdAt: 'date',
-      updatedAt: 'date',
+      createdAt: 'datetime',
+      updatedAt: 'datetime',
     });
   }
 
