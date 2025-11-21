@@ -34,15 +34,50 @@ export class TypeOrmContractRepository implements ContractRepository {
     return this.toDomain(savedEntity);
   }
 
-  async update(props: UpdateContractProps): Promise<Contract> {
-    const entity = await this.repository.findOne({ where: { id: props.id } });
+  async update(props: UpdateContractProps | Contract): Promise<Contract> {
+    // Handle both UpdateContractProps and full Contract objects
+    const id = 'id' in props ? props.id : (props as Contract).id;
+
+    const entity = await this.repository.findOne({ where: { id } });
     if (!entity) {
       throw new NotFoundError('Contract not found');
     }
+
+    // If it's a full Contract object (from use case), convert it to entity and save
+    if (props instanceof Contract) {
+      const updatedEntity = this.toEntity(props);
+      const savedEntity = await this.repository.save(updatedEntity);
+      return this.toDomain(savedEntity);
+    }
+
+    // Otherwise, it's UpdateContractProps - update only provided fields
     const domain = this.toDomain(entity);
-    Object.assign(domain, props);
-    const updatedDomain = new Contract(domain);
-    const updatedEntity = this.toEntity(updatedDomain);
+
+    // Update only the fields that are provided
+    if (props.rutSociedad !== undefined) domain.rutSociedad = props.rutSociedad;
+    if (props.nombreColaborador !== undefined) domain.nombreColaborador = props.nombreColaborador;
+    if (props.administradorContratoMandante !== undefined) domain.administradorContratoMandante = props.administradorContratoMandante;
+    if (props.administradorContratoEmpresa !== undefined) domain.administradorContratoEmpresa = props.administradorContratoEmpresa;
+    if (props.rutAdministradorContrato !== undefined) domain.rutAdministradorContrato = props.rutAdministradorContrato;
+    if (props.contractNumber !== undefined) domain.contractNumber = props.contractNumber;
+    if (props.nombreMandante !== undefined) domain.nombreMandante = props.nombreMandante;
+    if (props.division !== undefined) domain.division = props.division;
+    if (props.area !== undefined) domain.area = props.area;
+    if (props.descripcionServicio !== undefined) domain.descripcionServicio = props.descripcionServicio;
+    if (props.nombreProyecto !== undefined) domain.nombreProyecto = props.nombreProyecto;
+    if (props.dotacionPersonal !== undefined) domain.dotacionPersonal = props.dotacionPersonal;
+    if (props.dotacionVehiculos !== undefined) domain.dotacionVehiculos = props.dotacionVehiculos;
+    if (props.employeeId !== undefined) domain.employeeId = props.employeeId;
+    if (props.managerId !== undefined) domain.managerId = props.managerId;
+    if (props.contractType !== undefined) domain.contractType = props.contractType as any;
+    if (props.jornadaTrabajo !== undefined) domain.jornadaTrabajo = props.jornadaTrabajo as any;
+    if (props.status !== undefined) domain.status = props.status as any;
+
+    // Parse dates only if they are provided
+    if (props.startDate !== undefined) domain.startDate = DateUtils.parse(props.startDate);
+    if (props.endDate !== undefined) domain.endDate = DateUtils.parse(props.endDate);
+
+    const updatedEntity = this.toEntity(domain);
     const savedEntity = await this.repository.save(updatedEntity);
     return this.toDomain(savedEntity);
   }
@@ -167,7 +202,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       rutSociedad: entity.rutSociedad,
       nombreColaborador: entity.nombreColaborador,
       startDate: DateUtils.parse(entity.startDate),
-      endDate: entity.endDate,
+      endDate: DateUtils.parse(entity.endDate),
       contractType: entity.contractType as ContractType,
       administradorContratoMandante: entity.administradorContratoMandante,
       administradorContratoEmpresa: entity.administradorContratoEmpresa,
@@ -195,8 +230,8 @@ export class TypeOrmContractRepository implements ContractRepository {
       id: contract.id,
       rutSociedad: contract.rutSociedad,
       nombreColaborador: contract.nombreColaborador,
-      startDate: contract.startDate,
-      endDate: contract.endDate,
+      startDate: DateUtils.toLocalDate(contract.startDate)!,
+      endDate: DateUtils.toLocalDate(contract.endDate),
       contractType: contract.contractType,
       administradorContratoMandante: contract.administradorContratoMandante,
       administradorContratoEmpresa: contract.administradorContratoEmpresa,

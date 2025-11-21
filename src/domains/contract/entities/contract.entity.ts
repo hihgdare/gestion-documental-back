@@ -34,9 +34,14 @@ export interface CreateContractProps extends BaseContractProps {
   id?: string;
 }
 
-export type UpdateContractProps = Overlap<Partial<BaseContractProps>, {
+export type UpdateContractProps = {
   id: string;
-}>;
+  endDate?: DateType;
+  nombreColaborador?: string;
+  descripcionServicio?: string;
+  dotacionPersonal?: number;
+  dotacionVehiculos?: number;
+};
 
 export type ContractJson = Overlap<BaseContractProps, {
   id: string;

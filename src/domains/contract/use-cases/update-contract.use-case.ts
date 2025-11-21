@@ -1,6 +1,7 @@
 import { ContractRepository } from '../repositories/contract.repository';
 import { Contract, UpdateContractProps } from '../entities/contract.entity';
 import { NotFoundError } from '@shared/domain/errors';
+import { only } from '@shared/utils/objects';
 
 export class UpdateContractUseCase {
   constructor(private readonly contractRepository: ContractRepository) { }
@@ -30,7 +31,17 @@ export class UpdateContractUseCase {
       contract.extendContract(new Date(request.endDate));
     }
 
-    return await this.contractRepository.update(contract);
+    const updateFields = only(contract, [
+      'id',
+      'endDate',
+      'nombreColaborador',
+      'descripcionServicio',
+      'dotacionPersonal',
+      'dotacionVehiculos',
+    ]);
+    console.log({updateFields});
+
+    return await this.contractRepository.update(updateFields);
   }
 }
 

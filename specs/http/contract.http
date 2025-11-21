@@ -4,16 +4,22 @@
 
 ###
 
+# @name get-all
+GET {{baseUrl}}/{{module}}
+Authorization: Bearer {{token}}
+
+###
+
 # @name create
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "startDate": "2025-11-20",
+  "startDate": "2025-11-25",
   "endDate": "2025-12-10",
   "nombreColaborador": "Willem",
-  "contractNumber": "24681012",
+  "contractNumber": "12345678",
   "administradorContratoMandante": "Yo",
   "administradorContratoEmpresa": "Yo",
   "nombreMandante": "Cualquiera",
@@ -33,11 +39,13 @@ Authorization: Bearer {{token}}
 
 ###
 
+# @name get
 GET {{baseUrl}}/{{module}}/{{id}}
 Authorization: Bearer {{token}}
 
 ###
 
+# @name update
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -47,6 +55,6 @@ Authorization: Bearer {{token}}
   "descripcionServicio": "contrato de prueba 2",
   "dotacionPersonal": 1,
   "dotacionVehiculos": 1,
-  "endDate": "2025-12-10"
+  "endDate": "2025-12-15"
 }
 
