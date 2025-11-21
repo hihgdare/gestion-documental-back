@@ -1,8 +1,5 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { SqljsConnectionOptions } from 'typeorm/driver/sqljs/SqljsConnectionOptions.js';
-import { UserEntity } from './entities/user.entity';
-import { RoleEntity } from './entities/role.entity';
-import { PermissionEntity } from './entities/permission.entity';
 
 type Mode = 'development' | 'production' | 'test';
 type DbType = 'mysql' | 'postgres';

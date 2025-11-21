@@ -131,19 +131,6 @@ export class Contract {
       throw new ValidationError('Invalid contract status', 'status');
     }
   }
-
-  private static validateDates(startDate?: DateType, endDate?: DateType | null): void {
-    const now = new Date();
-
-    if (DateUtils.isBefore(startDate, now)) {
-      throw new ValidationError('Start date is required', 'startDate');
-    }
-
-    if (endDate && DateUtils.isBefore(endDate, startDate)) {
-      throw new ValidationError('End date cannot be before start date', 'endDate');
-    }
-  }
-
   // Business methods
   public activate(): void {
     if (this.status === ContractStatus.TERMINATED) {

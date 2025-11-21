@@ -27,8 +27,6 @@ import { ContractResponseDto } from '@presentation/dto/contract/contract-respons
 import { asyncHandler } from '@shared/middleware/validation';
 import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
-import { DateTimeUtils, DateUtils } from '@shared/utils/date';
-import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 
 export class ContractController {
   constructor(
