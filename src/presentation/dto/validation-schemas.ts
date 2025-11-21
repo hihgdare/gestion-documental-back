@@ -94,9 +94,10 @@ export const updateDocumentSchema = Joi.object({
   name: Joi.string().min(2).max(255).optional(),
   issuedDate: Joi.date().iso().optional(),
   expirationDate: Joi.date().iso().optional(),
-  description: Joi.string().max(1000).optional(),
-  documentUrl: Joi.string().uri().optional(),
-}).min(1);
+  contractId: Joi.string().uuid().optional(),
+  description: Joi.string().max(1000).optional().allow(null, ''),
+  documentUrl: Joi.string().uri().optional().allow(null, ''),
+}).min(1).unknown(true); // Permitir campos desconocidos
 
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
