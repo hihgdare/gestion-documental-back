@@ -27,6 +27,8 @@ import { ContractResponseDto } from '@presentation/dto/contract/contract-respons
 import { asyncHandler } from '@shared/middleware/validation';
 import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { DateTimeUtils, DateUtils } from '@shared/utils/date';
+import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 
 export class ContractController {
   constructor(
@@ -55,9 +57,9 @@ export class ContractController {
       id: json.id,
       rutSociedad: json.rutSociedad,
       nombreColaborador: json.nombreColaborador,
-      startDate: json.startDate,
-      endDate: json.endDate? json.endDate : null,
-      contractType: json.contractType,
+      startDate: DateUtils.toString(json.startDate),
+      endDate: DateUtils.toString(json.endDate),
+      contractType: json.contractType as ContractType,
       administradorContratoMandante: json.administradorContratoMandante,
       administradorContratoEmpresa: json.administradorContratoEmpresa,
       rutAdministradorContrato: json.rutAdministradorContrato,
@@ -74,8 +76,9 @@ export class ContractController {
       duration: json.duration,
       isActive: json.isActive,
       isExpired: json.isExpired,
-      createdAt: json.createdAt,
-      updatedAt: json.updatedAt,
+      createdAt: DateTimeUtils.toString(json.createdAt),
+      updatedAt: DateTimeUtils.toString(json.updatedAt),
+      deletedAt: DateTimeUtils.toString(json.deletedAt, true),
     };
   }
 

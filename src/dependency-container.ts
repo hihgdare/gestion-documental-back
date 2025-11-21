@@ -1,6 +1,7 @@
 // Dependency Injection Container
 import { UserController } from '@presentation/controllers/user.controller';
 import { ContractController } from '@presentation/controllers/contract.controller';
+import { ColaboratorController } from '@presentation/controllers/colaborators.controller';
 import { DocumentTypeController } from '@presentation/controllers/document-type.controller';
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
 import { DocumentController } from '@presentation/controllers/document.controller';
@@ -69,6 +70,11 @@ import {
   DeleteContractUseCase,
 } from '@domains/contract/use-cases/update-contract.use-case';
 
+// Colaborator domain
+import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
+import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
+import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
+
 // Permission domain
 import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
 import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
@@ -83,6 +89,7 @@ import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-p
 
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
+import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
@@ -95,6 +102,7 @@ import { AuthController } from '@presentation/controllers/auth.controller';
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
+  private colaboratorRepository!: TypeOrmColaboratorRepository;
   private contractRepository!: TypeOrmContractRepository;
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
@@ -160,6 +168,11 @@ export class DependencyContainer {
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
 
+  // Use Cases - Colaborator
+  private createColaboratorUseCase!: CreateColaboratorUseCase;
+  private getColaboratorUseCase!: GetColaboratorUseCase;
+  private updateColaboratorUseCase!: UpdateColaboratorUseCase;
+
   // Use Cases - Permission
   private savePermissionUseCase!: SavePermissionUseCase;
   private findAllPermissionsUseCase!: FindAllPermissionsUseCase;
@@ -177,6 +190,7 @@ export class DependencyContainer {
   private getPermissionsToRoleUseCase!: GetPermissionsToRoleUseCase;
 
   // Controllers
+  private colaboratorController!: ColaboratorController;
   private contractController!: ContractController;
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
@@ -190,6 +204,7 @@ export class DependencyContainer {
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
     this.contractRepository = new TypeOrmContractRepository();
+    this.colaboratorRepository = new TypeOrmColaboratorRepository();
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
     this.documentRepository = new TypeOrmDocumentRepository();
@@ -260,6 +275,11 @@ export class DependencyContainer {
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
 
+    // Initialize Colaborator use cases
+    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
+    this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
+    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository);
+
     // Initialize Permission use cases
     this.savePermissionUseCase = new SavePermissionUseCase(this.permissionRepository);
     this.findAllPermissionsUseCase = new FindAllPermissionsUseCase(this.permissionRepository);
@@ -282,6 +302,12 @@ export class DependencyContainer {
     );
 
     // Initialize Controllers
+    this.colaboratorController = new ColaboratorController(
+      this.createColaboratorUseCase,
+      this.getColaboratorUseCase,
+      this.updateColaboratorUseCase,
+    );
+
     this.contractController = new ContractController(
       this.createContractUseCase,
       this.getContractByIdUseCase,
@@ -376,6 +402,10 @@ export class DependencyContainer {
     return this.contractController;
   }
 
+  public getColaboratorController(): ColaboratorController {
+    return this.colaboratorController;
+  }
+
   public getDocumentTypeController(): DocumentTypeController {
     return this.documentTypeController;
   }
@@ -407,6 +437,10 @@ export class DependencyContainer {
 
   public getContractRepository(): TypeOrmContractRepository {
     return this.contractRepository;
+  }
+
+  public getColaboratorRepository(): TypeOrmColaboratorRepository {
+    return this.colaboratorRepository;
   }
 
   public getDocumentTypeRepository(): TypeOrmDocumentTypeRepository {
