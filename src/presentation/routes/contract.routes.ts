@@ -60,5 +60,16 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // DELETE /api/contracts/:id - Delete contract
   router.delete('/:id', contractController.deleteContract);
 
+  // Subcontract management routes
+  // POST /api/contracts/:id/subcontracts - Add a subcontract to a contract
+  router.post('/:id/subcontracts', contractController.addSubcontract);
+
+  // DELETE /api/contracts/:id/subcontracts/:subcontractId - Remove a subcontract from a contract
+  router.delete('/:id/subcontracts/:subcontractId', contractController.removeSubcontract);
+
+  // GET /api/contracts/:id/subcontracts - Get all subcontracts of a contract
+  router.get('/:id/subcontracts', contractController.getSubcontracts);
+
   return router;
 };
+

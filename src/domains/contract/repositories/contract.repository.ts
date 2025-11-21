@@ -20,4 +20,8 @@ export interface ContractRepository {
   save(contract: CreateContractProps): Promise<Contract>;
   update(contract: UpdateContractProps): Promise<Contract>;
   delete(id: string): Promise<void>;
+  // Subcontract management
+  addSubcontract(contractId: string, subcontractId: string): Promise<void>;
+  removeSubcontract(contractId: string, subcontractId: string): Promise<void>;
+  findSubcontracts(contractId: string): Promise<Contract[]>;
 }

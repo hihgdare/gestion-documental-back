@@ -58,3 +58,86 @@ Authorization: Bearer {{token}}
   "endDate": "2025-12-15"
 }
 
+###
+
+# ============================================
+# SUBCONTRACT MANAGEMENT
+# ============================================
+
+# @name create-subcontract
+# Create a second contract to use as subcontract
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "startDate": "2025-11-25",
+  "endDate": "2025-12-10",
+  "nombreColaborador": "Subcontractor",
+  "contractNumber": "SUB-001",
+  "administradorContratoMandante": "Admin Sub",
+  "administradorContratoEmpresa": "Admin Sub Empresa",
+  "nombreMandante": "Mandante Sub",
+  "division": "Division Sub",
+  "area": "Area Sub",
+  "descripcionServicio": "Subcontrato de prueba",
+  "nombreProyecto": "Proyecto Sub",
+  "rutSociedad": "98.765.432-1",
+  "contractType": "consultoria",
+  "rutAdministradorContrato": "11.222.333-4",
+  "jornadaTrabajo": "completa"
+}
+
+###
+
+@subcontractId = {{ create-subcontract.response.body.data.id }}
+
+###
+
+# @name add-subcontract
+# Add subcontract relationship
+POST {{baseUrl}}/{{module}}/{{id}}/subcontracts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "subcontractId": "{{subcontractId}}"
+}
+
+###
+
+# @name get-subcontracts
+# Get all subcontracts of a contract
+GET {{baseUrl}}/{{module}}/{{id}}/subcontracts
+Authorization: Bearer {{token}}
+
+###
+
+# @name remove-subcontract
+# Remove subcontract relationship
+DELETE {{baseUrl}}/{{module}}/{{id}}/subcontracts/{{subcontractId}}
+Authorization: Bearer {{token}}
+
+###
+
+# @name add-self-as-subcontract
+# Test validation: Try to add contract to itself (should fail with 400)
+POST {{baseUrl}}/{{module}}/{{id}}/subcontracts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "subcontractId": "{{id}}"
+}
+
+###
+
+# @name add-subcontract-missing-id
+# Test validation: Try to add subcontract without ID (should fail with 400)
+POST {{baseUrl}}/{{module}}/{{id}}/subcontracts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+}
+
