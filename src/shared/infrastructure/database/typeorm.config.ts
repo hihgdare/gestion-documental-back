@@ -33,8 +33,7 @@ export function initializeDataSource(): DataSource {
       synchronize: mode === 'development',
       logging: mode === 'development',
       charset: 'utf8mb4',
-      timezone: '+00:00', // Guarda las fechas en UTC para evitar problemas de zona horaria
-      dateStrings: true,
+      timezone: 'Z',
       entities: [
         'src/shared/infrastructure/database/entities/**/*.ts',
         'src/domains/**/*.entity.ts',

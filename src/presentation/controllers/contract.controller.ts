@@ -53,8 +53,8 @@ export class ContractController {
       id: json.id,
       rutSociedad: json.rutSociedad,
       nombreColaborador: json.nombreColaborador,
-      startDate: json.startDate.toISOString(),
-      endDate: json.endDate?.toISOString(),
+      startDate: json.startDate,
+      endDate: json.endDate? json.endDate : null,
       contractType: json.contractType,
       administradorContratoMandante: json.administradorContratoMandante,
       administradorContratoEmpresa: json.administradorContratoEmpresa,
@@ -72,8 +72,8 @@ export class ContractController {
       duration: json.duration,
       isActive: json.isActive,
       isExpired: json.isExpired,
-      createdAt: json.createdAt.toISOString(),
-      updatedAt: json.updatedAt.toISOString(),
+      createdAt: json.createdAt,
+      updatedAt: json.updatedAt,
     };
   }
 

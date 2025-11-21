@@ -126,7 +126,7 @@ export class Contract {
   private static validateDates(startDate?: DateType, endDate?: DateType | null): void {
     const now = new Date();
 
-    if (DateUtils.isBefore(startDate, now)) {
+    if (DateUtils.isBefore(now, startDate)) {
       throw new ValidationError('Start date is required', 'startDate');
     }
 
