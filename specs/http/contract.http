@@ -1,6 +1,6 @@
 @baseUrl = http://localhost:3000/api
 @module = contracts
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwMjczZjBlZi1kMzg2LTQyZjUtYmU2Ni0xODk5NzI2YzViYzAiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImlhdCI6MTc2MzYwMDQ3NywiZXhwIjoxNzYzNjA0MDc3fQ.iBBoU5NyZDxj6acZwLjRH0w95UggxZ3pG-NF41AzZn0
+@token = skip-token
 
 ###
 
@@ -13,7 +13,7 @@ Authorization: Bearer {{token}}
   "startDate": "2025-11-20",
   "endDate": "2025-12-10",
   "nombreColaborador": "Willem",
-  "contractNumber": "23456789",
+  "contractNumber": "24681012",
   "administradorContratoMandante": "Yo",
   "administradorContratoEmpresa": "Yo",
   "nombreMandante": "Cualquiera",
@@ -27,7 +27,14 @@ Authorization: Bearer {{token}}
   "jornadaTrabajo": "turno"
 }
 
+###
+
 @id = {{ create.response.body.data.id }}
+
+###
+
+GET {{baseUrl}}/{{module}}/{{id}}
+Authorization: Bearer {{token}}
 
 ###
 
