@@ -39,7 +39,6 @@ export class UpdateContractUseCase {
       'dotacionPersonal',
       'dotacionVehiculos',
     ]);
-    console.log({updateFields});
 
     return await this.contractRepository.update(updateFields);
   }

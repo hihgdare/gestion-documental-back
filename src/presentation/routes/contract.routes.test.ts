@@ -52,15 +52,9 @@ describe('ContractController', () => {
 
     it('should create a new contract and return 201', async () => {
       baseContractDto.contractNumber = getNewId();
-      console.log('before create:', {startDate, endDate});
       const response = await supertest(app)
         .post('/api/contracts')
         .send(baseContractDto);
-      console.log('after create:', {
-        id: response.body.data.id,
-        startDate: response.body.data.startDate,
-        endDate: response.body.data.endDate,
-      });
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
@@ -80,7 +74,6 @@ describe('ContractController', () => {
       const createResponse = await supertest(app)
         .post('/api/contracts')
         .send(baseContractDto);
-      console.log('created:', createResponse.body.data);
 
       const createdId = createResponse.body.data.id as string;
       const startDate = createResponse.body.data.startDate as string;
@@ -99,14 +92,6 @@ describe('ContractController', () => {
           dotacionPersonal,
           dotacionVehiculos,
         });
-      console.log('updated:', updateResponse.body.data);
-      const update2Response = await supertest(app)
-        .put(`/api/contracts/${createdId}`)
-        .send({
-          endDate: newEndDate,
-          dotacionPersonal: 100,
-        });
-      console.log('get:', update2Response.body.data);
 
       expect(updateResponse.status).toBe(200);
       expect(updateResponse.body.success).toBe(true);

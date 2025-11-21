@@ -81,7 +81,6 @@ export class ContractController {
   }
 
   public createContract = asyncHandler(async (req: Request, res: Response) => {
-    console.log('createContract req.body:', req.body);
     const contract = await this.createContractUseCase.execute(req.body as CreateContractDto);
     res.status(201).json({
       success: true,
