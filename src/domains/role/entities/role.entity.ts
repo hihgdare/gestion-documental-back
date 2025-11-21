@@ -43,8 +43,8 @@ export class Role {
       permissions: (permissions?: Permission[]) => permissions ?? [],
       parent: (parent?: Role | null) => parent ?? null,
       children: (children?: Role[]) => children ?? [],
-      createdAt: 'date',
-      updatedAt: 'date',
+      createdAt: 'datetime',
+      updatedAt: 'datetime',
     });
   }
 

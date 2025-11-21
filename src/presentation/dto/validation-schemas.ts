@@ -1,3 +1,5 @@
+import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { DateUtils } from '@shared/utils/date';
 import Joi from 'joi';
 
 export const createUserSchema = Joi.object({
@@ -20,31 +22,36 @@ export const getUserByIdSchema = Joi.object({
 });
 
 export const createContractSchema = Joi.object({
-  rutSociedad: Joi.string().min(8).max(12).required(),
-  nombreColaborador: Joi.string().min(2).max(100).required(),
-  startDate: Joi.date().iso().required(),
-  endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional(),
-  contractType: Joi.string().valid('indefinido', 'plazo_fijo', 'obra_faena', 'consultoria', 'honorarios').required(),
-  administradorContratoMandante: Joi.string().min(2).max(100).required(),
-  administradorContratoEmpresa: Joi.string().min(2).max(100).required(),
-  rutAdministradorContrato: Joi.string().min(8).max(12).required(),
-  contractNumber: Joi.string().min(1).max(50).required(),
-  nombreMandante: Joi.string().min(2).max(100).required(),
-  division: Joi.string().max(100).optional(),
+  rutSociedad: Joi.string().trim().min(8).max(12).required(),
+  nombreColaborador: Joi.string().trim().min(2).max(100).required(),
+  startDate: Joi.date().iso().required().min(DateUtils.todayString()).messages({
+    'date.min': 'startDate should be today or later.',
+  }),
+  endDate: Joi.date().iso().optional().greater(Joi.ref('startDate')).messages({
+    'date.greater': 'endDate should be after startDate.',
+  }),
+  contractType: Joi.string().valid(...Object.values(ContractType)).required(),
+  administradorContratoMandante: Joi.string().trim().min(2).max(100).required(),
+  administradorContratoEmpresa: Joi.string().trim().min(2).max(100).required(),
+  rutAdministradorContrato: Joi.string().trim().min(8).max(12).required(),
+  contractNumber: Joi.string().trim().min(1).max(50).required(),
+  nombreMandante: Joi.string().trim().min(2).max(100).required(),
+  division: Joi.string().trim().max(100).optional(),
   area: Joi.string().max(100).optional(),
-  dotacionPersonal: Joi.number().integer().min(0).optional(),
-  dotacionVehiculos: Joi.number().integer().min(0).optional(),
+  dotacionPersonal: Joi.number().integer().min(0).optional().default(0),
+  dotacionVehiculos: Joi.number().integer().min(0).optional().default(0),
   descripcionServicio: Joi.string().max(1000).optional(),
   nombreProyecto: Joi.string().max(100).optional(),
-  jornadaTrabajo: Joi.string().valid('completa', 'parcial', 'turno', 'especial').required(),
+  jornadaTrabajo: Joi.string().valid(...Object.values(JornadaTrabajo)).required(),
+  status: Joi.string().valid(...Object.values(ContractStatus)).optional().default(ContractStatus.DRAFT),
 });
 
 export const updateContractSchema = Joi.object({
-  nombreColaborador: Joi.string().min(2).max(100).optional(),
+  endDate: Joi.date().iso().optional(),
+  nombreColaborador: Joi.string().trim().min(2).max(100).optional(),
   descripcionServicio: Joi.string().max(1000).optional(),
   dotacionPersonal: Joi.number().integer().min(0).optional(),
   dotacionVehiculos: Joi.number().integer().min(0).optional(),
-  endDate: Joi.date().iso().optional(),
 }).min(1);
 
 export const getContractByIdSchema = Joi.object({

@@ -25,6 +25,8 @@ import { CreateContractDto } from '@presentation/dto/contract/create-contract.dt
 import { UpdateContractDto } from '@presentation/dto/contract/update-contract.dto';
 import { ContractResponseDto } from '@presentation/dto/contract/contract-response.dto';
 import { asyncHandler } from '@shared/middleware/validation';
+import { DateTimeUtils, DateUtils } from '@shared/utils/date';
+import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 
 export class ContractController {
   constructor(
@@ -45,7 +47,7 @@ export class ContractController {
     private readonly suspendContractUseCase: SuspendContractUseCase,
     private readonly terminateContractUseCase: TerminateContractUseCase,
     private readonly deleteContractUseCase: DeleteContractUseCase,
-  ) {}
+  ) { }
 
   private toResponseDto(contract: Contract): ContractResponseDto {
     const json = contract.toJSON();
@@ -63,12 +65,12 @@ export class ContractController {
       nombreMandante: json.nombreMandante,
       division: json.division,
       area: json.area,
-      dotacionPersonal: json.dotacionPersonal,
-      dotacionVehiculos: json.dotacionVehiculos,
+      dotacionPersonal: json.dotacionPersonal ?? 0,
+      dotacionVehiculos: json.dotacionVehiculos ?? 0,
       descripcionServicio: json.descripcionServicio,
       nombreProyecto: json.nombreProyecto,
-      jornadaTrabajo: json.jornadaTrabajo,
-      status: json.status,
+      jornadaTrabajo: json.jornadaTrabajo as JornadaTrabajo,
+      status: json.status as ContractStatus,
       duration: json.duration,
       isActive: json.isActive,
       isExpired: json.isExpired,
@@ -78,14 +80,7 @@ export class ContractController {
   }
 
   public createContract = asyncHandler(async (req: Request, res: Response) => {
-    const dto: CreateContractDto = req.body;
-    const contractRequest = {
-      ...dto,
-      startDate: new Date(dto.startDate),
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-    };
-
-    const contract = await this.createContractUseCase.execute(contractRequest);
+    const contract = await this.createContractUseCase.execute(req.body as CreateContractDto);
     res.status(201).json({
       success: true,
       data: this.toResponseDto(contract),
@@ -211,10 +206,11 @@ export class ContractController {
     const dto: UpdateContractDto = req.body;
     const updateRequest = {
       ...dto,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      id,
+      endDate: DateUtils.parse(dto.endDate, true) ?? undefined,
     };
 
-    const contract = await this.updateContractUseCase.execute(id, updateRequest);
+    const contract = await this.updateContractUseCase.execute(updateRequest);
     res.status(200).json({
       success: true,
       data: this.toResponseDto(contract),

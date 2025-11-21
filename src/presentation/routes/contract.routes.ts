@@ -10,7 +10,7 @@ export const createContractRoutes = (contractController: ContractController): Ro
   const router = Router();
 
   // POST /api/contracts - Create a new contract
-  router.post('/', validateRequest(createContractSchema), contractController.createContract);
+  router.post('/', validateRequest(createContractSchema, true), contractController.createContract);
 
   // GET /api/contracts - Get all contracts
   router.get('/', contractController.getAllContracts);
@@ -46,7 +46,7 @@ export const createContractRoutes = (contractController: ContractController): Ro
   router.get('/:id', contractController.getContractById);
 
   // PUT /api/contracts/:id - Update contract
-  router.put('/:id', validateRequest(updateContractSchema), contractController.updateContract);
+  router.put('/:id', validateRequest(updateContractSchema, true), contractController.updateContract);
 
   // PATCH /api/contracts/:id/activate - Activate contract
   router.patch('/:id/activate', contractController.activateContract);

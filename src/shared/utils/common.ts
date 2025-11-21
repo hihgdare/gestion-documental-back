@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { mapObject } from './objects';
 import { isFunction, isString } from './compare';
 import { Email } from '@domains/user/value-objects/email';
+import { DateUtils as DateUtils2, DateTimeUtils } from './date';
 
 export class UUID {
   private constructor(private readonly value: string) {
@@ -78,8 +79,10 @@ type ParsersList<T extends object> = Partial<Record<keyof T, ParserMethod | Defa
 type ParserMethod = Function; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
 
 const defaultParsers = Object.freeze({
-  date: (value?: DateType) => DateUtils.parse(value),
-  dateNullable: (value?: DateType) => DateUtils.parse(value, true),
+  date: (value?: DateType) => DateUtils2.parse(value),
+  dateNullable: (value?: DateType) => DateUtils2.parse(value, true),
+  datetime: (value?: DateType) => DateTimeUtils.parse(value),
+  datetimeNullable: (value?: DateType) => DateTimeUtils.parse(value, true),
   email: (value?: string | Email) => Email.create(value),
   uuid: (value?: string) => value ?? uuidv4(),
 } as const);

@@ -1,47 +1,53 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { SqljsConnectionOptions } from 'typeorm/driver/sqljs/SqljsConnectionOptions.js';
-import { UserEntity } from './entities/user.entity';
-import { RoleEntity } from './entities/role.entity';
-import { PermissionEntity } from './entities/permission.entity';
 import { date } from 'joi';
 
 type Mode = 'development' | 'production' | 'test';
+type DbType = 'mysql' | 'postgres';
 
 export const AppDataSource = initializeDataSource();
 
 export function initializeDataSource(): DataSource {
-  const mode = process.env.NODE_ENV as Mode;
+  if (process.env.NODE_ENV === 'test') {
+    process.env.DB_TYPE = process.env.TEST_DB_TYPE || 'sqljs';
+    process.env.DB_HOST = process.env.TEST_DB_HOST;
+    process.env.DB_PORT = process.env.TEST_DB_PORT;
+    process.env.DB_USERNAME = process.env.TEST_DB_USERNAME;
+    process.env.DB_PASSWORD = process.env.TEST_DB_PASSWORD;
+    process.env.DB_DATABASE = process.env.TEST_DB_DATABASE || 'gestion_documental_test';
+  }
+
+  const mode = (process.env.NODE_ENV || 'production') as Mode;
   let options: DataSourceOptions;
 
-  if (mode === 'test') {
+  if (process.env.DB_TYPE === 'sqljs') {
     options = {
-      type: 'sqljs', //use sqljs for testing
-      location: ':memory:', // use in-memory database for tests
-      autoSave: false, // disable auto-save for in-memory testing
+      type: 'sqljs',
+      location: ':memory:', // use in-memory database
+      autoSave: false, // disable auto-save
       synchronize: true,
       logging: false,
-      entities: [UserEntity, RoleEntity, PermissionEntity], // Explicitly list entities for test
     } satisfies SqljsConnectionOptions;
   } else {
     options = {
-      type: (process.env.DB_TYPE || 'mysql') as 'mysql' | 'postgres',
+      type: (process.env.DB_TYPE || 'mysql') as DbType,
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '3306'),
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'gestion_documental',
-      synchronize: mode === 'development',
-      logging: mode === 'development',
+      synchronize: mode !== 'production',
+      logging: mode !== 'production',
       charset: 'utf8mb4',
-      timezone: 'Z',
-      entities: [
-        'src/shared/infrastructure/database/entities/**/*.ts',
-        'src/domains/**/*.entity.ts',
-      ],
+      timezone: 'local',
     } satisfies DataSourceOptions;
   }
   return new DataSource({
     ...options,
+    entities: [
+      'src/shared/infrastructure/database/entities/**/*.ts',
+      'src/domains/**/*.entity.ts',
+    ],
     migrations: [
       'src/shared/infrastructure/database/migrations/*.ts',
     ],

@@ -5,6 +5,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 beforeAll(() => {
   // Set test environment variables
   process.env.NODE_ENV = 'test';
+  process.env.TZ = 'America/Santiago';
 });
 
 afterAll(() => {
