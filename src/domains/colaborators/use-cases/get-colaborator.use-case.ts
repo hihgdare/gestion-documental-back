@@ -7,7 +7,7 @@ export class GetColaboratorUseCase {
 
   public async execute(id: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(id);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
@@ -21,7 +21,7 @@ export class GetColaboratorUseCase {
 
   public async getByDocumentNumber(numeroDocumento: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findByNumeroDocumento(numeroDocumento);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with document number ${numeroDocumento} not found`);
     }
@@ -31,7 +31,7 @@ export class GetColaboratorUseCase {
 
   public async getByEmail(email: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findByEmail(email);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with email ${email} not found`);
     }
