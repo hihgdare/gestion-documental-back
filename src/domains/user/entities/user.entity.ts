@@ -137,12 +137,21 @@ export class User {
 
   public getPermissions(): string[] {
     const permissions = new Set<string>();
-    this.roles?.forEach(role => {
+    if (this.roles?.length) {
+      this.getPermisionsFromRoles(this.roles, permissions);
+    }
+    return Array.from(permissions);
+  }
+
+  private getPermisionsFromRoles(roles: Role[], permissions: Set<string>): void {
+    roles.forEach(role => {
       role.permissions?.forEach(permission => {
         permissions.add(permission.name);
       });
+      if (role.children?.length) {
+        this.getPermisionsFromRoles(role.children, permissions);
+      }
     });
-    return Array.from(permissions);
   }
 
   public can(permissionNames: string | string[], all?: boolean): boolean {

@@ -53,13 +53,10 @@ function getCookieToken(req: Request): string | null {
   const cookieHeader = req.headers.cookie;
   if (!cookieHeader || typeof cookieHeader !== 'string') return null;
   const pairs = cookieHeader.split(';');
-  const names = ['token', 'jwt', 'access_token'];
-  for (const name of names) {
-    const match = pairs.find(p => p.trim().startsWith(`${name}=`));
-    if (match) {
-      const value = match.split('=')[1];
-      if (value) return decodeURIComponent(value.trim());
-    }
+  const match = pairs.find(p => p.trim().startsWith('token='));
+  if (match) {
+    const value = match.split('=')[1];
+    if (value) return decodeURIComponent(value.trim());
   }
   return null;
 }

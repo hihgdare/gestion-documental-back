@@ -141,9 +141,10 @@ export class AuthController {
 
       const user = await this.getUserByIdUseCase.execute(req.user.id);
 
+      const permissions = await this.getAuthenticatedUserPermissionsUseCase.execute(user);
       res.status(200).json({
         success: true,
-        data: user.toJSON(),
+        data: { ...user.toJSON(), permissions },
       });
     } catch (error) {
       next(error);
