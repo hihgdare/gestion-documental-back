@@ -2,11 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
+import { User } from '@domains/user/entities/user.entity';
 
 // Extend the Request type to include the user property
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: any; // Adjust 'any' to your User entity type if available
+    user?: User;
+    token?: string;
   }
 }
 
@@ -14,11 +16,9 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
   if (process.env.ENABLE_RBAC !== 'true') return next();
 
   try {
-    const authHeader = req.headers.authorization;
     const userRepository: UserRepository = new TypeOrmUserRepository();
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+    const token = getCookieToken(req) || getHeaderToken(req);
+    if (token) {
       if (process.env.NODE_ENV === 'development' && token === 'skip-token') {
         return next();
       }
@@ -26,6 +26,7 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
       const user = await userRepository.findById(decodedToken.userId);
       if (!user) return res.status(401).json({ message: 'Unauthorized: User not found' });
       req.user = user;
+      req.token = token;
       return next();
     }
 
@@ -46,4 +47,28 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
     }
     next(error);
   }
+}
+
+function getCookieToken(req: Request): string | null {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader || typeof cookieHeader !== 'string') return null;
+  const pairs = cookieHeader.split(';');
+  const names = ['token', 'jwt', 'access_token'];
+  for (const name of names) {
+    const match = pairs.find(p => p.trim().startsWith(`${name}=`));
+    if (match) {
+      const value = match.split('=')[1];
+      if (value) return decodeURIComponent(value.trim());
+    }
+  }
+  return null;
+}
+
+function getHeaderToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || typeof authHeader !== 'string') return null;
+  if (authHeader.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
+  }
+  return null;
 }

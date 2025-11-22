@@ -390,6 +390,8 @@ export class DependencyContainer {
     this.authController = new AuthController(
       this.loginUserUseCase,
       this.getAuthenticatedUserPermissionsUseCase,
+      this.getUserByIdUseCase,
+      this.updateUserUseCase,
     );
   }
 
