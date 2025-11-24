@@ -121,7 +121,7 @@ export class EntityUtils {
     return {
       to(value: Date | string | null | undefined): string | null {
         if (!value) return null;
-        
+
         const date = value instanceof Date ? value : new Date(value);
         const year = date.getUTCFullYear();
         const month = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -130,13 +130,13 @@ export class EntityUtils {
       },
       from(value: string | Date | null | undefined): Date | null {
         if (!value) return null;
-        
+
         const dateStr = typeof value === 'string' ? value : value.toISOString().split('T')[0];
         return new Date(dateStr + 'T00:00:00.000Z');
-      }
+      },
     };
   }
-  
+
 }
 
 export class StringUtils {

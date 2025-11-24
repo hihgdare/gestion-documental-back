@@ -1,10 +1,10 @@
 import { BaseEntity } from '@shared/domain/base-entity';
 import { UUID } from '@shared/utils/common';
-import { 
-  ColaboratorStatus, 
-  DocumentType, 
-  Gender, 
-  CivilStatus 
+import {
+  ColaboratorStatus,
+  DocumentType,
+  Gender,
+  CivilStatus,
 } from '../value-objects/colaborator-enums';
 import { ValidationError } from '@shared/domain/errors';
 
@@ -62,7 +62,7 @@ export class Colaborator extends BaseEntity {
     private _cargo: string,
     private _status: ColaboratorStatus,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
   ) {
     super(id, createdAt, updatedAt);
   }
@@ -70,12 +70,12 @@ export class Colaborator extends BaseEntity {
   public static create(props: ColaboratorProps): Colaborator {
     const id = props.id || UUID.generate().toString();
     const status = props.status || ColaboratorStatus.ACTIVE;
-    
+
     this.validateRequired(props);
     this.validateEmail(props.email);
     this.validateLocation(props);
     this.validateAge(props.fechaNacimiento);
-    
+
     return new Colaborator(
       id,
       props.tipoDocumento,
@@ -101,13 +101,13 @@ export class Colaborator extends BaseEntity {
       props.cargo.trim(),
       status,
       props.createdAt || new Date(),
-      props.updatedAt || new Date()
+      props.updatedAt || new Date(),
     );
   }
 
   public static fromPersistence(props: ColaboratorProps): Colaborator {
     const status = props.status || ColaboratorStatus.ACTIVE;
-    
+
     return new Colaborator(
       props.id!,
       props.tipoDocumento,
@@ -133,7 +133,7 @@ export class Colaborator extends BaseEntity {
       props.cargo,
       status,
       props.createdAt!,
-      props.updatedAt!
+      props.updatedAt!,
     );
   }
 
@@ -211,15 +211,15 @@ export class Colaborator extends BaseEntity {
     const today = new Date();
     const age = today.getFullYear() - fechaNacimiento.getFullYear();
     const monthDiff = today.getMonth() - fechaNacimiento.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < fechaNacimiento.getDate())) {
       // Adjust age if birthday hasn't occurred this year
     }
-    
+
     if (age < 18) {
       throw new ValidationError('Colaborator must be at least 18 years old', 'fechaNacimiento');
     }
-    
+
     if (age > 100) {
       throw new ValidationError('Invalid birth date', 'fechaNacimiento');
     }
@@ -326,11 +326,11 @@ export class Colaborator extends BaseEntity {
     const today = new Date();
     let age = today.getFullYear() - this._fechaNacimiento.getFullYear();
     const monthDiff = today.getMonth() - this._fechaNacimiento.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < this._fechaNacimiento.getDate())) {
       age--;
     }
-    
+
     return age;
   }
 
@@ -363,13 +363,13 @@ export class Colaborator extends BaseEntity {
     if (!email?.trim()) {
       throw new ValidationError('Email is required', 'email');
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       throw new ValidationError('Invalid email format', 'email');
     }
-    
+
     this._telefono = telefono.trim();
     this._email = email.trim().toLowerCase();
   }

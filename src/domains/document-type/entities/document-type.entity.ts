@@ -16,7 +16,7 @@ export class DocumentType {
 
   constructor(props: DocumentTypeProps) {
     DocumentType.validateRequired(props);
-    
+
     EntityUtils.assign(this as DocumentType, props, {
       id: 'uuid',
       createdAt: 'date',

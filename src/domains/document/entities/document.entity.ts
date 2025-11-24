@@ -32,7 +32,7 @@ export class Document {
   constructor(props: DocumentProps) {
     Document.validateRequired(props);
     Document.validateDates(props.issuedDate, props.expirationDate || undefined);
-    
+
     EntityUtils.assign(this as Document, props, {
       id: 'uuid',
       issuedDate: 'date',

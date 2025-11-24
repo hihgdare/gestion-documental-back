@@ -18,7 +18,7 @@ export class DocumentSubtype {
 
   constructor(props: DocumentSubtypeProps) {
     DocumentSubtype.validateRequired(props);
-    
+
     EntityUtils.assign(this as DocumentSubtype, props, {
       id: 'uuid',
       createdAt: 'date',
