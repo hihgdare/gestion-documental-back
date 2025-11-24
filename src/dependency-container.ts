@@ -46,6 +46,8 @@ import {
   GetExpiringDocumentsUseCase,
 } from '@domains/document/use-cases/get-document.use-case';
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
+import { CreateDocumentHistoryUseCase as _CreateDocumentHistoryUseCase } from '@domains/document/use-cases/create-document-history.use-case';
+import { GetDocumentHistoryUseCase as _GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-document-history.use-case';
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
@@ -94,6 +96,7 @@ import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/t
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
+import { TypeOrmDocumentHistoryRepository } from '@shared/infrastructure/repositories/typeorm-document-history.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
@@ -107,6 +110,7 @@ export class DependencyContainer {
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
   private documentRepository!: TypeOrmDocumentRepository;
+  private documentHistoryRepository!: TypeOrmDocumentHistoryRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
 

@@ -67,7 +67,7 @@ export const createColaboratorSchema = Joi.object({
   nacionalidad: Joi.string().min(2).max(100).required(),
   sexo: Joi.string().valid('masculino', 'femenino', 'otro').required(),
   estadoCivil: Joi.string().valid('soltero', 'casado', 'divorciado', 'viudo', 'union_civil').required(),
-  fechaNacimiento: Joi.date().iso().max('now').required(),
+  fechaNacimiento: Joi.string().isoDate().required(),
   paisResidencia: Joi.string().length(2).required(),
   region: Joi.string().max(100).when('paisResidencia', {
     is: 'CL',
