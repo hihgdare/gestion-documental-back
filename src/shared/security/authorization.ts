@@ -17,8 +17,8 @@ export async function getUserEffectivePermissions(userId: string): Promise<Set<s
     relations: [
       'roles',
       'roles.permissions',
-      'roles.parent',
-      'roles.parent.permissions',
+      'roles.children',
+      'roles.children.permissions',
     ],
   });
   const names = new Set<string>();

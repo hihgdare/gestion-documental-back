@@ -11,6 +11,7 @@ describe('PermissionController', () => {
   let app: Application;
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'false'; // Disable RBAC for basic permission tests
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();

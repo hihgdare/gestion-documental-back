@@ -13,7 +13,6 @@ declare module 'express-serve-static-core' {
 
 export function authorize(required: string | string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    console.log({ required });
     if (process.env.ENABLE_RBAC !== 'true') return next();
     const user = req.user;
     if (!user) return res.status(401).json({ message: 'unauthorized' });
