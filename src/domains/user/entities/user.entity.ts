@@ -34,6 +34,14 @@ export type UserJson = Overlap<BaseUserProps, {
   deletedAt?: string | null;
 }>
 
+export interface AsRole {
+  name: string;
+  permissions?: {
+    name: string
+  }[];
+  children?: AsRole[];
+}
+
 export class User {
   id: string;
   email: Email;
@@ -135,27 +143,26 @@ export class User {
     };
   }
 
-  public getPermissions(): string[] {
+  public getPermissionNames(asArray: true): string[];
+  public getPermissionNames(asArray?: false): Set<string>;
+  public getPermissionNames(asArray?: boolean): string[] | Set<string>;
+  public getPermissionNames(asArray?: boolean): string[] | Set<string> {
     const permissions = new Set<string>();
-    if (this.roles?.length) {
-      this.getPermisionsFromRoles(this.roles, permissions);
-    }
-    return Array.from(permissions);
+    User.getPermissionNamesFromRoles(this.roles, permissions);
+    return asArray ? Array.from(permissions) : permissions;
   }
 
-  private getPermisionsFromRoles(roles: Role[], permissions: Set<string>): void {
-    roles.forEach(role => {
+  static getPermissionNamesFromRoles(roles: AsRole[] | undefined, permissions: Set<string>): void {
+    roles?.forEach(role => {
       role.permissions?.forEach(permission => {
         permissions.add(permission.name);
       });
-      if (role.children?.length) {
-        this.getPermisionsFromRoles(role.children, permissions);
-      }
+      User.getPermissionNamesFromRoles(role.children, permissions);
     });
   }
 
   public can(permissionNames: string | string[], all?: boolean): boolean {
-    const userPermissions = this.getPermissions();
+    const userPermissions = this.getPermissionNames(true);
     return all
       ? toArray(permissionNames).every(permission => userPermissions.includes(permission))
       : toArray(permissionNames).some(permission => userPermissions.includes(permission));
