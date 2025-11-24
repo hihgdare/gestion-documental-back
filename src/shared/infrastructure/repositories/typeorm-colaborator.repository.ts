@@ -1,11 +1,11 @@
-import { Repository, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
-import { 
-  ColaboratorStatus, 
-  DocumentType, 
-  Gender, 
-  CivilStatus 
+import {
+  ColaboratorStatus,
+  DocumentType,
+  Gender,
+  CivilStatus,
 } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ColaboratorEntity } from '../database/entities/colaborators.entity';
 import { AppDataSource } from '../database/typeorm.config';
@@ -143,7 +143,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       .orWhere('colaborator.apellidoMaterno ILIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
       .orderBy('colaborator.createdAt', 'DESC')
       .getMany();
-    
+
     return colaboratorEntities.map(entity => this.toDomain(entity));
   }
 
@@ -158,8 +158,8 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       nacionalidad: entity.nacionalidad,
       sexo: entity.sexo as Gender,
       estadoCivil: entity.estadoCivil as CivilStatus,
-      fechaNacimiento: entity.fechaNacimiento instanceof Date 
-        ? entity.fechaNacimiento 
+      fechaNacimiento: entity.fechaNacimiento instanceof Date
+        ? entity.fechaNacimiento
         : new Date(entity.fechaNacimiento),
       paisResidencia: entity.paisResidencia,
       region: entity.region,
@@ -174,11 +174,11 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       profesion: entity.profesion,
       cargo: entity.cargo,
       status: entity.status as ColaboratorStatus,
-      createdAt: entity.createdAt instanceof Date 
-        ? entity.createdAt 
+      createdAt: entity.createdAt instanceof Date
+        ? entity.createdAt
         : new Date(entity.createdAt),
-      updatedAt: entity.updatedAt instanceof Date 
-        ? entity.updatedAt 
+      updatedAt: entity.updatedAt instanceof Date
+        ? entity.updatedAt
         : new Date(entity.updatedAt),
     };
     return Colaborator.fromPersistence(props);

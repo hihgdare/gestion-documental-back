@@ -76,7 +76,8 @@ describe('Auth Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Login successful');
-      expect(response.body.token).toBeDefined();
+      expect(response.body.data.token).toBeDefined();
+      expect(response.body.data.user).toBeDefined();
     });
 
     it('should return 400 if email is missing', async () => {
@@ -139,14 +140,14 @@ describe('Auth Routes', () => {
       const loginResponse = await supertest(app)
         .post('/api/auth/login')
         .send({ email: testUser.email.toString(), password: testPassword });
-      const token = loginResponse.body.token;
+      const token = loginResponse.body.data.token;
 
       const response = await supertest(app)
         .get('/api/auth/permissions')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.permissions).toEqual([testPermission.name]);
+      expect(response.body.data.permissions).toEqual([testPermission.name]);
     });
 
     it('should return 401 for unauthenticated access', async () => {

@@ -4,14 +4,14 @@ import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colab
 import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
 import { CreateColaboratorDto } from '@presentation/dto/colaborator/create-colaborator.dto';
 import { UpdateColaboratorDto } from '@presentation/dto/colaborator/update-colaborator.dto';
-import { toColaboratorResponseDto, ColaboratorResponseDto } from '@presentation/dto/colaborator/colaborator-response.dto';
+import { toColaboratorResponseDto } from '@presentation/dto/colaborator/colaborator-response.dto';
 import { asyncHandler } from '@shared/middleware/validation';
 
 export class ColaboratorController {
   constructor(
     private readonly createColaboratorUseCase: CreateColaboratorUseCase,
     private readonly getColaboratorUseCase: GetColaboratorUseCase,
-    private readonly updateColaboratorUseCase: UpdateColaboratorUseCase
+    private readonly updateColaboratorUseCase: UpdateColaboratorUseCase,
   ) {}
 
   public createColaborator = asyncHandler(async (req: Request, res: Response) => {
@@ -20,7 +20,7 @@ export class ColaboratorController {
       ...dto,
       fechaNacimiento: new Date(dto.fechaNacimiento),
     };
-    
+
     const colaborator = await this.createColaboratorUseCase.execute(colaboratorRequest);
     res.status(201).json({
       success: true,
@@ -83,7 +83,7 @@ export class ColaboratorController {
       });
       return;
     }
-    
+
     const colaborators = await this.getColaboratorUseCase.searchByName(name);
     res.status(200).json({
       success: true,
@@ -95,12 +95,12 @@ export class ColaboratorController {
   public updateColaborator = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const dto: UpdateColaboratorDto = req.body;
-    
+
     const colaborator = await this.updateColaboratorUseCase.execute({
       id,
       ...dto,
     });
-    
+
     res.status(200).json({
       success: true,
       data: toColaboratorResponseDto(colaborator),

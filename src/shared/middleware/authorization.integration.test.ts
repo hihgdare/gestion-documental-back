@@ -74,23 +74,36 @@ describe('Authorization RBAC', () => {
     process.env.ENABLE_RBAC = 'false';
   });
 
-  it('should inherit permission from parent role', async () => {
+  it('should inherit permission from child roles', async () => {
     process.env.ENABLE_RBAC = 'true';
     const ds = AppDataSource;
     const userRepo = ds.getRepository(UserEntity);
     const roleRepo = ds.getRepository(RoleEntity);
     const permRepo = ds.getRepository(PermissionEntity);
 
+    // Create permission
     const perm = await permRepo.save(permRepo.create({ name: 'role:read' }));
-    const parent = await roleRepo.save(roleRepo.create({ name: 'parent', permissions: [perm] }));
-    const child = await roleRepo.save(roleRepo.create({ name: 'child', parent }));
+
+    // Create child role with permissions
+    const child = await roleRepo.save(roleRepo.create({
+      name: 'child',
+      permissions: [perm],
+    }));
+
+    // Create parent role and assign child
+    const parent = await roleRepo.save(roleRepo.create({
+      name: 'parent',
+      children: [child],
+    }));
+
+    // User has parent role, should inherit permissions from child
     const user = await userRepo.save(userRepo.create({
-      email: 'child@example.com',
-      firstName: 'Child',
+      email: 'parent@example.com',
+      firstName: 'Parent',
       lastName: 'Role',
       password: 'x',
       status: 'active',
-      roles: [child],
+      roles: [parent],
     }));
 
     const res = await supertest(app).get('/api/roles').set('x-user-id', user.id);

@@ -49,7 +49,7 @@ export class CreateColaboratorUseCase {
     };
 
     const colaborator = Colaborator.create(colaboratorProps);
-    
+
     return await this.colaboratorRepository.save(colaborator);
   }
 }

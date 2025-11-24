@@ -21,7 +21,7 @@ export class UpdateColaboratorUseCase {
 
   public async execute(request: UpdateColaboratorRequest): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(request.id);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${request.id} not found`);
     }
@@ -38,7 +38,7 @@ export class UpdateColaboratorUseCase {
     if (request.telefono || request.email) {
       colaborator.updateContactInfo(
         request.telefono || colaborator.telefono,
-        request.email || colaborator.email
+        request.email || colaborator.email,
       );
     }
 
@@ -51,7 +51,7 @@ export class UpdateColaboratorUseCase {
     if (request.contactoEmergencia !== undefined || request.telefonoEmergencia !== undefined) {
       colaborator.updateEmergencyContact(
         request.contactoEmergencia,
-        request.telefonoEmergencia
+        request.telefonoEmergencia,
       );
     }
 
@@ -65,49 +65,49 @@ export class UpdateColaboratorUseCase {
 
   public async activate(id: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(id);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
     colaborator.activate();
-    
+
     return await this.colaboratorRepository.update(colaborator);
   }
 
   public async suspend(id: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(id);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
     colaborator.suspend();
-    
+
     return await this.colaboratorRepository.update(colaborator);
   }
 
   public async deactivate(id: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(id);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
     colaborator.deactivate();
-    
+
     return await this.colaboratorRepository.update(colaborator);
   }
 
   public async terminate(id: string): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(id);
-    
+
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
     colaborator.terminate();
-    
+
     return await this.colaboratorRepository.update(colaborator);
   }
 }

@@ -22,12 +22,12 @@ export class TypeOrmRoleRepository implements RoleRepository {
   }
 
   async findAll(): Promise<Role[]> {
-    const entities = await this.repository.find({ relations: ['permissions', 'parent', 'children'] });
+    const entities = await this.repository.find({ relations: ['permissions', 'parents', 'children'] });
     return entities.map(RoleEntity.toDomain);
   }
 
   async findById(id: number): Promise<Role | null> {
-    const entity = await this.repository.findOne({ where: { id }, relations: ['permissions', 'parent'] });
+    const entity = await this.repository.findOne({ where: { id }, relations: ['permissions', 'parents'] });
     return entity ? RoleEntity.toDomain(entity) : null;
   }
 
@@ -37,7 +37,7 @@ export class TypeOrmRoleRepository implements RoleRepository {
   }
 
   async findIn(ids: number[]): Promise<Role[]> {
-    const entities = await this.repository.find({ where: { id: In(ids) }, relations: ['permissions', 'parent'] });
+    const entities = await this.repository.find({ where: { id: In(ids) }, relations: ['permissions', 'parents'] });
     return entities.map(RoleEntity.toDomain);
   }
 
@@ -70,15 +70,8 @@ export class TypeOrmRoleRepository implements RoleRepository {
       entity.permissions = [];
     }
 
-    if (props.parent) {
-      const parent = await this.repository.findOne({where: {id: props.parent.id}});
-      if(parent) entity.parent = parent;
-    } else {
-      entity.parent = null;
-    }
-
     const savedEntity = await this.repository.save(entity);
-    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['permissions', 'parent'] });
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['permissions', 'parents'] });
     return RoleEntity.toDomain(reloadedEntity!);
   }
 

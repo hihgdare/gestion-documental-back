@@ -25,7 +25,7 @@ export function initializeDataSource(): DataSource {
       location: ':memory:', // use in-memory database
       autoSave: false, // disable auto-save
       synchronize: true,
-      logging: false,
+      logging: mode !== 'production' && process.env.SHOW_DB_QUERY === 'true',
     } satisfies SqljsConnectionOptions;
   } else {
     options = {
@@ -36,7 +36,7 @@ export function initializeDataSource(): DataSource {
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'gestion_documental',
       synchronize: mode !== 'production',
-      logging: mode !== 'production',
+      logging: mode !== 'production' && process.env.SHOW_DB_QUERY === 'true',
       charset: 'utf8mb4',
       timezone: 'local',
     } satisfies DataSourceOptions;
