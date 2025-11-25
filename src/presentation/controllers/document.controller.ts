@@ -42,6 +42,7 @@ export class DocumentController {
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({

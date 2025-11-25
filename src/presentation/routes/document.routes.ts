@@ -2,27 +2,30 @@ import { Router } from 'express';
 import { DocumentController } from '../controllers/document.controller';
 import { validateRequest } from '@shared/middleware/validation';
 import { createDocumentSchema, updateDocumentSchema } from '../dto/validation-schemas';
+import { auth } from '@shared/middleware/auth.middleware';
+import { authorize } from '@shared/middleware/authorize.middleware';
 
 export const createDocumentRoutes = (controller: DocumentController): Router => {
   const router = Router();
+  router.use(auth);
 
   // POST routes
-  router.post('/', validateRequest(createDocumentSchema, true), controller.createDocument);
+  router.post('/', authorize('document:create'), validateRequest(createDocumentSchema, true), controller.createDocument);
 
   // GET routes - specific routes before parameterized routes
-  router.get('/expired', controller.getExpiredDocuments);
-  router.get('/expiring/:days', controller.getExpiringDocuments);
-  router.get('/by-contract/:contractId', controller.getDocumentsByContractId);
-  router.get('/by-document-type/:documentTypeId', controller.getDocumentsByDocumentTypeId);
-  router.get('/by-document-subtype/:documentSubtypeId', controller.getDocumentsByDocumentSubtypeId);
-  router.get('/', controller.getAllDocuments);
-  router.get('/:id', controller.getDocumentById);
+  router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);
+  router.get('/expiring/:days', authorize('document:read'), controller.getExpiringDocuments);
+  router.get('/by-contract/:contractId', authorize('document:read'), controller.getDocumentsByContractId);
+  router.get('/by-document-type/:documentTypeId', authorize('document:read'), controller.getDocumentsByDocumentTypeId);
+  router.get('/by-document-subtype/:documentSubtypeId', authorize('document:read'), controller.getDocumentsByDocumentSubtypeId);
+  router.get('/', authorize('document:read'), controller.getAllDocuments);
+  router.get('/:id', authorize('document:read'), controller.getDocumentById);
 
   // PUT routes
-  router.put('/:id', validateRequest(updateDocumentSchema, true), controller.updateDocument);
+  router.put('/:id', authorize('document:update'), validateRequest(updateDocumentSchema, true), controller.updateDocument);
 
   // DELETE routes
-  router.delete('/:id', controller.deleteDocument);
+  router.delete('/:id', authorize('document:delete'), controller.deleteDocument);
 
   return router;
 };

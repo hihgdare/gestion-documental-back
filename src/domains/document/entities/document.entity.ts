@@ -214,7 +214,7 @@ export class Document {
       documentSubtypeId: this.documentSubtypeId,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
-      expirationDate: DateUtils.toString(this.expirationDate),
+      expirationDate: DateUtils.toString(this.expirationDate, true),
       contractId: this.contractId,
       description: this.description,
       documentUrl: this.documentUrl,

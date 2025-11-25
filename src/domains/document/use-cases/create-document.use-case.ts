@@ -10,6 +10,8 @@ export interface CreateDocumentRequest {
   contractId: string;
   description?: string;
   documentUrl?: string;
+  createdBy: string;
+  comment?: string;
 }
 
 export class CreateDocumentUseCase {
@@ -26,6 +28,7 @@ export class CreateDocumentUseCase {
       contractId: request.contractId,
       description: request.description,
       documentUrl: request.documentUrl,
+      createdBy: request.createdBy,
     };
 
     const document = Document.create(documentProps);

@@ -42,7 +42,7 @@ export async function runInitialSeedIfEmpty(): Promise<void> {
   }
 
   const actions = ['create', 'read', 'update', 'delete'];
-  const basePermissionNames = ['permission', 'role', 'user'].flatMap(m => actions.map(a => `${m}:${a}`));
+  const basePermissionNames = ['permission', 'role', 'user', 'document'].flatMap(m => actions.map(a => `${m}:${a}`));
   const permissionNames = [...basePermissionNames, 'role:assign:permission', 'user:assign:role'];
 
   const currentPermissions = await permissionRepository.findAll();

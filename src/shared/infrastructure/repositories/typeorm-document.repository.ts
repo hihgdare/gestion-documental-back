@@ -103,6 +103,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       description: entity.description,
       documentUrl: entity.documentUrl,
       status: entity.status,
+      createdBy: entity.createdBy,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -117,10 +118,11 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate || undefined,
-      contractId: document.contractId,
+      contractId: document.contractId || undefined,
       description: document.description,
       documentUrl: document.documentUrl,
       status: String(document.status),
+      createdBy: document.createdBy || undefined,
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
     };
