@@ -5,9 +5,10 @@ export interface DocumentResponseDto {
   name: string;
   issuedDate: string; // ISO date string
   expirationDate?: string; // ISO date string
-  contractId: string;
+  contractId: string | null;
   description?: string;
   documentUrl?: string;
+  status: string;
   isExpired: boolean;
   daysUntilExpiration: number | null;
   createdAt: string; // ISO date string

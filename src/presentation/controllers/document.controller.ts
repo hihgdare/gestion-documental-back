@@ -160,6 +160,7 @@ export class DocumentController {
       contractId: json.contractId,
       description: json.description,
       documentUrl: json.documentUrl,
+      status: json.status,
       isExpired: document.isExpired(),
       daysUntilExpiration: document.daysUntilExpiration(),
       createdAt: json.createdAt,
