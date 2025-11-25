@@ -17,6 +17,7 @@ import { createDocumentRoutes } from '@presentation/routes/document.routes';
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
+import { createUploadRoutes } from '@presentation/routes/upload.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedIfEmpty } from '@shared/infrastructure/database/seed/initial-seed';
 
@@ -111,6 +112,7 @@ export class App {
           health: '/health',
           permissions: '/api/permissions',
           roles: '/api/roles',
+          uploads: '/api/uploads',
           auth: {
             login: '/api/auth/login',
             logout: '/api/auth/logout',
@@ -130,6 +132,7 @@ export class App {
     const permissionController = this.dependencyContainer.getPermissionController();
     const roleController = this.dependencyContainer.getRoleController();
     const authController = this.dependencyContainer.getAuthController();
+    const uploadController = this.dependencyContainer.getUploadController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
@@ -140,6 +143,7 @@ export class App {
     this.app.use('/api/documents', createDocumentRoutes(documentController));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
+    this.app.use('/api/uploads', createUploadRoutes(uploadController));
 
     // Auth routes
     this.app.use('/api/auth', createAuthRoutes(authController));
