@@ -14,6 +14,7 @@ import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
 import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
 import { createDocumentRoutes } from '@presentation/routes/document.routes';
+import { createDocumentHistoryRoutes } from '@presentation/routes/document-history.routes';
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
@@ -108,6 +109,7 @@ export class App {
           documentTypes: '/api/document-types',
           documentSubtypes: '/api/document-subtypes',
           documents: '/api/documents',
+          documentHistory: '/api/document-history',
           health: '/health',
           permissions: '/api/permissions',
           roles: '/api/roles',
@@ -127,6 +129,7 @@ export class App {
     const documentTypeController = this.dependencyContainer.getDocumentTypeController();
     const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
     const documentController = this.dependencyContainer.getDocumentController();
+    const documentHistoryController = this.dependencyContainer.getDocumentHistoryController();
     const permissionController = this.dependencyContainer.getPermissionController();
     const roleController = this.dependencyContainer.getRoleController();
     const authController = this.dependencyContainer.getAuthController();
@@ -138,6 +141,7 @@ export class App {
     this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
     this.app.use('/api/documents', createDocumentRoutes(documentController));
+    this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
 

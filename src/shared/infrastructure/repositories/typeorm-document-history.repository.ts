@@ -21,6 +21,7 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
 
   async findAll(): Promise<DocumentHistory[]> {
     const entities = await this.repository.find({
+      relations: ['updater'],
       order: { updatedAt: 'DESC' },
     });
     return entities.map(entity => this.toDomain(entity));
@@ -29,6 +30,7 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
   async findByDocumentId(documentId: string): Promise<DocumentHistory[]> {
     const entities = await this.repository.find({
       where: { documentId },
+      relations: ['updater'],
       order: { updatedAt: 'DESC' },
     });
     return entities.map(entity => this.toDomain(entity));
@@ -85,6 +87,8 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
       comment: entity.comment,
       action: entity.action,
       updatedBy: entity.updatedBy,
+      updatedByName: entity.updater?.firstName,
+      updatedByLastName: entity.updater?.lastName,
       updatedAt: entity.updatedAt,
     });
   }

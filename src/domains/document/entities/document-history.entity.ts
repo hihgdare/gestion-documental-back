@@ -19,6 +19,8 @@ export interface DocumentHistoryProps {
   comment?: string | null;
   action: string;
   updatedBy: string;
+  updatedByName?: string;
+  updatedByLastName?: string;
   updatedAt?: Date;
 }
 
@@ -37,6 +39,8 @@ export class DocumentHistory {
   comment: string | null;
   action: DocumentAction;
   updatedBy: string;
+  updatedByName?: string;
+  updatedByLastName?: string;
   updatedAt: Date;
 
   constructor(props: DocumentHistoryProps) {

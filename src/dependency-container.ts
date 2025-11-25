@@ -47,7 +47,7 @@ import {
 } from '@domains/document/use-cases/get-document.use-case';
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
 import { CreateDocumentHistoryUseCase as _CreateDocumentHistoryUseCase } from '@domains/document/use-cases/create-document-history.use-case';
-import { GetDocumentHistoryUseCase as _GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-document-history.use-case';
+import { GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-document-history.use-case';
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
@@ -101,6 +101,7 @@ import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 import { AuthController } from '@presentation/controllers/auth.controller';
+import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
 
 export class DependencyContainer {
   // Repositories
@@ -152,6 +153,7 @@ export class DependencyContainer {
   private getExpiringDocumentsUseCase!: GetExpiringDocumentsUseCase;
   private updateDocumentUseCase!: UpdateDocumentUseCase;
   private deleteDocumentUseCase!: DeleteDocumentUseCase;
+  private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
 
   // Use Cases - Contract
   private createContractUseCase!: CreateContractUseCase;
@@ -199,6 +201,7 @@ export class DependencyContainer {
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
   private documentController!: DocumentController;
+  private documentHistoryController!: DocumentHistoryController;
   private permissionController!: PermissionController;
   private roleController!: RoleController;
   private userController!: UserController;
@@ -260,6 +263,7 @@ export class DependencyContainer {
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
     this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
+    this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
 
     // Initialize Contract use cases
     this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
@@ -365,6 +369,10 @@ export class DependencyContainer {
       this.deleteDocumentUseCase,
     );
 
+    this.documentHistoryController = new DocumentHistoryController(
+      this.getDocumentHistoryUseCase,
+    );
+
     this.permissionController = new PermissionController(
       this.savePermissionUseCase,
       this.findPermissionByIdUseCase,
@@ -421,6 +429,10 @@ export class DependencyContainer {
 
   public getDocumentController(): DocumentController {
     return this.documentController;
+  }
+
+  public getDocumentHistoryController(): DocumentHistoryController {
+    return this.documentHistoryController;
   }
 
   public getPermissionController(): PermissionController {
