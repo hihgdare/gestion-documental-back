@@ -1,5 +1,8 @@
 import { DocumentRepository } from '../repositories/document.repository';
+import { DocumentHistoryRepository } from '../repositories/document-history.repository';
 import { Document } from '../entities/document.entity';
+import { DocumentHistoryProps } from '../entities/document-history.entity';
+import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError } from '@shared/domain/errors';
 
 export interface UpdateDocumentRequest {
@@ -11,10 +14,15 @@ export interface UpdateDocumentRequest {
   contractId?: string;
   description?: string;
   documentUrl?: string;
+  updatedBy?: string;
+  comment?: string;
 }
 
 export class UpdateDocumentUseCase {
-  constructor(private readonly documentRepository: DocumentRepository) {}
+  constructor(
+    private readonly documentRepository: DocumentRepository,
+    private readonly documentHistoryRepository: DocumentHistoryRepository,
+  ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
     const document = await this.documentRepository.findById(id);
@@ -54,7 +62,29 @@ export class UpdateDocumentUseCase {
       document.updateContractId(request.contractId);
     }
 
-    return await this.documentRepository.update(document);
+    // Update document
+    const updatedDocument = await this.documentRepository.update(document);
+
+    // Create history entry
+    const historyProps: DocumentHistoryProps = {
+      documentId: updatedDocument.id,
+      documentTypeId: updatedDocument.documentTypeId,
+      documentSubtypeId: updatedDocument.documentSubtypeId,
+      name: updatedDocument.name,
+      issuedDate: updatedDocument.issuedDate,
+      expirationDate: updatedDocument.expirationDate,
+      contractId: updatedDocument.contractId,
+      description: updatedDocument.description,
+      documentUrl: updatedDocument.documentUrl,
+      status: updatedDocument.status,
+      comment: request.comment || null,
+      action: DocumentAction.UPDATED,
+      updatedBy: request.updatedBy || 'system',
+    };
+
+    await this.documentHistoryRepository.save(historyProps);
+
+    return updatedDocument;
   }
 }
 

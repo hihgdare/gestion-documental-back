@@ -132,6 +132,7 @@ export class DocumentController {
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
+      updatedBy: req.user.id,
     });
 
     res.status(200).json({

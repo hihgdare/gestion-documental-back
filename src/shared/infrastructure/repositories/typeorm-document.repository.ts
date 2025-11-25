@@ -3,6 +3,7 @@ import { type DocumentRepository } from '@domains/document/repositories/document
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentEntity } from '../database/entities/document.entity';
 import { AppDataSource } from '../database/typeorm.config';
+import { DateUtils } from '@shared/utils/date';
 
 export class TypeOrmDocumentRepository implements DocumentRepository {
   private repository: Repository<DocumentEntity>;
@@ -116,8 +117,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       documentTypeId: document.documentTypeId,
       documentSubtypeId: document.documentSubtypeId,
       name: document.name,
-      issuedDate: document.issuedDate,
-      expirationDate: document.expirationDate || undefined,
+      issuedDate: DateUtils.toLocalDate(document.issuedDate)!,
+      expirationDate: document.expirationDate ? DateUtils.toLocalDate(document.expirationDate) : undefined,
       contractId: document.contractId || undefined,
       description: document.description,
       documentUrl: document.documentUrl,

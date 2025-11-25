@@ -258,7 +258,7 @@ export class DependencyContainer {
     this.getDocumentsByDocumentSubtypeIdUseCase = new GetDocumentsByDocumentSubtypeIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
-    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository);
+    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
 
     // Initialize Contract use cases
