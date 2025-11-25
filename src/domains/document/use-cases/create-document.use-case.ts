@@ -1,5 +1,8 @@
 import { DocumentRepository } from '../repositories/document.repository';
+import { DocumentHistoryRepository } from '../repositories/document-history.repository';
 import { Document, DocumentProps } from '../entities/document.entity';
+import { DocumentHistoryProps } from '../entities/document-history.entity';
+import { DocumentAction } from '../value-objects/document-enums';
 
 export interface CreateDocumentRequest {
   documentTypeId: string;
@@ -15,7 +18,10 @@ export interface CreateDocumentRequest {
 }
 
 export class CreateDocumentUseCase {
-  constructor(private readonly documentRepository: DocumentRepository) {}
+  constructor(
+    private readonly documentRepository: DocumentRepository,
+    private readonly documentHistoryRepository: DocumentHistoryRepository,
+  ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
     // Create document
@@ -33,6 +39,28 @@ export class CreateDocumentUseCase {
 
     const document = Document.create(documentProps);
 
-    return await this.documentRepository.save(document);
+    // Save document
+    const savedDocument = await this.documentRepository.save(document);
+
+    // Create history entry
+    const historyProps: DocumentHistoryProps = {
+      documentId: savedDocument.id,
+      documentTypeId: savedDocument.documentTypeId,
+      documentSubtypeId: savedDocument.documentSubtypeId,
+      name: savedDocument.name,
+      issuedDate: savedDocument.issuedDate,
+      expirationDate: savedDocument.expirationDate,
+      contractId: savedDocument.contractId,
+      description: savedDocument.description,
+      documentUrl: savedDocument.documentUrl,
+      status: savedDocument.status,
+      comment: request.comment || null,
+      action: DocumentAction.CREATED,
+      updatedBy: request.createdBy,
+    };
+
+    await this.documentHistoryRepository.save(historyProps);
+
+    return savedDocument;
   }
 }

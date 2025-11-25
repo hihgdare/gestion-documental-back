@@ -97,7 +97,7 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
       documentSubtypeId: history.documentSubtypeId,
       name: history.name,
       issuedDate: DateUtils.toLocalDate(history.issuedDate)!,
-      expirationDate: DateUtils.toLocalDate(history.expirationDate),
+      expirationDate: history.expirationDate ? DateUtils.toLocalDate(history.expirationDate) : undefined,
       contractId: history.contractId || undefined,
       description: history.description,
       documentUrl: history.documentUrl,

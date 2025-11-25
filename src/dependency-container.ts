@@ -212,6 +212,7 @@ export class DependencyContainer {
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
     this.documentRepository = new TypeOrmDocumentRepository();
+    this.documentHistoryRepository = new TypeOrmDocumentHistoryRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
     this.roleRepository = new TypeOrmRoleRepository();
 
@@ -249,7 +250,7 @@ export class DependencyContainer {
     this.deleteDocumentSubtypeUseCase = new DeleteDocumentSubtypeUseCase(this.documentSubtypeRepository);
 
     // Initialize Document use cases
-    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository);
+    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
