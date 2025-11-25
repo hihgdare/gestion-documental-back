@@ -8,6 +8,7 @@ export interface UpdateDocumentRequest {
   name?: string;
   issuedDate?: Date;
   expirationDate?: Date;
+  contractId?: string;
   description?: string;
   documentUrl?: string;
 }
@@ -47,6 +48,10 @@ export class UpdateDocumentUseCase {
 
     if (request.documentUrl !== undefined) {
       document.updateDocumentUrl(request.documentUrl);
+    }
+
+    if (request.contractId !== undefined) {
+      document.updateContractId(request.contractId);
     }
 
     return await this.documentRepository.update(document);

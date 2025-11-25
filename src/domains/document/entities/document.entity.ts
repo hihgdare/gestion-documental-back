@@ -166,6 +166,11 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public updateContractId(contractId?: string | null): void {
+    this.contractId = contractId || null;
+    this.updatedAt = new Date();
+  }
+
   public updateStatus(status: DocumentStatus, comment?: string | null): void {
     this.status = status;
     this.comment = comment ? comment.trim() : null;

@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey, TableIndex } from 'typeorm';
+import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey } from 'typeorm';
 
 export class UpdateDocumentsTable1764018147265 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -93,30 +93,9 @@ export class UpdateDocumentsTable1764018147265 implements MigrationInterface {
         onUpdate: 'CASCADE',
       }),
     );
-
-    // 9. Create index on status
-    await queryRunner.createIndex(
-      'documents',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_STATUS',
-        columnNames: ['status'],
-      }),
-    );
-
-    // 10. Create index on deleted_at
-    await queryRunner.createIndex(
-      'documents',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_DELETED_AT',
-        columnNames: ['deleted_at'],
-      }),
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop indices
-    await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_DELETED_AT');
-    await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_STATUS');
 
     // Drop foreign keys
     await queryRunner.dropForeignKey('documents', 'FK_DOCUMENTS_DELETED_BY');

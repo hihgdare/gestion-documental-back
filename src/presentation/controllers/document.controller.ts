@@ -129,6 +129,7 @@ export class DocumentController {
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
+      contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
     });

@@ -7,7 +7,7 @@ export interface CreateDocumentRequest {
   name: string;
   issuedDate: Date;
   expirationDate?: Date;
-  contractId: string;
+  contractId?: string;
   description?: string;
   documentUrl?: string;
   createdBy: string;

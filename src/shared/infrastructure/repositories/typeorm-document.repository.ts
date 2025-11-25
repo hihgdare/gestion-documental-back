@@ -121,7 +121,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       contractId: document.contractId || undefined,
       description: document.description,
       documentUrl: document.documentUrl,
-      status: String(document.status),
+      status: document.status,
       createdBy: document.createdBy || undefined,
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
