@@ -46,6 +46,10 @@ import {
   GetExpiringDocumentsUseCase,
 } from '@domains/document/use-cases/get-document.use-case';
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
+import { SendToReviewDocumentUseCase } from '@domains/document/use-cases/send-to-review-document.use-case';
+import { ApproveDocumentUseCase } from '@domains/document/use-cases/approve-document.use-case';
+import { RejectDocumentUseCase } from '@domains/document/use-cases/reject-document.use-case';
+import { RejectDocumentWithCommentsUseCase } from '@domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentHistoryUseCase as _CreateDocumentHistoryUseCase } from '@domains/document/use-cases/create-document-history.use-case';
 import { GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-document-history.use-case';
 
@@ -153,6 +157,10 @@ export class DependencyContainer {
   private getExpiringDocumentsUseCase!: GetExpiringDocumentsUseCase;
   private updateDocumentUseCase!: UpdateDocumentUseCase;
   private deleteDocumentUseCase!: DeleteDocumentUseCase;
+  private sendToReviewDocumentUseCase!: SendToReviewDocumentUseCase;
+  private approveDocumentUseCase!: ApproveDocumentUseCase;
+  private rejectDocumentUseCase!: RejectDocumentUseCase;
+  private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
 
   // Use Cases - Contract
@@ -263,6 +271,10 @@ export class DependencyContainer {
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
     this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
+    this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.approveDocumentUseCase = new ApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.rejectDocumentUseCase = new RejectDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
 
     // Initialize Contract use cases
@@ -367,6 +379,10 @@ export class DependencyContainer {
       this.getExpiringDocumentsUseCase,
       this.updateDocumentUseCase,
       this.deleteDocumentUseCase,
+      this.sendToReviewDocumentUseCase,
+      this.approveDocumentUseCase,
+      this.rejectDocumentUseCase,
+      this.rejectDocumentWithCommentsUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(

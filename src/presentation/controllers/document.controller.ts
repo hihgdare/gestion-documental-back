@@ -10,6 +10,10 @@ import {
   GetExpiringDocumentsUseCase,
 } from '../../domains/document/use-cases/get-document.use-case';
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '../../domains/document/use-cases/update-document.use-case';
+import { SendToReviewDocumentUseCase } from '../../domains/document/use-cases/send-to-review-document.use-case';
+import { ApproveDocumentUseCase } from '../../domains/document/use-cases/approve-document.use-case';
+import { RejectDocumentUseCase } from '../../domains/document/use-cases/reject-document.use-case';
+import { RejectDocumentWithCommentsUseCase } from '../../domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentDto } from '../dto/document/create-document.dto';
 import { UpdateDocumentDto } from '../dto/document/update-document.dto';
 import { DocumentResponseDto } from '../dto/document/document-response.dto';
@@ -28,6 +32,10 @@ export class DocumentController {
     private getExpiringDocumentsUseCase: GetExpiringDocumentsUseCase,
     private updateDocumentUseCase: UpdateDocumentUseCase,
     private deleteDocumentUseCase: DeleteDocumentUseCase,
+    private sendToReviewDocumentUseCase: SendToReviewDocumentUseCase,
+    private approveDocumentUseCase: ApproveDocumentUseCase,
+    private rejectDocumentUseCase: RejectDocumentUseCase,
+    private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
   ) {}
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -148,6 +156,72 @@ export class DocumentController {
     res.status(200).json({
       success: true,
       message: 'Document deleted successfully',
+    });
+  });
+
+  sendToReview = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await this.sendToReviewDocumentUseCase.execute(id, req.user.id);
+
+    // Obtener el documento actualizado
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento enviado a revisión exitosamente',
+    });
+  });
+
+  approveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await this.approveDocumentUseCase.execute(id, req.user.id);
+
+    // Obtener el documento actualizado
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento aprobado exitosamente',
+    });
+  });
+
+  rejectDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await this.rejectDocumentUseCase.execute(id, req.user.id);
+
+    // Obtener el documento actualizado
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento rechazado exitosamente',
+    });
+  });
+
+  rejectDocumentWithComments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comments } = req.body;
+
+    if (!comments || typeof comments !== 'string' || comments.trim() === '') {
+      res.status(400).json({
+        success: false,
+        message: 'Los comentarios son obligatorios',
+      });
+      return;
+    }
+
+    await this.rejectDocumentWithCommentsUseCase.execute(id, req.user.id, comments);
+
+    // Obtener el documento actualizado
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento rechazado con comentarios exitosamente',
     });
   });
 

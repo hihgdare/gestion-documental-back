@@ -22,6 +22,10 @@ export const createDocumentRoutes = (controller: DocumentController): Router => 
   router.get('/:id', authorize('document:read'), controller.getDocumentById);
 
   // PUT routes
+  router.put('/:id/send-to-review', authorize('document:update'), controller.sendToReview);
+  router.put('/:id/approve', authorize('document:update'), controller.approveDocument);
+  router.put('/:id/reject', authorize('document:update'), controller.rejectDocument);
+  router.put('/:id/reject-with-comments', authorize('document:update'), controller.rejectDocumentWithComments);
   router.put('/:id', authorize('document:update'), validateRequest(updateDocumentSchema, true), controller.updateDocument);
 
   // DELETE routes

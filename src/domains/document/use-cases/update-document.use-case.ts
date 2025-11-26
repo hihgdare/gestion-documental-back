@@ -62,6 +62,9 @@ export class UpdateDocumentUseCase {
       document.updateContractId(request.contractId);
     }
 
+    // Al editar un documento, siempre vuelve a estado borrador
+    document.setToDraft();
+
     // Update document
     const updatedDocument = await this.documentRepository.update(document);
 

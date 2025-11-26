@@ -216,6 +216,44 @@ export class Document {
     return DateUtils.daysBetween(new Date(), this.expirationDate);
   }
 
+  public sendToReview(): void {
+    if (this.status !== DocumentStatus.DRAFT) {
+      throw new ValidationError('Solo los documentos en borrador pueden enviarse a revisión');
+    }
+    this.status = DocumentStatus.IN_REVIEW;
+    this.updatedAt = new Date();
+  }
+
+  public approve(): void {
+    if (this.status !== DocumentStatus.IN_REVIEW) {
+      throw new ValidationError('Solo los documentos en revisión pueden aprobarse');
+    }
+    this.status = DocumentStatus.APPROVED;
+    this.updatedAt = new Date();
+  }
+
+  public reject(): void {
+    if (this.status !== DocumentStatus.IN_REVIEW) {
+      throw new ValidationError('Solo los documentos en revisión pueden rechazarse');
+    }
+    this.status = DocumentStatus.REJECTED;
+    this.updatedAt = new Date();
+  }
+
+  public rejectWithComments(comment: string): void {
+    if (this.status !== DocumentStatus.IN_REVIEW) {
+      throw new ValidationError('Solo los documentos en revisión pueden rechazarse');
+    }
+    this.status = DocumentStatus.REJECTED_WITH_COMMENTS;
+    this.comment = comment;
+    this.updatedAt = new Date();
+  }
+
+  public setToDraft(): void {
+    this.status = DocumentStatus.DRAFT;
+    this.updatedAt = new Date();
+  }
+
   public toJSON() {
     return {
       id: this.id,
