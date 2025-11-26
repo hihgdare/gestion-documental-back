@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
 import path from 'path';
 import { Bucket } from '@shared/utils/Bucket';
-import { File } from '@shared/utils/File';
-import { TypeOrmUploadRepository } from '@shared/infrastructure/repositories/typeorm-upload.repository';
-import { Upload } from '@domains/upload/entities/upload.entity';
+import FileUtils from '@shared/utils/FileUtils';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { File } from '@domains/file/entities/file.entity';
 
 const STORAGE = (process.env.FILE_STORAGE || 'local').toLowerCase();
 
-export class UploadController {
-  constructor(private readonly fileRepo: TypeOrmUploadRepository) {
+export class FileController {
+  constructor(private readonly fileRepo: TypeOrmFileRepository) {
     this.upload = this.upload.bind(this);
   }
 
@@ -25,11 +25,11 @@ export class UploadController {
       return;
     }
 
-    // Save file locally using File utility
-    const result = await File.save(contentBase64, filename);
+    // Save file locally using FileUtils utility
+    const result = await FileUtils.save(contentBase64, filename);
     const { path: localPath, filename: uniqueName, size: fileSize } = result;
 
-    let uploadPath = localPath;
+    let filePath = localPath;
     let storage: 'local' | 's3' = 'local';
 
     // Upload to S3 if configured
@@ -51,28 +51,28 @@ export class UploadController {
       });
 
       try {
-        const s3Key = `${File.getDateFolder()}/${uniqueName}`;
+        const s3Key = `${FileUtils.getDateFolder()}/${uniqueName}`;
         await bucket.uploadFile({ source: localPath, target: s3Key });
         storage = 's3';
-        uploadPath = s3Key;
+        filePath = s3Key;
 
         // Delete local file after successful S3 upload
-        await File.delete(localPath);
+        await FileUtils.delete(localPath);
       } catch (error) {
         console.error('Error uploading to S3:', error);
         throw error;
       }
     }
 
-    const upload = new Upload({
+    const file = new File({
       originalName: path.basename(filename),
-      path: uploadPath,
+      path: filePath,
       storage,
       mimeType,
       size: size || fileSize,
     });
 
-    const savedFile = await this.fileRepo.save(upload);
+    const savedFile = await this.fileRepo.save(file);
 
     res.status(201).json({ success: true, data: savedFile });
   }

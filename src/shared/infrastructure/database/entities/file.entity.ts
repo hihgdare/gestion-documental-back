@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Upload } from '@domains/upload/entities/upload.entity';
+import { File } from '@domains/file/entities/file.entity';
 
-@Entity('uploads')
-export class UploadEntity {
+@Entity('files')
+export class FileEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -27,8 +27,8 @@ export class UploadEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
-  static fromDomain(file: Upload): UploadEntity {
-    const entity = new UploadEntity();
+  static fromDomain(file: File): FileEntity {
+    const entity = new FileEntity();
     entity.id = file.id as any;
     entity.originalName = file.originalName;
     entity.path = file.path;
@@ -38,8 +38,8 @@ export class UploadEntity {
     return entity;
   }
 
-  static toDomain(entity: UploadEntity): Upload {
-    return new Upload({
+  static toDomain(entity: FileEntity): File {
+    return new File({
       id: entity.id,
       originalName: entity.originalName,
       path: entity.path,

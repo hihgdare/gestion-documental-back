@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand, S3ClientConfig, PutObjectCommandOutput } from '@aws-sdk/client-s3';
-import { File } from './File';
+import FileUtils from './FileUtils';
 import { except } from './objects';
 
 interface BucketConfig extends S3ClientConfig {
@@ -18,8 +18,8 @@ export class Bucket extends S3Client {
   }): Promise<PutObjectCommandOutput> {
     console.log(`Uploading file ${source} to S3 bucket...`);
     try {
-      // Read file content using File utility
-      const fileContent = await File.read(source);
+      // Read file content using FileUtils utility
+      const fileContent = await FileUtils.read(source);
 
       const command = new PutObjectCommand({
         Bucket: bucket || this.bucket.bucket,

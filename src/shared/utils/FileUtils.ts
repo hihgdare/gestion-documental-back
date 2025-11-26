@@ -2,21 +2,28 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * File utility class for handling file operations
+ * FileUtils utility class for handling file operations
  * Centralizes file upload path management and provides read/save methods
  */
-export class File {
+export default class FileUtils {
   private static readonly DEFAULT_UPLOAD_DIR = './uploads';
-  private static uploadDir: string;
+  private static uploadDir: string | undefined;
+
+  /**
+   * Set the upload directory manually (usually used for testing purposes)
+   */
+  public static setUploadDir(uploadDir?: string): void {
+    this.uploadDir = uploadDir || process.env.FILE_STORAGE_LOCAL_PATH || this.DEFAULT_UPLOAD_DIR;
+  }
 
   /**
    * Get the configured upload directory from environment variables
    */
   private static getUploadDir(): string {
     if (!this.uploadDir) {
-      this.uploadDir = process.env.FILE_STORAGE_LOCAL_PATH || this.DEFAULT_UPLOAD_DIR;
+      this.setUploadDir();
     }
-    return this.uploadDir;
+    return this.uploadDir!;
   }
 
   /**
@@ -187,6 +194,14 @@ export class File {
         return false;
       }
       throw error;
+    }
+  }
+
+  public static async removeDirectory(path: fs.PathLike, options?: fs.RmOptions): Promise<void> {
+    try {
+      await fs.promises.rm(path, options);
+    } catch {
+      // Ignore errors if directory doesn't exist
     }
   }
 

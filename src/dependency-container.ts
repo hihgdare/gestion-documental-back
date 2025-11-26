@@ -98,8 +98,8 @@ import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 import { AuthController } from '@presentation/controllers/auth.controller';
-import { UploadController } from '@presentation/controllers/upload.controller';
-import { TypeOrmUploadRepository } from '@shared/infrastructure/repositories/typeorm-upload.repository';
+import { FileController } from '@presentation/controllers/file.controller';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 
 export class DependencyContainer {
   // Repositories
@@ -111,7 +111,7 @@ export class DependencyContainer {
   private documentRepository!: TypeOrmDocumentRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
-  private uploadRepository!: TypeOrmUploadRepository;
+  private fileRepository!: TypeOrmFileRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -202,7 +202,7 @@ export class DependencyContainer {
   private roleController!: RoleController;
   private userController!: UserController;
   private authController!: AuthController;
-  private uploadController!: UploadController;
+  private fileController!: FileController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -214,7 +214,7 @@ export class DependencyContainer {
     this.documentRepository = new TypeOrmDocumentRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
     this.roleRepository = new TypeOrmRoleRepository();
-    this.uploadRepository = new TypeOrmUploadRepository();
+    this.fileRepository = new TypeOrmFileRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
@@ -399,7 +399,7 @@ export class DependencyContainer {
       this.updateUserUseCase,
     );
 
-    this.uploadController = new UploadController(this.uploadRepository);
+    this.fileController = new FileController(this.fileRepository);
   }
 
   // Getters for controllers
@@ -439,8 +439,8 @@ export class DependencyContainer {
     return this.authController;
   }
 
-  public getUploadController(): UploadController {
-    return this.uploadController;
+  public getFileController(): FileController {
+    return this.fileController;
   }
 
   // Getters for repositories (if needed for testing)

@@ -1,6 +1,6 @@
 import { StorageType } from '../value-objects/storage-type';
 
-export interface UploadJson {
+export interface FileJson {
   id: string;
   originalName: string;
   path: string;
@@ -11,7 +11,7 @@ export interface UploadJson {
   updatedAt?: Date;
 }
 
-export class Upload {
+export class File {
   public readonly id!: string;
   public readonly originalName!: string;
   public readonly path!: string;
@@ -21,11 +21,11 @@ export class Upload {
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
 
-  constructor(props: Omit<UploadJson, 'id'> & { id?: string }) {
+  constructor(props: Omit<FileJson, 'id'> & { id?: string }) {
     Object.assign(this, props);
   }
 
-  toJSON(): UploadJson {
+  toJSON(): FileJson {
     return {
       id: this.id,
       originalName: this.originalName,

@@ -1,10 +1,10 @@
 import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 
-export class CreateUploadsTable1764143087767 implements MigrationInterface {
+export class CreateFilesTable1764143087767 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
-        name: 'uploads',
+        name: 'files',
         columns: [
           {
             name: 'id',
@@ -62,6 +62,6 @@ export class CreateUploadsTable1764143087767 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('uploads');
+    await queryRunner.dropTable('files');
   }
 }
