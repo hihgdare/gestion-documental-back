@@ -161,6 +161,8 @@ export class DocumentController {
       issuedDate: json.issuedDate,
       expirationDate: json.expirationDate ? json.expirationDate : undefined,
       contractId: json.contractId,
+      contractNumber: document.contractNumber,
+      contractProjectName: document.contractProjectName,
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,

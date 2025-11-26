@@ -12,6 +12,8 @@ export interface DocumentProps {
   issuedDate: Date;
   expirationDate?: Date | null;
   contractId?: string | null;
+  contractNumber?: string;
+  contractProjectName?: string;
   description?: string;
   documentUrl?: string;
   status?: string;
@@ -31,6 +33,8 @@ export class Document {
   issuedDate: Date;
   expirationDate: Date | null;
   contractId: string | null;
+  contractNumber?: string;
+  contractProjectName?: string;
   description?: string;
   documentUrl?: string;
   status: DocumentStatus;
