@@ -90,7 +90,12 @@ describe('RoleController', () => {
       .post('/api/auth/login')
       .send({ email: createdUser.email.toString(), password: 'password123' });
 
-    authToken = loginResponse.body.token;
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.body.success).toBe(true);
+    expect(loginResponse.body.data).toBeDefined();
+    expect(loginResponse.body.data.token).toBeDefined();
+
+    authToken = loginResponse.body.data.token;
 
     clearPermissionCache(createdUser.id);
     const perms = await getUserEffectivePermissions(createdUser.id);

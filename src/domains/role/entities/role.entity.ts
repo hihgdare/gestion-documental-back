@@ -6,7 +6,7 @@ export interface CreateRoleProps {
   name: string;
   description?: string;
   permissions?: Permission[];
-  parent?: Role | null;
+  parents?: Role[];
   children?: Role[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -21,7 +21,7 @@ export interface RoleJson {
   name: string;
   description?: string;
   permissions: PermissionJson[];
-  parent?: RoleJson | null;
+  parents: RoleJson[];
   children: RoleJson[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -32,7 +32,7 @@ export class Role {
   name: string;
   description?: string;
   permissions: Permission[];
-  parent?: Role | null;
+  parents: Role[];
   children: Role[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -41,7 +41,7 @@ export class Role {
     Role.validate(role);
     EntityUtils.assign(this as Role, role, {
       permissions: (permissions?: Permission[]) => permissions ?? [],
-      parent: (parent?: Role | null) => parent ?? null,
+      parents: (parents?: Role[]) => parents ?? [],
       children: (children?: Role[]) => children ?? [],
       createdAt: 'datetime',
       updatedAt: 'datetime',
@@ -63,12 +63,12 @@ export class Role {
       name: this.name,
       description: this.description,
       permissions: this.permissions?.map((permission) => permission.toJSON()) ?? [],
-      parent: undefined,
+      parents: [],
       children: [],
     };
 
     if (depth > 0) {
-      json.parent = this.parent?.toJSON(0) ?? null;
+      json.parents = this.parents?.map((parent) => parent.toJSON(0)) ?? [];
       json.children = this.children?.map((child) => child.toJSON(0)) ?? [];
     }
 

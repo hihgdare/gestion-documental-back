@@ -1,0 +1,38 @@
+import { S3Client, PutObjectCommand, S3ClientConfig, PutObjectCommandOutput } from '@aws-sdk/client-s3';
+import FileUtils from './FileUtils';
+import { except } from './objects';
+
+interface BucketConfig extends S3ClientConfig {
+  bucket: string;
+}
+
+export class Bucket extends S3Client {
+  constructor(private readonly bucket: BucketConfig) {
+    super(except(bucket, 'bucket'));
+  }
+
+  async uploadFile({ bucket, source, target }: {
+    bucket?: string;
+    source: string;
+    target: string;
+  }): Promise<PutObjectCommandOutput> {
+    console.log(`Uploading file ${source} to S3 bucket...`);
+    try {
+      // Read file content using FileUtils utility
+      const fileContent = await FileUtils.read(source);
+
+      const command = new PutObjectCommand({
+        Bucket: bucket || this.bucket.bucket,
+        Key: target,
+        Body: fileContent,
+      });
+
+      const response = await this.send(command);
+      console.log(`File ${source} uploaded to ${this.bucket.bucket} as "${target}" (object ID: ${response.$metadata.requestId})`);
+      return response;
+    } catch (error) {
+      console.log(`Error uploading file ${source} to ${this.bucket.bucket} as "${target}".`);
+      throw error;
+    }
+  }
+}

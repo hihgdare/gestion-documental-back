@@ -14,6 +14,7 @@ describe('UserController', () => {
   let saveRoleUseCase: SaveRoleUseCase;
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'false'; // Disable RBAC for basic user tests
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();

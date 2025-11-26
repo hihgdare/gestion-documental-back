@@ -136,7 +136,6 @@ export class EntityUtils {
       },
     };
   }
-
 }
 
 export class StringUtils {

@@ -6,16 +6,13 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
-  ManyToOne,
-  OneToMany,
-  JoinColumn,
 } from 'typeorm';
 import { Role } from '@domains/role/entities/role.entity';
 import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
 import { EntityProps } from '@shared/infrastructure/entity-props';
 import { PermissionEntity } from './permission.entity';
 
-type RoleProps = EntityProps<Role, 'permissions' | 'parent' | 'children'>;
+type RoleProps = EntityProps<Role, 'permissions' | 'parents' | 'children'>;
 
 @Entity('roles')
 export class RoleEntity implements RoleProps {
@@ -45,12 +42,16 @@ export class RoleEntity implements RoleProps {
   @ManyToMany(() => UserEntity, (user) => user.roles)
   users!: UserEntity[];
 
-  @ManyToOne(() => RoleEntity, (role) => role.children, { nullable: true })
-  @JoinColumn({ name: 'parent_id' })
-  parent?: RoleEntity | null;
-
-  @OneToMany(() => RoleEntity, (role) => role.parent)
+  @ManyToMany(() => RoleEntity, (role) => role.parents)
+  @JoinTable({
+    name: 'role_hierarchy',
+    joinColumn: { name: 'parent_role_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'child_role_id', referencedColumnName: 'id' },
+  })
   children?: RoleEntity[];
+
+  @ManyToMany(() => RoleEntity, (role) => role.children)
+  parents?: RoleEntity[];
 
   static fromDomain(role: Role): RoleEntity {
     return Object.assign(new RoleEntity(), {
@@ -58,7 +59,7 @@ export class RoleEntity implements RoleProps {
       name: role.name,
       description: role.description,
       permissions: role.permissions?.map((p) => PermissionEntity.fromDomain(p)) ?? [],
-      parent: role.parent ? RoleEntity.fromDomain(role.parent) : null,
+      parents: role.parents?.map((p) => RoleEntity.fromDomain(p)) ?? [],
       children: role.children?.map((c) => RoleEntity.fromDomain(c)) ?? [],
     });
   }
@@ -69,7 +70,7 @@ export class RoleEntity implements RoleProps {
       name: entity.name,
       description: entity.description,
       permissions: (entity.permissions || []).map((p) => PermissionEntity.toDomain(p)),
-      parent: entity?.parent ? RoleEntity.toDomain(entity?.parent) : null,
+      parents: entity.parents?.map((p) => RoleEntity.toDomain(p)) ?? [],
       children: entity.children?.map((c) => RoleEntity.toDomain(c)) ?? [],
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
