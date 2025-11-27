@@ -2,6 +2,7 @@ import { EntityUtils } from "@shared/utils/common";
 import { ValidationError } from "@shared/domain/errors";
 
 export interface CreatePermissionProps {
+  id?: number;
   name: string;
   description?: string;
   createdAt?: Date;

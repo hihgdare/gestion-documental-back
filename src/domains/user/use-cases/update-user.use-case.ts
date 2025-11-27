@@ -16,10 +16,13 @@ export class UpdateUserUseCase {
     }
 
     // Check if email is being updated and if it's already in use
-    if (props.email && props.email !== user.email.toString()) {
-      const existingUser = await this.userRepository.findByEmail(props.email);
-      if (existingUser) {
-        throw new ConflictError('Email is already in use by another user');
+    if (props.email) {
+      const emailStr = typeof props.email === 'string' ? props.email : props.email.toString();
+      if (emailStr !== user.email.toString()) {
+        const existingUser = await this.userRepository.findByEmail(emailStr);
+        if (existingUser) {
+          throw new ConflictError('Email is already in use by another user');
+        }
       }
     }
 

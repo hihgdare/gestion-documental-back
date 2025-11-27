@@ -3,7 +3,6 @@ import { RoleRepository } from '@domains/role/repositories/role.repository';
 import { User } from '@domains/user/entities/user.entity';
 import { ConflictError, ValidationError } from '@shared/domain/errors';
 import bcrypt from 'bcryptjs';
-import { Email } from '../value-objects/email';
 
 export interface CreateUserRequest {
   email: string;
@@ -39,7 +38,7 @@ export class CreateUserUseCase {
 
     // Create user
     const user = new User({
-      email: Email.create(request.email),
+      email: request.email,
       firstName: request.firstName,
       lastName: request.lastName,
       password: hashedPassword,

@@ -6,6 +6,7 @@ import { UserEntity } from '../database/entities/user.entity';
 import { AppDataSource } from '../database/typeorm.config';
 import { RoleEntity } from '../database/entities/role.entity';
 import { NotFoundError } from '@shared/domain/errors';
+import { Email } from '@domains/user/value-objects/email';
 
 export class TypeOrmUserRepository implements UserRepository {
   private repository: Repository<UserEntity>;
@@ -83,7 +84,8 @@ export class TypeOrmUserRepository implements UserRepository {
     }
 
     if (props.email) {
-      entity.email = props.email;
+      const emailValue = Email.create(props.email);
+      entity.email = emailValue.toString();
     }
     if (props.firstName) {
       entity.firstName = props.firstName;
