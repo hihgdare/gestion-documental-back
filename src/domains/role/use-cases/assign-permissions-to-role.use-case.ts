@@ -27,7 +27,7 @@ export class AssignPermissionsToRoleUseCase {
       name: role.name,
       description: role.description,
       permissions: role.permissions,
-      parent: role.parent,
+      parents: role.parents,
       children: role.children,
     };
 

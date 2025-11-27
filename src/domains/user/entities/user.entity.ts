@@ -6,7 +6,7 @@ import { EntityUtils } from '@shared/utils/common';
 import { toArray } from '@shared/utils/array';
 
 interface BaseUserProps {
-  email: string;
+  email: string | Email;
   firstName: string;
   lastName: string;
   status?: string;

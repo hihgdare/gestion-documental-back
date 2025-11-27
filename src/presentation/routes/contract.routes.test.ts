@@ -169,4 +169,171 @@ describe('ContractController', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
+
+  describe('/api/contracts/:id/subcontracts', () => {
+    const startDate = DateUtils.todayString();
+    const endDate = DateUtils.toString(DateUtils.addMonths(startDate, 1));
+
+    const baseContractDto = {
+      contractNumber: '',
+      rutSociedad: '12.345.678-5',
+      nombreColaborador: 'Juan Perez',
+      administradorContratoMandante: 'Admin Mandante',
+      administradorContratoEmpresa: 'Admin Empresa',
+      rutAdministradorContrato: '23.456.789-6',
+      nombreMandante: 'Mandante SA',
+      startDate,
+      endDate,
+      contractType: ContractType.CONSULTORIA,
+      jornadaTrabajo: JornadaTrabajo.COMPLETA,
+    };
+
+    it('should add a subcontract to a contract', async () => {
+      // Create parent contract
+      baseContractDto.contractNumber = getNewId();
+      const parentResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const parentId = parentResponse.body.data.id;
+
+      // Create subcontract
+      baseContractDto.contractNumber = getNewId();
+      const subcontractResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const subcontractId = subcontractResponse.body.data.id;
+
+      // Add subcontract relationship
+      const response = await supertest(app)
+        .post(`/api/contracts/${parentId}/subcontracts`)
+        .send({ subcontractId });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Subcontract added successfully');
+    });
+
+    it('should get all subcontracts of a contract', async () => {
+      // Create parent contract
+      baseContractDto.contractNumber = getNewId();
+      const parentResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const parentId = parentResponse.body.data.id;
+
+      // Create two subcontracts
+      baseContractDto.contractNumber = getNewId();
+      const sub1Response = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const sub1Id = sub1Response.body.data.id;
+
+      baseContractDto.contractNumber = getNewId();
+      const sub2Response = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const sub2Id = sub2Response.body.data.id;
+
+      // Add subcontract relationships
+      await supertest(app)
+        .post(`/api/contracts/${parentId}/subcontracts`)
+        .send({ subcontractId: sub1Id });
+
+      await supertest(app)
+        .post(`/api/contracts/${parentId}/subcontracts`)
+        .send({ subcontractId: sub2Id });
+
+      // Get all subcontracts
+      const response = await supertest(app)
+        .get(`/api/contracts/${parentId}/subcontracts`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.count).toBe(2);
+      expect(response.body.data).toBeArrayOfSize(2);
+      const ids = response.body.data.map((c: any) => c.id);
+      expect(ids).toContain(sub1Id);
+      expect(ids).toContain(sub2Id);
+    });
+
+    it('should remove a subcontract from a contract', async () => {
+      // Create parent contract
+      baseContractDto.contractNumber = getNewId();
+      const parentResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const parentId = parentResponse.body.data.id;
+
+      // Create subcontract
+      baseContractDto.contractNumber = getNewId();
+      const subcontractResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const subcontractId = subcontractResponse.body.data.id;
+
+      // Add subcontract relationship
+      await supertest(app)
+        .post(`/api/contracts/${parentId}/subcontracts`)
+        .send({ subcontractId });
+
+      // Remove subcontract relationship
+      const response = await supertest(app)
+        .delete(`/api/contracts/${parentId}/subcontracts/${subcontractId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Subcontract removed successfully');
+
+      // Verify it was removed
+      const getResponse = await supertest(app)
+        .get(`/api/contracts/${parentId}/subcontracts`);
+
+      expect(getResponse.body.count).toBe(0);
+    });
+
+    it('should return 400 if trying to assign a contract to itself', async () => {
+      // Create contract
+      baseContractDto.contractNumber = getNewId();
+      const contractResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const contractId = contractResponse.body.data.id;
+
+      // Try to add itself as subcontract
+      const response = await supertest(app)
+        .post(`/api/contracts/${contractId}/subcontracts`)
+        .send({ subcontractId: contractId });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return 400 if subcontractId is missing', async () => {
+      // Create contract
+      baseContractDto.contractNumber = getNewId();
+      const contractResponse = await supertest(app)
+        .post('/api/contracts')
+        .send(baseContractDto);
+
+      const contractId = contractResponse.body.data.id;
+
+      // Try to add subcontract without subcontractId
+      const response = await supertest(app)
+        .post(`/api/contracts/${contractId}/subcontracts`)
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Subcontract ID is required');
+    });
+  });
 });
+

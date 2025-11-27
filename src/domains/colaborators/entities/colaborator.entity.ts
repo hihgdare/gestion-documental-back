@@ -38,7 +38,7 @@ export interface ColaboratorProps {
 
 export class Colaborator extends BaseEntity {
   private constructor(
-    id: string,
+    public id: string,
     private _tipoDocumento: DocumentType,
     private _numeroDocumento: string,
     private _nombre: string,
@@ -61,10 +61,10 @@ export class Colaborator extends BaseEntity {
     private _profesion: string,
     private _cargo: string,
     private _status: ColaboratorStatus,
-    createdAt: Date,
-    updatedAt: Date,
+    public createdAt: Date,
+    public updatedAt: Date,
   ) {
-    super(id, createdAt, updatedAt);
+    super();
   }
 
   public static create(props: ColaboratorProps): Colaborator {

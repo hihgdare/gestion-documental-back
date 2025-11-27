@@ -27,6 +27,10 @@ import { ContractResponseDto } from '@presentation/dto/contract/contract-respons
 import { asyncHandler } from '@shared/middleware/validation';
 import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
+import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
+import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+
 
 export class ContractController {
   constructor(
@@ -47,7 +51,11 @@ export class ContractController {
     private readonly suspendContractUseCase: SuspendContractUseCase,
     private readonly terminateContractUseCase: TerminateContractUseCase,
     private readonly deleteContractUseCase: DeleteContractUseCase,
+    private readonly addSubcontractUseCase: AddSubcontractUseCase,
+    private readonly removeSubcontractUseCase: RemoveSubcontractUseCase,
+    private readonly getSubcontractsUseCase: GetSubcontractsUseCase,
   ) { }
+
 
   private toResponseDto(contract: Contract): ContractResponseDto {
     const json = contract.toJSON();
@@ -255,6 +263,47 @@ export class ContractController {
     res.status(200).json({
       success: true,
       message: 'Contract deleted successfully',
+    });
+  });
+
+  // Subcontract management methods
+  public addSubcontract = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { subcontractId } = req.body;
+
+    if (!subcontractId) {
+      res.status(400).json({
+        success: false,
+        message: 'Subcontract ID is required',
+      });
+      return;
+    }
+
+    await this.addSubcontractUseCase.execute(id, subcontractId);
+    res.status(200).json({
+      success: true,
+      message: 'Subcontract added successfully',
+    });
+  });
+
+  public removeSubcontract = asyncHandler(async (req: Request, res: Response) => {
+    const { id, subcontractId } = req.params;
+
+    await this.removeSubcontractUseCase.execute(id, subcontractId);
+    res.status(200).json({
+      success: true,
+      message: 'Subcontract removed successfully',
+    });
+  });
+
+  public getSubcontracts = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const subcontracts = await this.getSubcontractsUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: subcontracts.map((contract: Contract) => this.toResponseDto(contract)),
+      count: subcontracts.length,
     });
   });
 }

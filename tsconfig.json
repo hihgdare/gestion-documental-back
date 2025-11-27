@@ -1,18 +1,36 @@
 {
-  "references": [
-    {
-      "path": "./tsconfig.tests.json"
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "paths": {
+      "@domains/*": ["./src/domains/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@presentation/*": ["./src/presentation/*"],
+      "@/*": ["./src/*"]
     }
-  ],
-  "extends": "./tsconfig.shared.json",
+  },
   "include": [
     "types.d.ts",
     "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "dist"
   ]
 }

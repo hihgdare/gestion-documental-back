@@ -4,7 +4,7 @@ import { Contract, CreateContractProps, UpdateContractProps } from '@domains/con
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { DateUtils } from '@shared/utils/date';
 
 export class TypeOrmContractRepository implements ContractRepository {
@@ -196,7 +196,87 @@ export class TypeOrmContractRepository implements ContractRepository {
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
+  // Subcontract management methods
+  async addSubcontract(contractId: string, subcontractId: string): Promise<void> {
+    // Validate that contract and subcontract exist
+    const contract = await this.repository.findOne({ where: { id: contractId } });
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    const subcontract = await this.repository.findOne({ where: { id: subcontractId } });
+    if (!subcontract) {
+      throw new NotFoundError('Subcontract not found');
+    }
+
+    // Validate that a contract cannot be assigned to itself
+    if (contractId === subcontractId) {
+      throw new ValidationError('A contract cannot be assigned as its own subcontract', 'subcontractId');
+    }
+
+
+    // Insert the relationship
+    const subcontractRepo = AppDataSource.getRepository('contract_subcontracts');
+
+    try {
+      await subcontractRepo
+        .createQueryBuilder()
+        .insert()
+        .into('contract_subcontracts')
+        .values({
+          contractId,
+          subcontractId,
+        })
+        .execute();
+    } catch (error: any) {
+      // Handle duplicate relationship error
+      if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+        throw new Error('This subcontract relationship already exists');
+      }
+      throw error;
+    }
+  }
+
+  async removeSubcontract(contractId: string, subcontractId: string): Promise<void> {
+    const subcontractRepo = AppDataSource.getRepository('contract_subcontracts');
+
+    const result = await subcontractRepo
+      .createQueryBuilder()
+      .delete()
+      .from('contract_subcontracts')
+      .where('contract_id = :contractId', { contractId })
+      .andWhere('subcontract_id = :subcontractId', { subcontractId })
+      .execute();
+
+    if (result.affected === 0) {
+      throw new NotFoundError('Subcontract relationship not found');
+    }
+  }
+
+  async findSubcontracts(contractId: string): Promise<Contract[]> {
+    // Verify contract exists
+    const contract = await this.repository.findOne({ where: { id: contractId } });
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    // Find all subcontracts using a query builder with join
+    const subcontracts = await this.repository
+      .createQueryBuilder('contract')
+      .innerJoin(
+        'contract_subcontracts',
+        'cs',
+        'cs.subcontract_id = contract.id',
+      )
+      .where('cs.contract_id = :contractId', { contractId })
+      .orderBy('contract.createdAt', 'DESC')
+      .getMany();
+
+    return subcontracts.map(entity => this.toDomain(entity));
+  }
+
   private toDomain(entity: ContractEntity): Contract {
+
     return new Contract({
       id: entity.id,
       rutSociedad: entity.rutSociedad,

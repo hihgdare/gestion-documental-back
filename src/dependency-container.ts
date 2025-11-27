@@ -75,6 +75,9 @@ import {
   TerminateContractUseCase,
   DeleteContractUseCase,
 } from '@domains/contract/use-cases/update-contract.use-case';
+import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
+import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
+import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
@@ -184,6 +187,9 @@ export class DependencyContainer {
   private suspendContractUseCase!: SuspendContractUseCase;
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
+  private addSubcontractUseCase!: AddSubcontractUseCase;
+  private removeSubcontractUseCase!: RemoveSubcontractUseCase;
+  private getSubcontractsUseCase!: GetSubcontractsUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
@@ -300,6 +306,9 @@ export class DependencyContainer {
     this.suspendContractUseCase = new SuspendContractUseCase(this.contractRepository);
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
+    this.addSubcontractUseCase = new AddSubcontractUseCase(this.contractRepository);
+    this.removeSubcontractUseCase = new RemoveSubcontractUseCase(this.contractRepository);
+    this.getSubcontractsUseCase = new GetSubcontractsUseCase(this.contractRepository);
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
@@ -352,6 +361,9 @@ export class DependencyContainer {
       this.suspendContractUseCase,
       this.terminateContractUseCase,
       this.deleteContractUseCase,
+      this.addSubcontractUseCase,
+      this.removeSubcontractUseCase,
+      this.getSubcontractsUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
