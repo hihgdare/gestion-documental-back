@@ -141,6 +141,7 @@ export class DocumentController {
       description: dto.description,
       documentUrl: dto.documentUrl,
       updatedBy: req.user.id,
+      comment: dto.comment,
     });
 
     res.status(200).json({

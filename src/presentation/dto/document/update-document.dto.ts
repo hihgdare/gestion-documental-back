@@ -7,4 +7,5 @@ export interface UpdateDocumentDto {
   contractId?: string;
   description?: string;
   documentUrl?: string;
+  comment?: string;
 }
