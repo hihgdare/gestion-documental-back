@@ -101,6 +101,8 @@ import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 import { AuthController } from '@presentation/controllers/auth.controller';
+import { FileController } from '@presentation/controllers/file.controller';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 
 export class DependencyContainer {
   // Repositories
@@ -112,6 +114,7 @@ export class DependencyContainer {
   private documentRepository!: TypeOrmDocumentRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
+  private fileRepository!: TypeOrmFileRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -205,6 +208,7 @@ export class DependencyContainer {
   private roleController!: RoleController;
   private userController!: UserController;
   private authController!: AuthController;
+  private fileController!: FileController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -216,6 +220,7 @@ export class DependencyContainer {
     this.documentRepository = new TypeOrmDocumentRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
     this.roleRepository = new TypeOrmRoleRepository();
+    this.fileRepository = new TypeOrmFileRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
@@ -405,6 +410,8 @@ export class DependencyContainer {
       this.getUserByIdUseCase,
       this.updateUserUseCase,
     );
+
+    this.fileController = new FileController(this.fileRepository);
   }
 
   // Getters for controllers
@@ -442,6 +449,10 @@ export class DependencyContainer {
 
   public getAuthController(): AuthController {
     return this.authController;
+  }
+
+  public getFileController(): FileController {
+    return this.fileController;
   }
 
   // Getters for repositories (if needed for testing)
