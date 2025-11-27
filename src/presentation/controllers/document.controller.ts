@@ -50,7 +50,7 @@ export class DocumentController {
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
-      createdBy: req.user.id,
+      createdBy: req.user!.id,
     });
 
     res.status(201).json({
@@ -140,7 +140,7 @@ export class DocumentController {
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
-      updatedBy: req.user.id,
+      updatedBy: req.user!.id,
       comment: dto.comment,
     });
 
@@ -162,7 +162,7 @@ export class DocumentController {
 
   sendToReview = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.sendToReviewDocumentUseCase.execute(id, req.user.id);
+    await this.sendToReviewDocumentUseCase.execute(id, req.user!.id);
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -176,7 +176,7 @@ export class DocumentController {
 
   approveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.approveDocumentUseCase.execute(id, req.user.id);
+    await this.approveDocumentUseCase.execute(id, req.user!.id);
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -190,7 +190,7 @@ export class DocumentController {
 
   rejectDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.rejectDocumentUseCase.execute(id, req.user.id);
+    await this.rejectDocumentUseCase.execute(id, req.user!.id);
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -214,7 +214,7 @@ export class DocumentController {
       return;
     }
 
-    await this.rejectDocumentWithCommentsUseCase.execute(id, req.user.id, comments);
+    await this.rejectDocumentWithCommentsUseCase.execute(id, req.user!.id, comments);
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
