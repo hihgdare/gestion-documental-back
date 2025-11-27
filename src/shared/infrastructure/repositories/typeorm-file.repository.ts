@@ -15,5 +15,11 @@ export class TypeOrmFileRepository {
     const saved = await this.repository.save(entity);
     return FileEntity.toDomain(saved);
   }
+
+  async findById(id: string): Promise<File | null> {
+    const entity = await this.repository.findOne({ where: { id } });
+    if (!entity) return null;
+    return FileEntity.toDomain(entity);
+  }
 }
 

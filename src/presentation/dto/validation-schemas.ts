@@ -151,7 +151,7 @@ export const createDocumentSchema = Joi.object({
   }),
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow('', null),
-  documentUrl: Joi.string().uri().optional().allow('', null),
+  documentUrl: Joi.string().optional().allow('', null),
 });
 
 export const updateDocumentSchema = Joi.object({
@@ -166,7 +166,7 @@ export const updateDocumentSchema = Joi.object({
   }),
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow(null, ''),
-  documentUrl: Joi.string().uri().optional().allow(null, ''),
+  documentUrl: Joi.string().optional().allow(null, ''),
 }).min(1).unknown(true); // Permitir campos desconocidos
 
 export const getDocumentByIdSchema = Joi.object({
