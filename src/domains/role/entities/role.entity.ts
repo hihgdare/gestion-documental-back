@@ -65,6 +65,8 @@ export class Role {
       permissions: this.permissions?.map((permission) => permission.toJSON()) ?? [],
       parents: [],
       children: [],
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
 
     if (depth > 0) {

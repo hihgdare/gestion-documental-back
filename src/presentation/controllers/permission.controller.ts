@@ -4,6 +4,7 @@ import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/p
 import { UpdatePermissionUseCase } from '@domains/permission/use-cases/update-permission.use-case';
 import { DeletePermissionUseCase } from '@domains/permission/use-cases/delete-permission.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
+import { NotFoundError } from '@shared/domain/errors';
 
 export class PermissionController {
   constructor(
@@ -12,13 +13,13 @@ export class PermissionController {
     public readonly getAllPermissionsUseCase: FindAllPermissionsUseCase,
     public readonly updatePermissionUseCase: UpdatePermissionUseCase,
     public readonly deletePermissionUseCase: DeletePermissionUseCase,
-  ) {}
+  ) { }
 
   public createPermission = asyncHandler(async (req: Request, res: Response) => {
     const permission = await this.savePermissionUseCase.execute(req.body);
     res.status(201).json({
       success: true,
-      data: permission,
+      data: permission.toJSON(),
       message: 'Permission created successfully',
     });
   });
@@ -26,9 +27,14 @@ export class PermissionController {
   public getPermissionById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const permission = await this.getPermissionByIdUseCase.execute(Number(id));
+
+    if (!permission) {
+      throw new NotFoundError('Permission', id);
+    }
+
     res.status(200).json({
       success: true,
-      data: permission,
+      data: permission.toJSON(),
     });
   });
 
@@ -36,7 +42,7 @@ export class PermissionController {
     const permissions = await this.getAllPermissionsUseCase.execute();
     res.status(200).json({
       success: true,
-      data: permissions,
+      data: permissions.map(p => p.toJSON()),
       count: permissions.length,
     });
   });
@@ -46,7 +52,7 @@ export class PermissionController {
     const permission = await this.updatePermissionUseCase.execute(Number(id), req.body);
     res.status(200).json({
       success: true,
-      data: permission,
+      data: permission.toJSON(),
       message: 'Permission updated successfully',
     });
   });

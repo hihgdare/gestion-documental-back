@@ -31,7 +31,7 @@ export class RoleController {
     const role = await this.getRoleByIdUseCase.execute(Number(id));
     res.status(200).json({
       success: true,
-      data: role,
+      data: role.toJSON(),
     });
   });
 
@@ -39,7 +39,7 @@ export class RoleController {
     const roles = await this.getAllRolesUseCase.execute();
     res.status(200).json({
       success: true,
-      data: roles,
+      data: roles.map(r => r.toJSON()),
       count: roles.length,
     });
   });
