@@ -61,9 +61,10 @@ export class App {
     }));
 
     // Rate limiting
+
     const limiter = rateLimit({
-      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-      max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+      windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '300000'), // 1 minute
+      max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // limit each IP to 100 requests per windowMs
       message: {
         error: {
           message: 'Too many requests from this IP, please try again later',
@@ -71,6 +72,8 @@ export class App {
           timestamp: new Date().toISOString(),
         },
       },
+      standardHeaders: true,
+      legacyHeaders: false,
     });
     this.app.use('/api', limiter);
 
@@ -107,10 +110,10 @@ export class App {
           users: '/api/users',
           contracts: '/api/contracts',
           colaborators: '/api/colaborators',
-          documentTypes: '/api/document-types',
-          documentSubtypes: '/api/document-subtypes',
           documents: '/api/documents',
           documentHistory: '/api/document-history',
+          documentSubtypes: '/api/documents/subtypes',
+          documentTypes: '/api/documents/types',
           health: '/health',
           permissions: '/api/permissions',
           roles: '/api/roles',
@@ -141,10 +144,10 @@ export class App {
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
     this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
-    this.app.use('/api/document-types', createDocumentTypeRoutes(documentTypeController));
-    this.app.use('/api/document-subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
     this.app.use('/api/documents', createDocumentRoutes(documentController));
     this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
+    this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
+    this.app.use('/api/documents/types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
     this.app.use('/api/files', createFileRoutes(fileController));

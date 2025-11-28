@@ -17,6 +17,8 @@ export interface PermissionJson {
   id?: number;
   name: string;
   description?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export class Permission {
@@ -48,6 +50,8 @@ export class Permission {
       id: this.id,
       name: this.name,
       description: this.description,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 }
