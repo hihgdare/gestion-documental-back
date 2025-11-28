@@ -1,0 +1,49 @@
+@baseUrl = http://localhost:3000/api
+@module = documents/subtypes
+
+###
+
+# @name get-all
+GET {{baseUrl}}/{{module}}
+
+###
+
+# @name create
+# @prompt name
+# @prompt documentTypeId
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "name": "{{ name }}",
+  "documentTypeId": "{{ documentTypeId }}"
+}
+
+###
+
+@id = {{ create.response.body.data.id }}
+@typeId = {{ create.response.body.data.documentTypeId }}
+@name = {{ create.response.body.data.name }}
+
+# @name get
+GET {{baseUrl}}/{{module}}/{{id}}
+
+###
+
+# @name get-by-type
+GET {{baseUrl}}/{{module}}/by-type/{{typeId}}
+
+###
+
+# @name update
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "name": "{{ name }}.updated"
+}
+
+###
+
+# @name delete
+DELETE {{baseUrl}}/{{module}}/{{id}}
