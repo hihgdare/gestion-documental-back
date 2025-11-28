@@ -232,6 +232,8 @@ export class DocumentController {
       id: json.id,
       documentTypeId: json.documentTypeId,
       documentSubtypeId: json.documentSubtypeId,
+      documentTypeName: document.documentTypeName,
+      documentSubtypeName: document.documentSubtypeName,
       name: json.name,
       issuedDate: json.issuedDate,
       expirationDate: json.expirationDate ? json.expirationDate : undefined,

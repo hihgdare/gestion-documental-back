@@ -8,6 +8,8 @@ export interface DocumentProps {
   id?: string;
   documentTypeId: string;
   documentSubtypeId: string;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
   name: string;
   issuedDate: Date;
   expirationDate?: Date | null;
@@ -29,6 +31,8 @@ export class Document {
   id: string;
   documentTypeId: string;
   documentSubtypeId: string;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
   name: string;
   issuedDate: Date;
   expirationDate: Date | null;
