@@ -144,10 +144,10 @@ export class App {
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
     this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
-    this.app.use('/api/documents', createDocumentRoutes(documentController));
-    this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
-    this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
     this.app.use('/api/documents/types', createDocumentTypeRoutes(documentTypeController));
+    this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
+    this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
+    this.app.use('/api/documents', createDocumentRoutes(documentController));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
     this.app.use('/api/files', createFileRoutes(fileController));
