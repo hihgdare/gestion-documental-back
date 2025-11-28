@@ -241,6 +241,7 @@ export class DocumentController {
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,
+      comment: json.comment,
       isExpired: document.isExpired(),
       daysUntilExpiration: document.daysUntilExpiration(),
       createdAt: json.createdAt,

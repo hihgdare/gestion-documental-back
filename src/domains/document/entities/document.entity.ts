@@ -221,6 +221,7 @@ export class Document {
       throw new ValidationError('Solo los documentos en borrador pueden enviarse a revisión');
     }
     this.status = DocumentStatus.IN_REVIEW;
+    this.comment = null;
     this.updatedAt = new Date();
   }
 
@@ -229,6 +230,7 @@ export class Document {
       throw new ValidationError('Solo los documentos en revisión pueden aprobarse');
     }
     this.status = DocumentStatus.APPROVED;
+    this.comment = null;
     this.updatedAt = new Date();
   }
 
@@ -237,6 +239,7 @@ export class Document {
       throw new ValidationError('Solo los documentos en revisión pueden rechazarse');
     }
     this.status = DocumentStatus.REJECTED;
+    this.comment = null;
     this.updatedAt = new Date();
   }
 
@@ -251,6 +254,7 @@ export class Document {
 
   public setToDraft(): void {
     this.status = DocumentStatus.DRAFT;
+    this.comment = null;
     this.updatedAt = new Date();
   }
 

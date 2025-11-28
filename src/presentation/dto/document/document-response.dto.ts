@@ -11,6 +11,7 @@ export interface DocumentResponseDto {
   description?: string;
   documentUrl?: string;
   status: string;
+  comment?: string | null;
   isExpired: boolean;
   daysUntilExpiration: number | null;
   createdAt: string; // ISO date string
