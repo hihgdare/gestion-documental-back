@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, S3ClientConfig, PutObjectCommandOutput } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, S3ClientConfig, PutObjectCommandOutput } from '@aws-sdk/client-s3';
 import FileUtils from './FileUtils';
 import { except } from './objects';
 
@@ -32,6 +32,36 @@ export class Bucket extends S3Client {
       return response;
     } catch (error) {
       console.log(`Error uploading file ${source} to ${this.bucket.bucket} as "${target}".`);
+      throw error;
+    }
+  }
+
+  async downloadFile({ bucket, source }: {
+    bucket?: string;
+    source: string;
+  }): Promise<Buffer> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: bucket || this.bucket.bucket,
+        Key: source,
+      });
+
+      const response = await this.send(command);
+
+      if (!response.Body) {
+        throw new Error('No file content received from S3');
+      }
+
+      // Convert stream to buffer
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of response.Body as any) {
+        chunks.push(chunk);
+      }
+
+      const buffer = Buffer.concat(chunks);
+      return buffer;
+    } catch (error) {
+      console.log(`Error downloading file ${source} from ${this.bucket.bucket}.`);
       throw error;
     }
   }

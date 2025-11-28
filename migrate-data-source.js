@@ -1,5 +1,15 @@
 require('reflect-metadata');
-require('ts-node/register');
+require('ts-node').register({
+  transpileOnly: true,
+  compilerOptions: {
+    module: 'commonjs',
+    moduleResolution: 'node',
+  },
+});
+
+// Registrar tsconfig-paths para resolver los alias de path
+require('tsconfig-paths/register');
+
 const { DataSource } = require('typeorm');
 
 process.loadEnvFile('.env');

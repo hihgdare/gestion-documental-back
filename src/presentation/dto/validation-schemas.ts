@@ -67,7 +67,7 @@ export const createColaboratorSchema = Joi.object({
   nacionalidad: Joi.string().min(2).max(100).required(),
   sexo: Joi.string().valid('masculino', 'femenino', 'otro').required(),
   estadoCivil: Joi.string().valid('soltero', 'casado', 'divorciado', 'viudo', 'union_civil').required(),
-  fechaNacimiento: Joi.date().iso().max('now').required(),
+  fechaNacimiento: Joi.string().isoDate().required(),
   paisResidencia: Joi.string().length(2).required(),
   region: Joi.string().max(100).when('paisResidencia', {
     is: 'CL',
@@ -149,9 +149,9 @@ export const createDocumentSchema = Joi.object({
     'date.greater': 'expirationDate must be after issuedDate',
     'date.base': 'expirationDate must be a valid date',
   }),
-  contractId: Joi.string().uuid().required(),
+  contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow('', null),
-  documentUrl: Joi.string().uri().optional().allow('', null),
+  documentUrl: Joi.string().optional().allow('', null),
 });
 
 export const updateDocumentSchema = Joi.object({
@@ -164,9 +164,9 @@ export const updateDocumentSchema = Joi.object({
   expirationDate: Joi.date().optional().allow(null).messages({
     'date.base': 'expirationDate must be a valid date',
   }),
-  contractId: Joi.string().uuid().optional(),
+  contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow(null, ''),
-  documentUrl: Joi.string().uri().optional().allow(null, ''),
+  documentUrl: Joi.string().optional().allow(null, ''),
 }).min(1).unknown(true); // Permitir campos desconocidos
 
 export const getDocumentByIdSchema = Joi.object({

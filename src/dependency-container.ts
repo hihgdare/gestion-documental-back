@@ -46,6 +46,12 @@ import {
   GetExpiringDocumentsUseCase,
 } from '@domains/document/use-cases/get-document.use-case';
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
+import { SendToReviewDocumentUseCase } from '@domains/document/use-cases/send-to-review-document.use-case';
+import { ApproveDocumentUseCase } from '@domains/document/use-cases/approve-document.use-case';
+import { RejectDocumentUseCase } from '@domains/document/use-cases/reject-document.use-case';
+import { RejectDocumentWithCommentsUseCase } from '@domains/document/use-cases/reject-document-with-comments.use-case';
+import { CreateDocumentHistoryUseCase as _CreateDocumentHistoryUseCase } from '@domains/document/use-cases/create-document-history.use-case';
+import { GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-document-history.use-case';
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
@@ -97,12 +103,14 @@ import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/t
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
+import { TypeOrmDocumentHistoryRepository } from '@shared/infrastructure/repositories/typeorm-document-history.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
 
 export class DependencyContainer {
   // Repositories
@@ -112,6 +120,7 @@ export class DependencyContainer {
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
   private documentRepository!: TypeOrmDocumentRepository;
+  private documentHistoryRepository!: TypeOrmDocumentHistoryRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
   private fileRepository!: TypeOrmFileRepository;
@@ -154,6 +163,11 @@ export class DependencyContainer {
   private getExpiringDocumentsUseCase!: GetExpiringDocumentsUseCase;
   private updateDocumentUseCase!: UpdateDocumentUseCase;
   private deleteDocumentUseCase!: DeleteDocumentUseCase;
+  private sendToReviewDocumentUseCase!: SendToReviewDocumentUseCase;
+  private approveDocumentUseCase!: ApproveDocumentUseCase;
+  private rejectDocumentUseCase!: RejectDocumentUseCase;
+  private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
+  private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
 
   // Use Cases - Contract
   private createContractUseCase!: CreateContractUseCase;
@@ -204,6 +218,7 @@ export class DependencyContainer {
   private documentTypeController!: DocumentTypeController;
   private documentSubtypeController!: DocumentSubtypeController;
   private documentController!: DocumentController;
+  private documentHistoryController!: DocumentHistoryController;
   private permissionController!: PermissionController;
   private roleController!: RoleController;
   private userController!: UserController;
@@ -218,6 +233,7 @@ export class DependencyContainer {
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
     this.documentRepository = new TypeOrmDocumentRepository();
+    this.documentHistoryRepository = new TypeOrmDocumentHistoryRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
     this.roleRepository = new TypeOrmRoleRepository();
     this.fileRepository = new TypeOrmFileRepository();
@@ -256,7 +272,7 @@ export class DependencyContainer {
     this.deleteDocumentSubtypeUseCase = new DeleteDocumentSubtypeUseCase(this.documentSubtypeRepository);
 
     // Initialize Document use cases
-    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository);
+    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
@@ -264,8 +280,13 @@ export class DependencyContainer {
     this.getDocumentsByDocumentSubtypeIdUseCase = new GetDocumentsByDocumentSubtypeIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
-    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository);
+    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
+    this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.approveDocumentUseCase = new ApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.rejectDocumentUseCase = new RejectDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
 
     // Initialize Contract use cases
     this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
@@ -375,6 +396,14 @@ export class DependencyContainer {
       this.getExpiringDocumentsUseCase,
       this.updateDocumentUseCase,
       this.deleteDocumentUseCase,
+      this.sendToReviewDocumentUseCase,
+      this.approveDocumentUseCase,
+      this.rejectDocumentUseCase,
+      this.rejectDocumentWithCommentsUseCase,
+    );
+
+    this.documentHistoryController = new DocumentHistoryController(
+      this.getDocumentHistoryUseCase,
     );
 
     this.permissionController = new PermissionController(
@@ -437,6 +466,10 @@ export class DependencyContainer {
 
   public getDocumentController(): DocumentController {
     return this.documentController;
+  }
+
+  public getDocumentHistoryController(): DocumentHistoryController {
+    return this.documentHistoryController;
   }
 
   public getPermissionController(): PermissionController {

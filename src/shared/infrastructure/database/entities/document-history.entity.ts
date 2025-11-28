@@ -2,27 +2,32 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
 } from 'typeorm';
+import { DocumentEntity } from './document.entity';
 import { DocumentTypeEntity } from './document-type.entity';
 import { DocumentSubtypeEntity } from './document-subtype.entity';
 import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
-@Entity('documents')
-@Index(['contractId'])
-@Index(['documentTypeId'])
-@Index(['documentSubtypeId'])
+@Entity('documents_history')
+@Index(['documentId'])
+@Index(['action'])
+@Index(['updatedBy'])
 @Index(['status'])
-@Index(['deletedAt'])
-export class DocumentEntity {
+export class DocumentHistoryEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column({ name: 'document_id', type: 'varchar', length: 36 })
+  documentId!: string;
+
+  @ManyToOne(() => DocumentEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'document_id' })
+  document!: DocumentEntity;
 
   @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
   documentTypeId!: string;
@@ -50,7 +55,7 @@ export class DocumentEntity {
   @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
   contractId?: string;
 
-  @ManyToOne(() => ContractEntity, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ContractEntity, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'contract_id' })
   contract?: ContractEntity;
 
@@ -60,31 +65,21 @@ export class DocumentEntity {
   @Column({ name: 'document_url', type: 'varchar', length: 500, nullable: true })
   documentUrl?: string;
 
-  @Column({ type: 'varchar', length: 50, default: 'draft' })
+  @Column({ type: 'varchar', length: 50 })
   status!: string;
-
-  @Column({ name: 'created_by', type: 'varchar', length: 36, nullable: true })
-  createdBy?: string;
-
-  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'created_by' })
-  creator?: UserEntity;
 
   @Column({ type: 'text', nullable: true })
   comment?: string;
 
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
+  @Column({ type: 'varchar', length: 50 })
+  action!: string;
 
-  @Column({ name: 'deleted_by', type: 'varchar', length: 36, nullable: true })
-  deletedBy?: string;
+  @Column({ name: 'updated_by', type: 'varchar', length: 36 })
+  updatedBy!: string;
 
-  @ManyToOne(() => UserEntity, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'deleted_by' })
-  deleter?: UserEntity;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'updated_by' })
+  updater!: UserEntity;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;

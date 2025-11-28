@@ -6,6 +6,9 @@ export function createFileRoutes(fileController: FileController): Router {
   const router = Router();
   router.use(auth);
   router.post('/', fileController.upload);
+  router.get('/:id', fileController.getFileById);
+  router.get('/:id/download', fileController.download);
+  router.get('/:id/preview', fileController.preview);
   return router;
 }
 
