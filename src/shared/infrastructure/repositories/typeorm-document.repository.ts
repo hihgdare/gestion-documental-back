@@ -15,7 +15,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async findById(id: string): Promise<Document | null> {
     const documentEntity = await this.repository.findOne({
       where: { id },
-      relations: ['contract'],
     });
     if (!documentEntity) return null;
     return this.toDomain(documentEntity);
@@ -23,7 +22,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findAll(): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      relations: ['contract'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -46,14 +44,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     await this.repository.delete(id);
   }
 
-  async findByContractId(contractId: string): Promise<Document[]> {
-    const documentEntities = await this.repository.find({
-      where: { contractId },
-      relations: ['contract'],
-      order: { createdAt: 'DESC' },
-    });
-    return documentEntities.map(entity => this.toDomain(entity));
-  }
+  // Contract relationship removed
 
   async findByDocumentTypeId(documentTypeId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
@@ -105,9 +96,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       name: entity.name,
       issuedDate: entity.issuedDate,
       expirationDate: entity.expirationDate,
-      contractId: entity.contractId,
-      contractNumber: entity.contract?.contractNumber,
-      contractProjectName: entity.contract?.nombreProyecto,
       description: entity.description,
       documentUrl: entity.documentUrl,
       status: entity.status,
@@ -127,7 +115,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       name: document.name,
       issuedDate: DateUtils.toLocalDate(document.issuedDate)!,
       expirationDate: document.expirationDate ? DateUtils.toLocalDate(document.expirationDate) : undefined,
-      contractId: document.contractId || undefined,
       description: document.description,
       documentUrl: document.documentUrl,
       status: document.status,

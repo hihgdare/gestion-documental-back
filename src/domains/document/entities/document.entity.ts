@@ -11,9 +11,6 @@ export interface DocumentProps {
   name: string;
   issuedDate: Date;
   expirationDate?: Date | null;
-  contractId?: string | null;
-  contractNumber?: string;
-  contractProjectName?: string;
   description?: string;
   documentUrl?: string;
   status?: string;
@@ -32,9 +29,6 @@ export class Document {
   name: string;
   issuedDate: Date;
   expirationDate: Date | null;
-  contractId: string | null;
-  contractNumber?: string;
-  contractProjectName?: string;
   description?: string;
   documentUrl?: string;
   status: DocumentStatus;
@@ -53,7 +47,6 @@ export class Document {
       id: 'uuid',
       issuedDate: 'date',
       expirationDate: 'dateNullable',
-      contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
@@ -170,10 +163,6 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public updateContractId(contractId?: string | null): void {
-    this.contractId = contractId || null;
-    this.updatedAt = new Date();
-  }
 
   public updateStatus(status: DocumentStatus, comment?: string | null): void {
     this.status = status;
@@ -266,7 +255,6 @@ export class Document {
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate, true),
-      contractId: this.contractId,
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,

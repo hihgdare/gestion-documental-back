@@ -11,7 +11,6 @@ export interface UpdateDocumentRequest {
   name?: string;
   issuedDate?: Date;
   expirationDate?: Date;
-  contractId?: string;
   description?: string;
   documentUrl?: string;
   updatedBy?: string;
@@ -58,9 +57,6 @@ export class UpdateDocumentUseCase {
       document.updateDocumentUrl(request.documentUrl);
     }
 
-    if (request.contractId !== undefined) {
-      document.updateContractId(request.contractId);
-    }
 
     // Al editar un documento, siempre vuelve a estado borrador
     document.setToDraft();
@@ -76,7 +72,6 @@ export class UpdateDocumentUseCase {
       name: updatedDocument.name,
       issuedDate: updatedDocument.issuedDate,
       expirationDate: updatedDocument.expirationDate,
-      contractId: updatedDocument.contractId,
       description: updatedDocument.description,
       documentUrl: updatedDocument.documentUrl,
       status: updatedDocument.status,

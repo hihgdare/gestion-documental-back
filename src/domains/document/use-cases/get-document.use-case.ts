@@ -22,14 +22,6 @@ export class GetAllDocumentsUseCase {
   }
 }
 
-export class GetDocumentsByContractIdUseCase {
-  constructor(private readonly documentRepository: DocumentRepository) {}
-
-  public async execute(contractId: string): Promise<Document[]> {
-    return await this.documentRepository.findByContractId(contractId);
-  }
-}
-
 export class GetDocumentsByDocumentTypeIdUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 

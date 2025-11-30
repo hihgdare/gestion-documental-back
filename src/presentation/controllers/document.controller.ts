@@ -3,7 +3,6 @@ import { CreateDocumentUseCase } from '../../domains/document/use-cases/create-d
 import {
   GetDocumentByIdUseCase,
   GetAllDocumentsUseCase,
-  GetDocumentsByContractIdUseCase,
   GetDocumentsByDocumentTypeIdUseCase,
   GetDocumentsByDocumentSubtypeIdUseCase,
   GetExpiredDocumentsUseCase,
@@ -25,7 +24,6 @@ export class DocumentController {
     private createDocumentUseCase: CreateDocumentUseCase,
     private getDocumentByIdUseCase: GetDocumentByIdUseCase,
     private getAllDocumentsUseCase: GetAllDocumentsUseCase,
-    private getDocumentsByContractIdUseCase: GetDocumentsByContractIdUseCase,
     private getDocumentsByDocumentTypeIdUseCase: GetDocumentsByDocumentTypeIdUseCase,
     private getDocumentsByDocumentSubtypeIdUseCase: GetDocumentsByDocumentSubtypeIdUseCase,
     private getExpiredDocumentsUseCase: GetExpiredDocumentsUseCase,
@@ -47,7 +45,6 @@ export class DocumentController {
       name: dto.name,
       issuedDate: new Date(dto.issuedDate),
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
-      contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
       createdBy: req.user!.id,
@@ -78,15 +75,7 @@ export class DocumentController {
     });
   });
 
-  getDocumentsByContractId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { contractId } = req.params;
-    const documents = await this.getDocumentsByContractIdUseCase.execute(contractId);
-    res.status(200).json({
-      success: true,
-      data: documents.map((doc) => this.toResponseDto(doc)),
-      count: documents.length,
-    });
-  });
+  // Contract-related endpoints removed
 
   getDocumentsByDocumentTypeId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { documentTypeId } = req.params;
@@ -137,7 +126,6 @@ export class DocumentController {
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
-      contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
       updatedBy: req.user!.id,
@@ -235,9 +223,6 @@ export class DocumentController {
       name: json.name,
       issuedDate: json.issuedDate,
       expirationDate: json.expirationDate ? json.expirationDate : undefined,
-      contractId: json.contractId,
-      contractNumber: document.contractNumber,
-      contractProjectName: document.contractProjectName,
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,

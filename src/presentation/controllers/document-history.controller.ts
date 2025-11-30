@@ -11,7 +11,6 @@ interface DocumentHistoryResponseDto {
   name: string;
   issuedDate: string;
   expirationDate: string | null;
-  contractId: string | null;
   description?: string;
   documentUrl?: string;
   status: string;
@@ -58,7 +57,6 @@ export class DocumentHistoryController {
       name: history.name,
       issuedDate: history.issuedDate.toISOString().split('T')[0],
       expirationDate: history.expirationDate ? history.expirationDate.toISOString().split('T')[0] : null,
-      contractId: history.contractId,
       description: history.description,
       documentUrl: history.documentUrl,
       status: history.status,

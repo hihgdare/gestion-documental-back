@@ -33,7 +33,6 @@ export class SendToReviewDocumentUseCase {
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,
-      contractId: document.contractId,
       description: document.description,
       documentUrl: document.documentUrl,
       status: document.status,

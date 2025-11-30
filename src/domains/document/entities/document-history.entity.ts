@@ -12,7 +12,6 @@ export interface DocumentHistoryProps {
   name: string;
   issuedDate: Date;
   expirationDate?: Date | null;
-  contractId?: string | null;
   description?: string;
   documentUrl?: string;
   status?: string;
@@ -32,7 +31,6 @@ export class DocumentHistory {
   name: string;
   issuedDate: Date;
   expirationDate: Date | null;
-  contractId: string | null;
   description?: string;
   documentUrl?: string;
   status: DocumentStatus;
@@ -50,7 +48,6 @@ export class DocumentHistory {
       id: 'uuid',
       issuedDate: 'date',
       expirationDate: 'dateNullable',
-      contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
       comment: (comment?: string | null) => comment || null,
       action: (action: string) => parseEnum(action, DocumentAction) ?? DocumentAction.CREATED,
@@ -127,7 +124,6 @@ export class DocumentHistory {
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate),
-      contractId: this.contractId,
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,

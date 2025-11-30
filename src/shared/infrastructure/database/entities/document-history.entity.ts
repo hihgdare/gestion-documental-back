@@ -10,7 +10,6 @@ import {
 import { DocumentEntity } from './document.entity';
 import { DocumentTypeEntity } from './document-type.entity';
 import { DocumentSubtypeEntity } from './document-subtype.entity';
-import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents_history')
@@ -52,12 +51,7 @@ export class DocumentHistoryEntity {
   @Column({ name: 'expiration_date', type: 'date', nullable: true })
   expirationDate?: Date;
 
-  @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
-  contractId?: string;
-
-  @ManyToOne(() => ContractEntity, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'contract_id' })
-  contract?: ContractEntity;
+  // Contract relationship removed
 
   @Column({ type: 'text', nullable: true })
   description?: string;

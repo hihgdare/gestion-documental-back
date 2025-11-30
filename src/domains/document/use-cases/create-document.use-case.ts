@@ -10,7 +10,6 @@ export interface CreateDocumentRequest {
   name: string;
   issuedDate: Date;
   expirationDate?: Date;
-  contractId?: string;
   description?: string;
   documentUrl?: string;
   createdBy: string;
@@ -31,7 +30,6 @@ export class CreateDocumentUseCase {
       name: request.name,
       issuedDate: request.issuedDate,
       expirationDate: request.expirationDate,
-      contractId: request.contractId,
       description: request.description,
       documentUrl: request.documentUrl,
       createdBy: request.createdBy,
@@ -50,7 +48,6 @@ export class CreateDocumentUseCase {
       name: savedDocument.name,
       issuedDate: savedDocument.issuedDate,
       expirationDate: savedDocument.expirationDate,
-      contractId: savedDocument.contractId,
       description: savedDocument.description,
       documentUrl: savedDocument.documentUrl,
       status: savedDocument.status,

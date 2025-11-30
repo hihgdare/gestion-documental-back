@@ -39,7 +39,6 @@ import { CreateDocumentUseCase } from '@domains/document/use-cases/create-docume
 import {
   GetDocumentByIdUseCase,
   GetAllDocumentsUseCase,
-  GetDocumentsByContractIdUseCase,
   GetDocumentsByDocumentTypeIdUseCase,
   GetDocumentsByDocumentSubtypeIdUseCase,
   GetExpiredDocumentsUseCase,
@@ -156,7 +155,6 @@ export class DependencyContainer {
   private createDocumentUseCase!: CreateDocumentUseCase;
   private getDocumentByIdUseCase!: GetDocumentByIdUseCase;
   private getAllDocumentsUseCase!: GetAllDocumentsUseCase;
-  private getDocumentsByContractIdUseCase!: GetDocumentsByContractIdUseCase;
   private getDocumentsByDocumentTypeIdUseCase!: GetDocumentsByDocumentTypeIdUseCase;
   private getDocumentsByDocumentSubtypeIdUseCase!: GetDocumentsByDocumentSubtypeIdUseCase;
   private getExpiredDocumentsUseCase!: GetExpiredDocumentsUseCase;
@@ -275,7 +273,6 @@ export class DependencyContainer {
     this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
-    this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
     this.getDocumentsByDocumentTypeIdUseCase = new GetDocumentsByDocumentTypeIdUseCase(this.documentRepository);
     this.getDocumentsByDocumentSubtypeIdUseCase = new GetDocumentsByDocumentSubtypeIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
@@ -389,7 +386,6 @@ export class DependencyContainer {
       this.createDocumentUseCase,
       this.getDocumentByIdUseCase,
       this.getAllDocumentsUseCase,
-      this.getDocumentsByContractIdUseCase,
       this.getDocumentsByDocumentTypeIdUseCase,
       this.getDocumentsByDocumentSubtypeIdUseCase,
       this.getExpiredDocumentsUseCase,

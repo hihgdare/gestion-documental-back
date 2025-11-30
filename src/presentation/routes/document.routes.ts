@@ -15,7 +15,6 @@ export const createDocumentRoutes = (controller: DocumentController): Router => 
   // GET routes - specific routes before parameterized routes
   router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);
   router.get('/expiring/:days', authorize('document:read'), controller.getExpiringDocuments);
-  router.get('/by-contract/:contractId', authorize('document:read'), controller.getDocumentsByContractId);
   router.get('/by-document-type/:documentTypeId', authorize('document:read'), controller.getDocumentsByDocumentTypeId);
   router.get('/by-document-subtype/:documentSubtypeId', authorize('document:read'), controller.getDocumentsByDocumentSubtypeId);
   router.get('/', authorize('document:read'), controller.getAllDocuments);
