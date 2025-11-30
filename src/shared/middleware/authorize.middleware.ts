@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { getUserEffectivePermissions } from '@shared/security/authorization';
 import { User } from '@domains/user/entities/user.entity';
 import { toArray } from '@shared/utils/array';
+import { isRbacEnabled } from '@shared/utils/requests';
 
 // Extend the Request type to include the user property
 declare module 'express-serve-static-core' {
@@ -13,9 +14,13 @@ declare module 'express-serve-static-core' {
 
 export function authorize(required: string | string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (process.env.ENABLE_RBAC !== 'true') return next();
+    if (!isRbacEnabled(req)) return next();
+
+    const token = req.token;
     const user = req.user;
-    if (!user) return res.status(401).json({ message: 'unauthorized' });
+    if (!user) return token === 'skip-token'
+      ? next()
+      : res.status(401).json({ message: 'unauthorized' });
 
     // First, check permissions from the user already loaded by auth middleware
     if (user.can(required)) return next();

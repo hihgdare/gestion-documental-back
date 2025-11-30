@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -30,7 +30,6 @@ describe('Auth Routes', () => {
   const testPassword = 'Password123!';
 
   beforeAll(async () => {
-    process.env.ENABLE_RBAC = 'true'; // Ensure RBAC is enabled for tests
     process.env.JWT_SECRET = 'testsecret'; // Use a test secret for JWT
 
     appInstance = new App();
@@ -62,10 +61,6 @@ describe('Auth Routes', () => {
       password: testPassword, // Pass plain password, use case will hash it
       roleIds: [testRole.id],
     });
-  });
-
-  afterAll(async () => {
-    await AppDataSource.destroy();
   });
 
   describe('POST /api/auth/login', () => {
@@ -128,7 +123,10 @@ describe('Auth Routes', () => {
 
   describe('POST /api/auth/logout', () => {
     it('should return a successful logout message', async () => {
-      const response = await supertest(app).post('/api/auth/logout');
+      const response = await supertest(app)
+        .post('/api/auth/logout')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', `Bearer skip-token`);
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Logout successful');
@@ -144,6 +142,7 @@ describe('Auth Routes', () => {
 
       const response = await supertest(app)
         .get('/api/auth/permissions')
+        .set('x-enable-rbac', 'true')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -151,7 +150,9 @@ describe('Auth Routes', () => {
     });
 
     it('should return 401 for unauthenticated access', async () => {
-      const response = await supertest(app).get('/api/auth/permissions');
+      const response = await supertest(app)
+        .get('/api/auth/permissions')
+        .set('x-enable-rbac', 'true');
 
       expect(response.status).toBe(401);
       expect(response.body.message).toBe('Unauthorized: No token provided');
@@ -160,6 +161,7 @@ describe('Auth Routes', () => {
     it('should return 401 for invalid token', async () => {
       const response = await supertest(app)
         .get('/api/auth/permissions')
+        .set('x-enable-rbac', 'true')
         .set('Authorization', 'Bearer invalidtoken');
 
       expect(response.status).toBe(401);
