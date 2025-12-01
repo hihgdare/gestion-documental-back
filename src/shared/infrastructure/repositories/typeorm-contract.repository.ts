@@ -196,6 +196,62 @@ export class TypeOrmContractRepository implements ContractRepository {
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
+  // Document association management
+  async addDocument(contractId: string, documentId: string): Promise<void> {
+    // Validate that contract exists
+    const contract = await this.repository.findOne({ where: { id: contractId } });
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    // Validate that document exists
+    const documentRepo = AppDataSource.getRepository('documents');
+    const documentExists = await documentRepo
+      .createQueryBuilder()
+      .select('id')
+      .where('id = :documentId', { documentId })
+      .getRawOne();
+    if (!documentExists) {
+      throw new NotFoundError('Document not found');
+    }
+
+    // Insert the relationship
+    const cdRepo = AppDataSource.getRepository('contract_documents');
+    try {
+      await cdRepo
+        .createQueryBuilder()
+        .insert()
+        .into('contract_documents')
+        .values({ contractId, documentId })
+        .execute();
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+        throw new Error('This document is already linked to this contract');
+      }
+      throw error;
+    }
+  }
+
+  async removeDocument(contractId: string, documentId: string): Promise<void> {
+    const cdRepo = AppDataSource.getRepository('contract_documents');
+    await cdRepo
+      .createQueryBuilder()
+      .delete()
+      .from('contract_documents')
+      .where('contract_id = :contractId AND document_id = :documentId', { contractId, documentId })
+      .execute();
+  }
+
+  async findContractsByDocumentId(documentId: string): Promise<Contract[]> {
+    const contracts = await this.repository
+      .createQueryBuilder('contract')
+      .innerJoin('contract_documents', 'cd', 'cd.contract_id = contract.id')
+      .where('cd.document_id = :documentId', { documentId })
+      .orderBy('contract.createdAt', 'DESC')
+      .getMany();
+
+    return contracts.map(entity => this.toDomain(entity));
+  }
   // Subcontract management methods
   async addSubcontract(contractId: string, subcontractId: string): Promise<void> {
     // Validate that contract and subcontract exist

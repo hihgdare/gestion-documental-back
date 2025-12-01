@@ -73,6 +73,15 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // GET /api/contracts/:id/subcontracts - Get all subcontracts of a contract
   router.get('/:id/subcontracts', authorize('contract:read'), contractController.getSubcontracts);
 
+  // Document association routes
+  // POST /api/contracts/:id/documents - Link a document to a contract
+  router.post('/:id/documents', authorize('contract:update'), contractController.addDocument);
+
+  // DELETE /api/contracts/:id/documents/:documentId - Unlink a document from a contract
+  router.delete('/:id/documents/:documentId', authorize('contract:update'), contractController.removeDocument);
+
+  // GET /api/contracts/:id/documents - List all documents linked to a contract
+  router.get('/:id/documents', authorize('contract:read'), contractController.getDocuments);
+
   return router;
 };
-

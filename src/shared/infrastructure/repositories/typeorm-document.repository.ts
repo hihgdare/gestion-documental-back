@@ -45,6 +45,16 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   // Contract relationship removed
+  async findByContractId(contractId: string): Promise<Document[]> {
+    const documents = await this.repository
+      .createQueryBuilder('document')
+      .innerJoin('contract_documents', 'cd', 'cd.document_id = document.id')
+      .where('cd.contract_id = :contractId', { contractId })
+      .orderBy('document.createdAt', 'DESC')
+      .getMany();
+
+    return documents.map(entity => this.toDomain(entity));
+  }
 
   async findByDocumentTypeId(documentTypeId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({

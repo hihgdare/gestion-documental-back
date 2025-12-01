@@ -24,4 +24,8 @@ export interface ContractRepository {
   addSubcontract(contractId: string, subcontractId: string): Promise<void>;
   removeSubcontract(contractId: string, subcontractId: string): Promise<void>;
   findSubcontracts(contractId: string): Promise<Contract[]>;
+  // Document association management
+  addDocument(contractId: string, documentId: string): Promise<void>;
+  removeDocument(contractId: string, documentId: string): Promise<void>;
+  findContractsByDocumentId(documentId: string): Promise<Contract[]>;
 }

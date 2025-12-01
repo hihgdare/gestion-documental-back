@@ -30,6 +30,9 @@ import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/
 import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
 import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
 import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+import { AddDocumentToContractUseCase } from '@domains/contract/use-cases/add-document.use-case';
+import { RemoveDocumentFromContractUseCase } from '@domains/contract/use-cases/remove-document.use-case';
+import { GetContractDocumentsUseCase } from '@domains/contract/use-cases/get-contract-documents.use-case';
 
 
 export class ContractController {
@@ -54,6 +57,9 @@ export class ContractController {
     private readonly addSubcontractUseCase: AddSubcontractUseCase,
     private readonly removeSubcontractUseCase: RemoveSubcontractUseCase,
     private readonly getSubcontractsUseCase: GetSubcontractsUseCase,
+    private readonly addDocumentToContractUseCase: AddDocumentToContractUseCase,
+    private readonly removeDocumentFromContractUseCase: RemoveDocumentFromContractUseCase,
+    private readonly getContractDocumentsUseCase: GetContractDocumentsUseCase,
   ) { }
 
 
@@ -304,6 +310,59 @@ export class ContractController {
       success: true,
       data: subcontracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: subcontracts.length,
+    });
+  });
+
+  // Document association methods
+  public addDocument = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { documentId } = req.body;
+
+    if (!documentId) {
+      res.status(400).json({
+        success: false,
+        message: 'Document ID is required',
+      });
+      return;
+    }
+
+    await this.addDocumentToContractUseCase.execute(id, documentId);
+    res.status(200).json({
+      success: true,
+      message: 'Document linked successfully',
+    });
+  });
+
+  public removeDocument = asyncHandler(async (req: Request, res: Response) => {
+    const { id, documentId } = req.params;
+
+    await this.removeDocumentFromContractUseCase.execute(id, documentId);
+    res.status(200).json({
+      success: true,
+      message: 'Document unlink successful',
+    });
+  });
+
+  public getDocuments = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const documents = await this.getContractDocumentsUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: documents.map((doc) => ({
+        id: doc.id!,
+        documentTypeId: doc.documentTypeId,
+        documentSubtypeId: doc.documentSubtypeId,
+        name: doc.name,
+        issuedDate: doc.issuedDate,
+        expirationDate: doc.expirationDate,
+        description: doc.description,
+        documentUrl: doc.documentUrl,
+        status: doc.status,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+      })),
+      count: documents.length,
     });
   });
 }

@@ -77,6 +77,9 @@ import {
 import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
 import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
 import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+import { AddDocumentToContractUseCase } from '@domains/contract/use-cases/add-document.use-case';
+import { RemoveDocumentFromContractUseCase } from '@domains/contract/use-cases/remove-document.use-case';
+import { GetContractDocumentsUseCase } from '@domains/contract/use-cases/get-contract-documents.use-case';
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
@@ -188,6 +191,9 @@ export class DependencyContainer {
   private addSubcontractUseCase!: AddSubcontractUseCase;
   private removeSubcontractUseCase!: RemoveSubcontractUseCase;
   private getSubcontractsUseCase!: GetSubcontractsUseCase;
+  private addDocumentToContractUseCase!: AddDocumentToContractUseCase;
+  private removeDocumentFromContractUseCase!: RemoveDocumentFromContractUseCase;
+  private getContractDocumentsUseCase!: GetContractDocumentsUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
@@ -306,6 +312,9 @@ export class DependencyContainer {
     this.addSubcontractUseCase = new AddSubcontractUseCase(this.contractRepository);
     this.removeSubcontractUseCase = new RemoveSubcontractUseCase(this.contractRepository);
     this.getSubcontractsUseCase = new GetSubcontractsUseCase(this.contractRepository);
+    this.addDocumentToContractUseCase = new AddDocumentToContractUseCase(this.contractRepository);
+    this.removeDocumentFromContractUseCase = new RemoveDocumentFromContractUseCase(this.contractRepository);
+    this.getContractDocumentsUseCase = new GetContractDocumentsUseCase(this.documentRepository);
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
@@ -361,6 +370,9 @@ export class DependencyContainer {
       this.addSubcontractUseCase,
       this.removeSubcontractUseCase,
       this.getSubcontractsUseCase,
+      this.addDocumentToContractUseCase,
+      this.removeDocumentFromContractUseCase,
+      this.getContractDocumentsUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
