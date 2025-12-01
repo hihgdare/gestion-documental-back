@@ -16,8 +16,13 @@ import { RejectDocumentWithCommentsUseCase } from '../../domains/document/use-ca
 import { CreateDocumentDto } from '../dto/document/create-document.dto';
 import { UpdateDocumentDto } from '../dto/document/update-document.dto';
 import { DocumentResponseDto } from '../dto/document/document-response.dto';
+import { Contract } from '@domains/contract/entities/contract.entity';
+import { ContractResponseDto } from '@presentation/dto/contract/contract-response.dto';
+import { GetContractsByDocumentIdUseCase } from '@domains/contract/use-cases/get-contracts-by-document-id.use-case';
 import { Document } from '../../domains/document/entities/document.entity';
 import { asyncHandler } from '@shared/middleware/validation';
+import { DateTimeUtils, DateUtils } from '@shared/utils/date';
+import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 
 export class DocumentController {
   constructor(
@@ -34,7 +39,8 @@ export class DocumentController {
     private approveDocumentUseCase: ApproveDocumentUseCase,
     private rejectDocumentUseCase: RejectDocumentUseCase,
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
-  ) {}
+    private getContractsByDocumentIdUseCase: GetContractsByDocumentIdUseCase,
+  ) { }
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const dto: CreateDocumentDto = req.body;
@@ -48,6 +54,7 @@ export class DocumentController {
       description: dto.description,
       documentUrl: dto.documentUrl,
       createdBy: req.user!.id,
+      contractIds: dto.contractIds,
     });
 
     res.status(201).json({
@@ -94,6 +101,16 @@ export class DocumentController {
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
       count: documents.length,
+    });
+  });
+
+  public getContractsByDocumentId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const contracts = await this.getContractsByDocumentIdUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: contracts.map((c: Contract) => this.contractToResponseDto(c)),
+      count: contracts.length,
     });
   });
 
@@ -231,6 +248,37 @@ export class DocumentController {
       daysUntilExpiration: document.daysUntilExpiration(),
       createdAt: json.createdAt,
       updatedAt: json.updatedAt,
+    };
+  }
+
+  private contractToResponseDto(contract: Contract): ContractResponseDto {
+    const json = contract.toJSON();
+    return {
+      id: json.id,
+      rutSociedad: json.rutSociedad,
+      nombreColaborador: json.nombreColaborador,
+      startDate: DateUtils.toString(json.startDate),
+      endDate: DateUtils.toString(json.endDate) ?? undefined,
+      contractType: json.contractType as ContractType,
+      administradorContratoMandante: json.administradorContratoMandante,
+      administradorContratoEmpresa: json.administradorContratoEmpresa,
+      rutAdministradorContrato: json.rutAdministradorContrato,
+      contractNumber: json.contractNumber,
+      nombreMandante: json.nombreMandante,
+      division: json.division,
+      area: json.area,
+      dotacionPersonal: json.dotacionPersonal ?? 0,
+      dotacionVehiculos: json.dotacionVehiculos ?? 0,
+      descripcionServicio: json.descripcionServicio,
+      nombreProyecto: json.nombreProyecto,
+      jornadaTrabajo: json.jornadaTrabajo as JornadaTrabajo,
+      status: json.status as ContractStatus,
+      duration: json.duration,
+      isActive: json.isActive,
+      isExpired: json.isExpired,
+      createdAt: DateTimeUtils.toString(json.createdAt),
+      updatedAt: DateTimeUtils.toString(json.updatedAt),
+      deletedAt: DateTimeUtils.toString(json.deletedAt, true),
     };
   }
 }

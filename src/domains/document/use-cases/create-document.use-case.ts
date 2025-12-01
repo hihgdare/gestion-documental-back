@@ -3,6 +3,7 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
+import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 
 export interface CreateDocumentRequest {
   documentTypeId: string;
@@ -14,13 +15,15 @@ export interface CreateDocumentRequest {
   documentUrl?: string;
   createdBy: string;
   comment?: string;
+  contractIds?: string[];
 }
 
 export class CreateDocumentUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
-  ) {}
+    private readonly contractRepository: ContractRepository,
+  ) { }
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
     // Create document
@@ -39,6 +42,13 @@ export class CreateDocumentUseCase {
 
     // Save document
     const savedDocument = await this.documentRepository.save(document);
+
+    // Link to contracts if provided
+    if (request.contractIds && request.contractIds.length > 0) {
+      for (const contractId of request.contractIds) {
+        await this.contractRepository.addDocument(contractId, savedDocument.id);
+      }
+    }
 
     // Create history entry
     const historyProps: DocumentHistoryProps = {

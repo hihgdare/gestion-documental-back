@@ -19,6 +19,7 @@ import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
+import { createContractDocumentRoutes } from '@presentation/routes/contract-document.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedIfEmpty } from '@shared/infrastructure/database/seed/initial-seed';
 
@@ -139,6 +140,7 @@ export class App {
     const roleController = this.dependencyContainer.getRoleController();
     const authController = this.dependencyContainer.getAuthController();
     const fileController = this.dependencyContainer.getFileController();
+    const contractDocumentController = this.dependencyContainer.getContractDocumentController();
 
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
@@ -151,6 +153,7 @@ export class App {
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
     this.app.use('/api/files', createFileRoutes(fileController));
+    this.app.use('/api/contract-documents', createContractDocumentRoutes(contractDocumentController));
 
     // Auth routes
     this.app.use('/api/auth', createAuthRoutes(authController));

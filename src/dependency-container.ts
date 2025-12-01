@@ -80,6 +80,12 @@ import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontr
 import { AddDocumentToContractUseCase } from '@domains/contract/use-cases/add-document.use-case';
 import { RemoveDocumentFromContractUseCase } from '@domains/contract/use-cases/remove-document.use-case';
 import { GetContractDocumentsUseCase } from '@domains/contract/use-cases/get-contract-documents.use-case';
+import { UpdateContractDocumentsUseCase } from '@domains/contract/use-cases/update-contract-documents.use-case';
+import { GetContractsByDocumentIdUseCase } from '@domains/contract/use-cases/get-contracts-by-document-id.use-case';
+import { GetContractDocumentsRelationUseCase } from '@domains/contract/use-cases/get-contract-documents-relation.use-case';
+import { ContractDocumentController } from '@presentation/controllers/contract-document.controller';
+
+
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
@@ -194,6 +200,9 @@ export class DependencyContainer {
   private addDocumentToContractUseCase!: AddDocumentToContractUseCase;
   private removeDocumentFromContractUseCase!: RemoveDocumentFromContractUseCase;
   private getContractDocumentsUseCase!: GetContractDocumentsUseCase;
+  private getContractsByDocumentIdUseCase!: GetContractsByDocumentIdUseCase;
+  private updateContractDocumentsUseCase!: UpdateContractDocumentsUseCase;
+  private getContractDocumentsRelationUseCase!: GetContractDocumentsRelationUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
@@ -225,6 +234,7 @@ export class DependencyContainer {
   private documentHistoryController!: DocumentHistoryController;
   private permissionController!: PermissionController;
   private roleController!: RoleController;
+  private contractDocumentController!: ContractDocumentController;
   private userController!: UserController;
   private authController!: AuthController;
   private fileController!: FileController;
@@ -276,7 +286,11 @@ export class DependencyContainer {
     this.deleteDocumentSubtypeUseCase = new DeleteDocumentSubtypeUseCase(this.documentSubtypeRepository);
 
     // Initialize Document use cases
-    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.createDocumentUseCase = new CreateDocumentUseCase(
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.contractRepository,
+    );
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByDocumentTypeIdUseCase = new GetDocumentsByDocumentTypeIdUseCase(this.documentRepository);
@@ -315,6 +329,9 @@ export class DependencyContainer {
     this.addDocumentToContractUseCase = new AddDocumentToContractUseCase(this.contractRepository);
     this.removeDocumentFromContractUseCase = new RemoveDocumentFromContractUseCase(this.contractRepository);
     this.getContractDocumentsUseCase = new GetContractDocumentsUseCase(this.documentRepository);
+    this.getContractsByDocumentIdUseCase = new GetContractsByDocumentIdUseCase(this.contractRepository);
+    this.updateContractDocumentsUseCase = new UpdateContractDocumentsUseCase(this.contractRepository);
+    this.getContractDocumentsRelationUseCase = new GetContractDocumentsRelationUseCase();
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
@@ -373,6 +390,7 @@ export class DependencyContainer {
       this.addDocumentToContractUseCase,
       this.removeDocumentFromContractUseCase,
       this.getContractDocumentsUseCase,
+      this.updateContractDocumentsUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
@@ -408,7 +426,10 @@ export class DependencyContainer {
       this.approveDocumentUseCase,
       this.rejectDocumentUseCase,
       this.rejectDocumentWithCommentsUseCase,
+      this.getContractsByDocumentIdUseCase,
     );
+
+    this.contractDocumentController = new ContractDocumentController(this.getContractDocumentsRelationUseCase);
 
     this.documentHistoryController = new DocumentHistoryController(
       this.getDocumentHistoryUseCase,
@@ -478,6 +499,10 @@ export class DependencyContainer {
 
   public getDocumentHistoryController(): DocumentHistoryController {
     return this.documentHistoryController;
+  }
+
+  public getContractDocumentController(): ContractDocumentController {
+    return this.contractDocumentController;
   }
 
   public getPermissionController(): PermissionController {

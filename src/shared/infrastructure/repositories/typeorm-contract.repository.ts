@@ -242,6 +242,28 @@ export class TypeOrmContractRepository implements ContractRepository {
       .execute();
   }
 
+  async updateDocuments(contractId: string, documentIds: string[]): Promise<void> {
+    await AppDataSource.transaction(async (transactionalEntityManager) => {
+      // Delete existing
+      await transactionalEntityManager
+        .createQueryBuilder()
+        .delete()
+        .from('contract_documents')
+        .where('contract_id = :contractId', { contractId })
+        .execute();
+
+      // Insert new ones
+      if (documentIds.length > 0) {
+        await transactionalEntityManager
+          .createQueryBuilder()
+          .insert()
+          .into('contract_documents')
+          .values(documentIds.map(documentId => ({ contractId, documentId })))
+          .execute();
+      }
+    });
+  }
+
   async findContractsByDocumentId(documentId: string): Promise<Contract[]> {
     const contracts = await this.repository
       .createQueryBuilder('contract')

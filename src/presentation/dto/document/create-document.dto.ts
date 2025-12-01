@@ -6,4 +6,5 @@ export interface CreateDocumentDto {
   expirationDate?: string; // ISO date string
   description?: string;
   documentUrl?: string;
+  contractIds?: string[];
 }

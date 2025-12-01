@@ -27,5 +27,6 @@ export interface ContractRepository {
   // Document association management
   addDocument(contractId: string, documentId: string): Promise<void>;
   removeDocument(contractId: string, documentId: string): Promise<void>;
+  updateDocuments(contractId: string, documentIds: string[]): Promise<void>;
   findContractsByDocumentId(documentId: string): Promise<Contract[]>;
 }

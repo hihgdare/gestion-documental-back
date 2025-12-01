@@ -83,5 +83,8 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // GET /api/contracts/:id/documents - List all documents linked to a contract
   router.get('/:id/documents', authorize('contract:read'), contractController.getDocuments);
 
+  // PUT /api/contracts/:id/documents - Update linked documents (bulk)
+  router.put('/:id/documents', authorize('contract:update'), contractController.updateDocuments);
+
   return router;
 };

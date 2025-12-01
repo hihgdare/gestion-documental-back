@@ -17,6 +17,8 @@ export const createDocumentRoutes = (controller: DocumentController): Router => 
   router.get('/expiring/:days', authorize('document:read'), controller.getExpiringDocuments);
   router.get('/by-document-type/:documentTypeId', authorize('document:read'), controller.getDocumentsByDocumentTypeId);
   router.get('/by-document-subtype/:documentSubtypeId', authorize('document:read'), controller.getDocumentsByDocumentSubtypeId);
+  // GET /api/documents/:id/contracts - Get all contracts linked to a document
+  router.get('/:id/contracts', authorize('document:read'), controller.getContractsByDocumentId);
   router.get('/', authorize('document:read'), controller.getAllDocuments);
   router.get('/:id', authorize('document:read'), controller.getDocumentById);
 

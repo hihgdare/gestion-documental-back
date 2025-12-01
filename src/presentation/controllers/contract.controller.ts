@@ -33,7 +33,9 @@ import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontr
 import { AddDocumentToContractUseCase } from '@domains/contract/use-cases/add-document.use-case';
 import { RemoveDocumentFromContractUseCase } from '@domains/contract/use-cases/remove-document.use-case';
 import { GetContractDocumentsUseCase } from '@domains/contract/use-cases/get-contract-documents.use-case';
+import { UpdateContractDocumentsUseCase } from '@domains/contract/use-cases/update-contract-documents.use-case';
 
+// ... imports
 
 export class ContractController {
   constructor(
@@ -60,7 +62,30 @@ export class ContractController {
     private readonly addDocumentToContractUseCase: AddDocumentToContractUseCase,
     private readonly removeDocumentFromContractUseCase: RemoveDocumentFromContractUseCase,
     private readonly getContractDocumentsUseCase: GetContractDocumentsUseCase,
+    private readonly updateContractDocumentsUseCase: UpdateContractDocumentsUseCase,
   ) { }
+
+  // ... existing methods
+
+  public updateDocuments = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { documentIds } = req.body;
+
+    if (!Array.isArray(documentIds)) {
+      res.status(400).json({
+        success: false,
+        message: 'documentIds must be an array',
+      });
+      return;
+    }
+
+    await this.updateContractDocumentsUseCase.execute(id, documentIds as string[]);
+    res.status(200).json({
+      success: true,
+      message: 'Documents updated successfully',
+    });
+  });
+
 
 
   private toResponseDto(contract: Contract): ContractResponseDto {

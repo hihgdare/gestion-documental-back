@@ -140,6 +140,7 @@ export const getDocumentSubtypeByIdSchema = Joi.object({
 export const createDocumentSchema = Joi.object({
   documentTypeId: Joi.string().uuid().required(),
   documentSubtypeId: Joi.string().uuid().required(),
+  contractIds: Joi.array().items(Joi.string().uuid()).optional(),
   name: Joi.string().min(2).max(255).required(),
   issuedDate: Joi.date().required().messages({
     'date.base': 'issuedDate must be a valid date',
