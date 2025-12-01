@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   Index,
 } from 'typeorm';
+import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 
 @Entity('colaborators')
 @Index(['nombre', 'apellidoPaterno'])
@@ -14,8 +15,7 @@ export class ColaboratorEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({
-    type: 'enum',
+  @EnumColumn({
     enum: ['rut', 'pasaporte', 'dni', 'otro'],
     name: 'tipo_documento',
   })
@@ -36,14 +36,12 @@ export class ColaboratorEntity {
   @Column({ type: 'varchar', length: 100 })
   nacionalidad!: string;
 
-  @Column({
-    type: 'enum',
+  @EnumColumn({
     enum: ['masculino', 'femenino', 'otro'],
   })
   sexo!: string;
 
-  @Column({
-    type: 'enum',
+  @EnumColumn({
     enum: ['soltero', 'casado', 'divorciado', 'viudo', 'union_civil'],
     name: 'estado_civil',
   })
@@ -88,8 +86,7 @@ export class ColaboratorEntity {
   @Column({ type: 'varchar', length: 100 })
   cargo!: string;
 
-  @Column({
-    type: 'enum',
+  @EnumColumn({
     enum: ['activo', 'inactivo', 'suspendido', 'terminado'],
     default: 'activo',
   })
