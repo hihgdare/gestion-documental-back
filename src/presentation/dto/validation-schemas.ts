@@ -1,5 +1,4 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
-import { DateUtils } from '@shared/utils/date';
 import Joi from 'joi';
 
 export const createUserSchema = Joi.object({
@@ -24,7 +23,7 @@ export const getUserByIdSchema = Joi.object({
 export const createContractSchema = Joi.object({
   rutSociedad: Joi.string().trim().min(8).max(12).required(),
   nombreColaborador: Joi.string().trim().min(2).max(100).required(),
-  startDate: Joi.date().iso().required().min(DateUtils.todayString()).messages({
+  startDate: Joi.date().iso().required().min(Joi.ref('$today')).messages({
     'date.min': 'startDate should be today or later.',
   }),
   endDate: Joi.date().iso().optional().greater(Joi.ref('startDate')).messages({

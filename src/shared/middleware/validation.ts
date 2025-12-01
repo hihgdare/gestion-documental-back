@@ -1,9 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { ObjectSchema } from 'joi';
+import { DateUtils } from '@shared/utils/date';
 
 export const validateRequest = (schema: ObjectSchema, convert?: boolean) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req.body, { abortEarly: false, convert });
+    const { error, value } = schema.validate(req.body, {
+      abortEarly: false,
+      convert,
+      context: { today: DateUtils.todayString() },
+    });
 
     if (error) {
       const errors = error.details.map((detail) => ({

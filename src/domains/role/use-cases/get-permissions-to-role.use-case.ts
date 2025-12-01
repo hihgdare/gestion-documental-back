@@ -13,4 +13,4 @@ export class GetPermissionsToRoleUseCase {
     }
     return role.permissions || [];
   }
-};
+}
