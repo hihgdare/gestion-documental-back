@@ -15,7 +15,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async findById(id: string): Promise<Document | null> {
     const documentEntity = await this.repository.findOne({
       where: { id },
-      relations: ['contract'],
+      relations: ['contract', 'documentType', 'documentSubtype'],
     });
     if (!documentEntity) return null;
     return this.toDomain(documentEntity);
@@ -23,7 +23,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findAll(): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      relations: ['contract'],
+      relations: ['contract', 'documentType', 'documentSubtype'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -49,7 +49,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
       where: { contractId },
-      relations: ['contract'],
+      relations: ['contract', 'documentType', 'documentSubtype'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -58,6 +58,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async findByDocumentTypeId(documentTypeId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
       where: { documentTypeId },
+      relations: ['contract', 'documentType', 'documentSubtype'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -66,6 +67,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async findByDocumentSubtypeId(documentSubtypeId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
       where: { documentSubtypeId },
+      relations: ['contract', 'documentType', 'documentSubtype'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -76,6 +78,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       where: {
         expirationDate: LessThanOrEqual(new Date()),
       },
+      relations: ['contract', 'documentType', 'documentSubtype'],
       order: { expirationDate: 'ASC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -88,6 +91,9 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
     const documentEntities = await this.repository
       .createQueryBuilder('document')
+      .leftJoinAndSelect('document.contract', 'contract')
+      .leftJoinAndSelect('document.documentType', 'documentType')
+      .leftJoinAndSelect('document.documentSubtype', 'documentSubtype')
       .where('document.expiration_date IS NOT NULL')
       .andWhere('document.expiration_date > :today', { today })
       .andWhere('document.expiration_date <= :futureDate', { futureDate })
@@ -102,6 +108,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       id: entity.id,
       documentTypeId: entity.documentTypeId,
       documentSubtypeId: entity.documentSubtypeId,
+      documentTypeName: entity.documentType?.name,
+      documentSubtypeName: entity.documentSubtype?.name,
       name: entity.name,
       issuedDate: entity.issuedDate,
       expirationDate: entity.expirationDate,

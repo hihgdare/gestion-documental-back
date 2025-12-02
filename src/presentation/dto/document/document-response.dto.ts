@@ -2,6 +2,8 @@ export interface DocumentResponseDto {
   id: string;
   documentTypeId: string;
   documentSubtypeId: string;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
   name: string;
   issuedDate: string; // ISO date string
   expirationDate?: string; // ISO date string
