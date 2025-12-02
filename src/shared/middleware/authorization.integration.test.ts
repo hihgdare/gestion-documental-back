@@ -24,14 +24,11 @@ describe('Authorization RBAC', () => {
   });
 
   it('should return 401 without user header when RBAC enabled', async () => {
-    process.env.ENABLE_RBAC = 'true';
-    const res = await supertest(app).get('/api/roles');
+    const res = await supertest(app).get('/api/roles').set('x-enable-rbac', 'true');
     expect(res.status).toBe(401);
-    process.env.ENABLE_RBAC = 'false';
   });
 
   it('should allow access when user has required permission via role', async () => {
-    process.env.ENABLE_RBAC = 'true';
     const ds = AppDataSource;
     const userRepo = ds.getRepository(UserEntity);
     const roleRepo = ds.getRepository(RoleEntity);
@@ -48,13 +45,13 @@ describe('Authorization RBAC', () => {
       roles: [role],
     }));
 
-    const res = await supertest(app).get('/api/roles').set('x-user-id', user.id);
+    const res = await supertest(app).get('/api/roles')
+      .set('x-enable-rbac', 'true')
+      .set('x-user-id', user.id);
     expect(res.status).toBe(200);
-    process.env.ENABLE_RBAC = 'false';
   });
 
   it('should deny access (403) when user lacks permission', async () => {
-    process.env.ENABLE_RBAC = 'true';
     const ds = AppDataSource;
     const userRepo = ds.getRepository(UserEntity);
     const roleRepo = ds.getRepository(RoleEntity);
@@ -69,13 +66,13 @@ describe('Authorization RBAC', () => {
       roles: [role],
     }));
 
-    const res = await supertest(app).get('/api/roles').set('x-user-id', user.id);
+    const res = await supertest(app).get('/api/roles')
+      .set('x-enable-rbac', 'true')
+      .set('x-user-id', user.id);
     expect(res.status).toBe(403);
-    process.env.ENABLE_RBAC = 'false';
   });
 
   it('should inherit permission from child roles', async () => {
-    process.env.ENABLE_RBAC = 'true';
     const ds = AppDataSource;
     const userRepo = ds.getRepository(UserEntity);
     const roleRepo = ds.getRepository(RoleEntity);
@@ -106,8 +103,9 @@ describe('Authorization RBAC', () => {
       roles: [parent],
     }));
 
-    const res = await supertest(app).get('/api/roles').set('x-user-id', user.id);
+    const res = await supertest(app).get('/api/roles')
+      .set('x-enable-rbac', 'true')
+      .set('x-user-id', user.id);
     expect(res.status).toBe(200);
-    process.env.ENABLE_RBAC = 'false';
   });
 });

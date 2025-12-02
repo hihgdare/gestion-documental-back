@@ -27,8 +27,7 @@ export const errorHandler = (
   const timestamp = new Date().toISOString();
   const {status, code, message, details} = getErrorData(error);
 
-  // Log error for debugging
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.LOG_ERRORS !== 'false') {
     console.error(`[${timestamp}] ${error.name}: ${error.message}`, {
       stack: error.stack,
       path: req.originalUrl,

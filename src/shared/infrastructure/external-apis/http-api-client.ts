@@ -21,11 +21,15 @@ export class HttpApiClient implements ExternalApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        console.log(`🌐 External API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        if (process.env.LOG_HTTP !== 'false') {
+          console.log(`🌐 External API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        }
         return config;
       },
       (error) => {
-        console.error('🚨 External API Request Error:', error);
+        if (process.env.LOG_HTTP !== 'false') {
+          console.error('🚨 External API Request Error:', error);
+        }
         return Promise.reject(error);
       },
     );
@@ -33,11 +37,15 @@ export class HttpApiClient implements ExternalApiClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
-        console.log(`✅ External API Response: ${response.status} ${response.config.url}`);
+        if (process.env.NODE_ENV !== 'test' && process.env.LOG_HTTP !== 'false') {
+          console.log(`✅ External API Response: ${response.status} ${response.config.url}`);
+        }
         return response;
       },
       (error) => {
-        console.error('🚨 External API Response Error:', error);
+        if (process.env.NODE_ENV !== 'test' && process.env.LOG_HTTP !== 'false') {
+          console.error('🚨 External API Response Error:', error);
+        }
         return Promise.reject(error);
       },
     );

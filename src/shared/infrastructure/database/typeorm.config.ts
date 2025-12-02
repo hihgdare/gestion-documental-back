@@ -80,6 +80,7 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
 };
 
 export async function clearDatabase(DataSource?: DataSource): Promise<void> {
+  if (process.env.NODE_ENV === 'production') return;
   if (!DataSource) {
     DataSource = AppDataSource;
   }

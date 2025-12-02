@@ -54,6 +54,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const response = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       expect(response.status).toBe(201);
@@ -73,6 +75,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const createResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const createdId = createResponse.body.data.id as string;
@@ -86,6 +90,8 @@ describe('ContractController', () => {
 
       const updateResponse = await supertest(app)
         .put(`/api/contracts/${createdId}`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({
           endDate: newEndDate,
           descripcionServicio,
@@ -110,12 +116,16 @@ describe('ContractController', () => {
 
       const createResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const id = createResponse.body.data.id;
 
       const response = await supertest(app)
-        .get(`/api/contracts/${id}`);
+        .get(`/api/contracts/${id}`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -130,11 +140,15 @@ describe('ContractController', () => {
       // Create the contract first
       await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       // Try to create another contract with the same contract number
       const response = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       expect(response.status).toBe(409);
@@ -146,12 +160,16 @@ describe('ContractController', () => {
       // Create contract first
       const createResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const contractId = createResponse.body.data.id;
 
       const response = await supertest(app)
-        .delete(`/api/contracts/${contractId}`);
+        .delete(`/api/contracts/${contractId}`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -163,6 +181,8 @@ describe('ContractController', () => {
 
       const response = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(invalidDto);
 
       expect(response.status).toBe(400);
@@ -193,6 +213,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const parentResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const parentId = parentResponse.body.data.id;
@@ -201,6 +223,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const subcontractResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const subcontractId = subcontractResponse.body.data.id;
@@ -208,6 +232,8 @@ describe('ContractController', () => {
       // Add subcontract relationship
       const response = await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({ subcontractId });
 
       expect(response.status).toBe(200);
@@ -220,6 +246,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const parentResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const parentId = parentResponse.body.data.id;
@@ -228,6 +256,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const sub1Response = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const sub1Id = sub1Response.body.data.id;
@@ -235,6 +265,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const sub2Response = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const sub2Id = sub2Response.body.data.id;
@@ -242,15 +274,21 @@ describe('ContractController', () => {
       // Add subcontract relationships
       await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({ subcontractId: sub1Id });
 
       await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({ subcontractId: sub2Id });
 
       // Get all subcontracts
       const response = await supertest(app)
-        .get(`/api/contracts/${parentId}/subcontracts`);
+        .get(`/api/contracts/${parentId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -266,6 +304,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const parentResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const parentId = parentResponse.body.data.id;
@@ -274,6 +314,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const subcontractResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const subcontractId = subcontractResponse.body.data.id;
@@ -281,11 +323,15 @@ describe('ContractController', () => {
       // Add subcontract relationship
       await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({ subcontractId });
 
       // Remove subcontract relationship
       const response = await supertest(app)
-        .delete(`/api/contracts/${parentId}/subcontracts/${subcontractId}`);
+        .delete(`/api/contracts/${parentId}/subcontracts/${subcontractId}`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -293,7 +339,9 @@ describe('ContractController', () => {
 
       // Verify it was removed
       const getResponse = await supertest(app)
-        .get(`/api/contracts/${parentId}/subcontracts`);
+        .get(`/api/contracts/${parentId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
 
       expect(getResponse.body.count).toBe(0);
     });
@@ -303,6 +351,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const contractResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const contractId = contractResponse.body.data.id;
@@ -310,6 +360,8 @@ describe('ContractController', () => {
       // Try to add itself as subcontract
       const response = await supertest(app)
         .post(`/api/contracts/${contractId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({ subcontractId: contractId });
 
       expect(response.status).toBe(400);
@@ -321,6 +373,8 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const contractResponse = await supertest(app)
         .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send(baseContractDto);
 
       const contractId = contractResponse.body.data.id;
@@ -328,6 +382,8 @@ describe('ContractController', () => {
       // Try to add subcontract without subcontractId
       const response = await supertest(app)
         .post(`/api/contracts/${contractId}/subcontracts`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
         .send({});
 
       expect(response.status).toBe(400);
@@ -336,4 +392,3 @@ describe('ContractController', () => {
     });
   });
 });
-
