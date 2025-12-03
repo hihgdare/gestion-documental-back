@@ -242,3 +242,17 @@ export const updateReviewerSchema = Joi.object({
     'date.min': 'validUntil must be a future date.',
   }),
 }).min(1);
+
+export const createColaboratorGroupSchema = Joi.object({
+  name: Joi.string().min(2).max(255).required(),
+  description: Joi.string().max(1000).optional(),
+});
+
+export const updateColaboratorGroupSchema = Joi.object({
+  name: Joi.string().min(2).max(255).optional(),
+  description: Joi.string().max(1000).optional(),
+}).min(1);
+
+export const assignColaboratorsToGroupSchema = Joi.object({
+  colaboratorIds: Joi.array().items(Joi.string().uuid()).required(),
+});

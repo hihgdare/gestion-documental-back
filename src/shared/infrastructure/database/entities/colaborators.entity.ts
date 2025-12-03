@@ -5,8 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToMany,
 } from 'typeorm';
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
+import { ColaboratorGroupEntity } from './colaborator-group.entity';
 
 @Entity('colaborators')
 @Index(['nombre', 'apellidoPaterno'])
@@ -97,4 +99,7 @@ export class ColaboratorEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @ManyToMany(() => ColaboratorGroupEntity, (group) => group.colaborators)
+  groups!: ColaboratorGroupEntity[];
 }

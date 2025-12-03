@@ -15,4 +15,6 @@ export interface ColaboratorRepository extends Repository<Colaborator> {
   findByCargo(cargo: string): Promise<Colaborator[]>;
   findActiveColaborators(): Promise<Colaborator[]>;
   searchByName(searchTerm: string): Promise<Colaborator[]>;
+  findIn(ids: string[]): Promise<Colaborator[]>;
+  findByIdWithGroups(id: string): Promise<Colaborator | null>;
 }

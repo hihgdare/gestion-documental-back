@@ -147,6 +147,24 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     return colaboratorEntities.map(entity => this.toDomain(entity));
   }
 
+  async findIn(ids: string[]): Promise<Colaborator[]> {
+    const colaboratorEntities = await this.repository
+      .createQueryBuilder('colaborator')
+      .whereInIds(ids)
+      .getMany();
+
+    return colaboratorEntities.map(entity => this.toDomain(entity));
+  }
+
+  async findByIdWithGroups(id: string): Promise<Colaborator | null> {
+    const colaboratorEntity = await this.repository.findOne({
+      where: { id },
+      relations: ['groups'],
+    });
+    if (!colaboratorEntity) return null;
+    return this.toDomain(colaboratorEntity);
+  }
+
   private toDomain(entity: ColaboratorEntity): Colaborator {
     const props: ColaboratorProps = {
       id: entity.id,

@@ -30,6 +30,9 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
   // GET /api/colaborators/:id - Get colaborator by ID
   router.get('/:id', colaboratorController.getColaboratorById);
 
+  // GET /api/colaborators/:id/groups - Get colaborator groups
+  router.get('/:id/groups', colaboratorController.getColaboratorGroups);
+
   // PUT /api/colaborators/:id - Update colaborator
   router.put('/:id', validateRequest(updateColaboratorSchema), colaboratorController.updateColaborator);
 
