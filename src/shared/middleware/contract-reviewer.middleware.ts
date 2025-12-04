@@ -48,14 +48,30 @@ export function createContractReviewerMiddleware(
       // Verificar si el usuario tiene permiso para revisar documentos
       const hasPermission = user.can('document:review');
       if (!hasPermission) {
-        return res.status(403).json({ message: 'User does not have document review permission' });
+        return res.status(403).json({
+          message: 'User does not have document review permission',
+          code: 'MISSING_PERMISSION',
+        });
       }
 
       // Verificar si el usuario es un revisor activo del contrato
-      const canReview = await checkUserCanReviewContractUseCase.execute(contractId, user.id);
-      if (!canReview) {
+      const reviewCheck = await checkUserCanReviewContractUseCase.execute(contractId, user.id);
+
+      if (!reviewCheck.canReview) {
+        // Caso 1: El contrato no tiene revisores asignados
+        if (!reviewCheck.hasReviewers) {
+          return res.status(400).json({
+            message: 'Contract has no reviewers assigned. Please assign reviewers before reviewing documents.',
+            code: 'NO_REVIEWERS_ASSIGNED',
+            contractId,
+          });
+        }
+
+        // Caso 2: El contrato tiene revisores, pero el usuario no es uno de ellos
         return res.status(403).json({
           message: 'User is not an active reviewer for this contract',
+          code: 'NOT_CONTRACT_REVIEWER',
+          contractId,
         });
       }
 

@@ -8,7 +8,7 @@ import { RequestHandler } from 'express';
 
 export const createDocumentRoutes = (
   controller: DocumentController,
-  contractReviewerMiddleware?: RequestHandler,
+  contractReviewerMiddleware: RequestHandler,
 ): Router => {
   const router = Router();
   router.use(auth);
@@ -29,13 +29,9 @@ export const createDocumentRoutes = (
   router.put('/:id/send-to-review', authorize('document:update'), controller.sendToReview);
 
   // Rutas de revisión - requieren permiso document:review Y ser revisor activo del contrato
-  const reviewMiddlewares = contractReviewerMiddleware
-    ? [authorize('document:review'), contractReviewerMiddleware]
-    : [authorize('document:review')];
-
-  router.put('/:id/approve', ...reviewMiddlewares, controller.approveDocument);
-  router.put('/:id/reject', ...reviewMiddlewares, controller.rejectDocument);
-  router.put('/:id/reject-with-comments', ...reviewMiddlewares, controller.rejectDocumentWithComments);
+  router.put('/:id/approve', authorize('document:review'), contractReviewerMiddleware, controller.approveDocument);
+  router.put('/:id/reject', authorize('document:review'), contractReviewerMiddleware, controller.rejectDocument);
+  router.put('/:id/reject-with-comments', authorize('document:review'), contractReviewerMiddleware, controller.rejectDocumentWithComments);
   router.put('/:id', authorize('document:update'), validateRequest(updateDocumentSchema, true), controller.updateDocument);
 
   // DELETE routes

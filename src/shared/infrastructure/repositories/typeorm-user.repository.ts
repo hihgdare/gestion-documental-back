@@ -37,7 +37,7 @@ export class TypeOrmUserRepository implements UserRepository {
   async findAll(): Promise<User[]> {
     const userEntities = await this.repository.find({
       order: { createdAt: 'DESC' },
-      relations: ['roles'],
+      relations: ['roles', 'roles.permissions'],
     });
     return userEntities.map(UserEntity.toDomain);
   }
