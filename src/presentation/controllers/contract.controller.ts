@@ -30,6 +30,14 @@ import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/
 import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
 import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
 import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+import { AssignReviewerToContractUseCase } from '@domains/contract/use-cases/assign-reviewer-to-contract.use-case';
+import { RemoveReviewerFromContractUseCase } from '@domains/contract/use-cases/remove-reviewer-from-contract.use-case';
+import { GetContractReviewersUseCase } from '@domains/contract/use-cases/get-contract-reviewers.use-case';
+import { UpdateReviewerUseCase } from '@domains/contract/use-cases/update-reviewer.use-case';
+import { AssignReviewerDto } from '@presentation/dto/contract/assign-reviewer.dto';
+import { UpdateReviewerDto } from '@presentation/dto/contract/update-reviewer.dto';
+import { ReviewerResponseDto } from '@presentation/dto/contract/reviewer-response.dto';
+import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 
 
 export class ContractController {
@@ -54,6 +62,10 @@ export class ContractController {
     private readonly addSubcontractUseCase: AddSubcontractUseCase,
     private readonly removeSubcontractUseCase: RemoveSubcontractUseCase,
     private readonly getSubcontractsUseCase: GetSubcontractsUseCase,
+    private readonly assignReviewerToContractUseCase: AssignReviewerToContractUseCase,
+    private readonly removeReviewerFromContractUseCase: RemoveReviewerFromContractUseCase,
+    private readonly getContractReviewersUseCase: GetContractReviewersUseCase,
+    private readonly updateReviewerUseCase: UpdateReviewerUseCase,
   ) { }
 
 
@@ -304,6 +316,86 @@ export class ContractController {
       success: true,
       data: subcontracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: subcontracts.length,
+    });
+  });
+
+  // Reviewer management methods
+  private toReviewerResponseDto(reviewer: ContractReviewer): ReviewerResponseDto {
+    const json = reviewer.toJSON();
+    return {
+      id: json.id,
+      userId: json.userId,
+      contractId: json.contractId,
+      isPrimary: json.isPrimary,
+      validUntil: json.validUntil,
+      isActive: json.isActive,
+      createdAt: json.createdAt,
+    };
+  }
+
+  public assignReviewer = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const dto: AssignReviewerDto = req.body;
+
+    const reviewer = await this.assignReviewerToContractUseCase.execute({
+      contractId: id,
+      userId: dto.userId,
+      isPrimary: dto.isPrimary,
+      validUntil: dto.validUntil,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: this.toReviewerResponseDto(reviewer),
+      message: 'Reviewer assigned successfully',
+    });
+  });
+
+  public removeReviewer = asyncHandler(async (req: Request, res: Response) => {
+    const { id, userId } = req.params;
+
+    await this.removeReviewerFromContractUseCase.execute({
+      contractId: id,
+      userId,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Reviewer removed successfully',
+    });
+  });
+
+  public getReviewers = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { activeOnly } = req.query;
+
+    const reviewers = await this.getContractReviewersUseCase.execute(
+      id,
+      activeOnly === 'true',
+    );
+
+    res.status(200).json({
+      success: true,
+      data: reviewers.map((reviewer: ContractReviewer) => this.toReviewerResponseDto(reviewer)),
+      count: reviewers.length,
+    });
+  });
+
+  public updateReviewer = asyncHandler(async (req: Request, res: Response) => {
+    const { id, userId } = req.params;
+    const dto: UpdateReviewerDto = req.body;
+
+    const reviewer = await this.updateReviewerUseCase.execute({
+      contractId: id,
+      userId,
+      isPrimary: dto.isPrimary,
+      validUntil: dto.validUntil,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: this.toReviewerResponseDto(reviewer),
+      message: 'Reviewer updated successfully',
     });
   });
 }

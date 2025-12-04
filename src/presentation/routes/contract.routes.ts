@@ -4,6 +4,8 @@ import { validateRequest } from '@shared/middleware/validation';
 import {
   createContractSchema,
   updateContractSchema,
+  assignReviewerSchema,
+  updateReviewerSchema,
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
@@ -72,6 +74,19 @@ export const createContractRoutes = (contractController: ContractController): Ro
 
   // GET /api/contracts/:id/subcontracts - Get all subcontracts of a contract
   router.get('/:id/subcontracts', authorize('contract:read'), contractController.getSubcontracts);
+
+  // Reviewer management routes
+  // POST /api/contracts/:id/reviewers - Assign a reviewer to a contract
+  router.post('/:id/reviewers', authorize('contract:assign:reviewer'), validateRequest(assignReviewerSchema, true), contractController.assignReviewer);
+
+  // GET /api/contracts/:id/reviewers - Get all reviewers of a contract (query: ?activeOnly=true)
+  router.get('/:id/reviewers', authorize('contract:read'), contractController.getReviewers);
+
+  // PUT /api/contracts/:id/reviewers/:userId - Update a reviewer
+  router.put('/:id/reviewers/:userId', authorize('contract:assign:reviewer'), validateRequest(updateReviewerSchema, true), contractController.updateReviewer);
+
+  // DELETE /api/contracts/:id/reviewers/:userId - Remove a reviewer from a contract
+  router.delete('/:id/reviewers/:userId', authorize('contract:assign:reviewer'), contractController.removeReviewer);
 
   return router;
 };
