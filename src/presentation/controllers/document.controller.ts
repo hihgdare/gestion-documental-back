@@ -91,7 +91,7 @@ export class DocumentController {
       const contractIds = [...new Set(
         documents
           .map(doc => doc.contractId)
-          .filter((id): id is string => id !== null && id !== undefined)
+          .filter((id): id is string => id !== null && id !== undefined),
       )];
 
       // Obtener revisores solo de esos contratos
