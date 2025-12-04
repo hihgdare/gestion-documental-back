@@ -434,6 +434,8 @@ export class DependencyContainer {
       this.approveDocumentUseCase,
       this.rejectDocumentUseCase,
       this.rejectDocumentWithCommentsUseCase,
+      this.contractReviewerRepository,
+      this.getAllDocumentTypesWithSubtypesUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(

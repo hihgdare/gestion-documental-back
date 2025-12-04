@@ -19,6 +19,10 @@ import { UpdateDocumentDto } from '../dto/document/update-document.dto';
 import { DocumentResponseDto } from '../dto/document/document-response.dto';
 import { Document } from '../../domains/document/entities/document.entity';
 import { asyncHandler } from '@shared/middleware/validation';
+import { ContractReviewerRepository } from '@domains/contract/repositories/contract-reviewer.repository';
+import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
+import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
+import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 
 export class DocumentController {
   constructor(
@@ -36,6 +40,8 @@ export class DocumentController {
     private approveDocumentUseCase: ApproveDocumentUseCase,
     private rejectDocumentUseCase: RejectDocumentUseCase,
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
+    private contractReviewerRepository: ContractReviewerRepository,
+    private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
   ) {}
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -70,12 +76,46 @@ export class DocumentController {
   });
 
   getAllDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { includeContractReviewers, includeDocumentTypes } = req.query;
     const documents = await this.getAllDocumentsUseCase.execute();
-    res.status(200).json({
+
+    const response: any = {
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
       count: documents.length,
-    });
+    };
+
+    // Si se solicita incluir revisores de contratos
+    if (includeContractReviewers === 'true') {
+      // Obtener IDs únicos de contratos de los documentos
+      const contractIds = [...new Set(
+        documents
+          .map(doc => doc.contractId)
+          .filter((id): id is string => id !== null && id !== undefined)
+      )];
+
+      // Obtener revisores solo de esos contratos
+      const reviewersMap = await this.contractReviewerRepository.findByContractIds(contractIds);
+
+      // Convertir Map a objeto para serialización JSON
+      const contractReviewers: Record<string, ReviewerResponseDto[]> = {};
+      for (const [contractId, reviewers] of reviewersMap.entries()) {
+        contractReviewers[contractId] = reviewers.map(reviewer => this.toReviewerResponseDto(reviewer));
+      }
+
+      response.contractReviewers = contractReviewers;
+    }
+
+    // Si se solicita incluir tipos de documentos con subtipos
+    if (includeDocumentTypes === 'true') {
+      const results = await this.getAllDocumentTypesWithSubtypesUseCase.execute();
+      response.documentTypes = results.map(result => ({
+        ...result.documentType.toJSON(),
+        subtypes: result.subtypes.map(subtype => subtype.toJSON()),
+      }));
+    }
+
+    res.status(200).json(response);
   });
 
   getDocumentsByContractId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -248,6 +288,19 @@ export class DocumentController {
       daysUntilExpiration: document.daysUntilExpiration(),
       createdAt: json.createdAt,
       updatedAt: json.updatedAt,
+    };
+  }
+
+  private toReviewerResponseDto(reviewer: ContractReviewer): ReviewerResponseDto {
+    const json = reviewer.toJSON();
+    return {
+      id: json.id,
+      userId: json.userId,
+      contractId: json.contractId,
+      isPrimary: json.isPrimary,
+      validUntil: json.validUntil,
+      isActive: json.isActive,
+      createdAt: json.createdAt,
     };
   }
 }

@@ -91,4 +91,31 @@ export class TypeOrmContractReviewerRepository implements ContractReviewerReposi
       throw new NotFoundError('Contract reviewer not found');
     }
   }
+
+  async findByContractIds(contractIds: string[]): Promise<Map<string, ContractReviewer[]>> {
+    if (contractIds.length === 0) {
+      return new Map();
+    }
+
+    const entities = await this.repository
+      .createQueryBuilder('reviewer')
+      .leftJoinAndSelect('reviewer.user', 'user')
+      .where('reviewer.contractId IN (:...contractIds)', { contractIds })
+      .orderBy('reviewer.createdAt', 'ASC')
+      .getMany();
+
+    const grouped = new Map<string, ContractReviewer[]>();
+
+    for (const entity of entities) {
+      const reviewer = ContractReviewerEntity.toDomain(entity);
+      const contractId = entity.contractId;
+
+      if (!grouped.has(contractId)) {
+        grouped.set(contractId, []);
+      }
+      grouped.get(contractId)!.push(reviewer);
+    }
+
+    return grouped;
+  }
 }
