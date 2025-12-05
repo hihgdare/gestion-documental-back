@@ -4,8 +4,12 @@ import { validateRequest } from '@shared/middleware/validation';
 import { createDocumentSchema, updateDocumentSchema } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
+import { RequestHandler } from 'express';
 
-export const createDocumentRoutes = (controller: DocumentController): Router => {
+export const createDocumentRoutes = (
+  controller: DocumentController,
+  contractReviewerMiddleware: RequestHandler,
+): Router => {
   const router = Router();
   router.use(auth);
 
@@ -23,9 +27,11 @@ export const createDocumentRoutes = (controller: DocumentController): Router => 
 
   // PUT routes
   router.put('/:id/send-to-review', authorize('document:update'), controller.sendToReview);
-  router.put('/:id/approve', authorize('document:review'), controller.approveDocument);
-  router.put('/:id/reject', authorize('document:review'), controller.rejectDocument);
-  router.put('/:id/reject-with-comments', authorize('document:review'), controller.rejectDocumentWithComments);
+
+  // Rutas de revisión - requieren permiso document:review Y ser revisor activo del contrato
+  router.put('/:id/approve', authorize('document:review'), contractReviewerMiddleware, controller.approveDocument);
+  router.put('/:id/reject', authorize('document:review'), contractReviewerMiddleware, controller.rejectDocument);
+  router.put('/:id/reject-with-comments', authorize('document:review'), contractReviewerMiddleware, controller.rejectDocumentWithComments);
   router.put('/:id', authorize('document:update'), validateRequest(updateDocumentSchema, true), controller.updateDocument);
 
   // DELETE routes

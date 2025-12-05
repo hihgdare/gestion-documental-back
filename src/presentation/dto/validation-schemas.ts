@@ -200,3 +200,32 @@ export const assignPermissionsSchema = Joi.object({
 export const assignRoleToUserSchema = Joi.object({
   roleIds: Joi.array().items(Joi.number().integer()).required(),
 });
+
+export const assignReviewerSchema = Joi.object({
+  userId: Joi.string().uuid().required(),
+  isPrimary: Joi.boolean().optional().default(false),
+  validUntil: Joi.date().iso().optional().min('now').messages({
+    'date.min': 'validUntil must be a future date.',
+  }),
+}).custom((value, helpers) => {
+  // Si no es primario, debe tener validUntil
+  if (value.isPrimary === false && !value.validUntil) {
+    return helpers.error('any.invalid', {
+      message: 'Non-primary reviewers must have a validUntil date',
+    });
+  }
+  // Si es primario, no debe tener validUntil
+  if (value.isPrimary === true && value.validUntil) {
+    return helpers.error('any.invalid', {
+      message: 'Primary reviewers cannot have a validUntil date',
+    });
+  }
+  return value;
+});
+
+export const updateReviewerSchema = Joi.object({
+  isPrimary: Joi.boolean().optional(),
+  validUntil: Joi.date().iso().optional().allow(null).min('now').messages({
+    'date.min': 'validUntil must be a future date.',
+  }),
+}).min(1);

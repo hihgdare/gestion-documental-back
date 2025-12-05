@@ -8,6 +8,7 @@ import 'express-async-errors';
 
 import { errorHandler } from '@shared/middleware/error-handler';
 import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
+import { createContractReviewerMiddleware } from '@shared/middleware/contract-reviewer.middleware';
 import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createColaboratorRoutes } from '@presentation/routes/colaborators.routes';
 import { createContractRoutes } from '@presentation/routes/contract.routes';
@@ -140,6 +141,16 @@ export class App {
     const authController = this.dependencyContainer.getAuthController();
     const fileController = this.dependencyContainer.getFileController();
 
+    // Get use cases and repositories needed for middleware
+    const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
+    const documentRepository = this.dependencyContainer.getDocumentRepository();
+
+    // Create middleware instances
+    const contractReviewerMiddleware = createContractReviewerMiddleware(
+      checkUserCanReviewContractUseCase,
+      documentRepository,
+    );
+
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
@@ -147,7 +158,7 @@ export class App {
     this.app.use('/api/documents/types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
     this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
-    this.app.use('/api/documents', createDocumentRoutes(documentController));
+    this.app.use('/api/documents', createDocumentRoutes(documentController, contractReviewerMiddleware));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
     this.app.use('/api/files', createFileRoutes(fileController));

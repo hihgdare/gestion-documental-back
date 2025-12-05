@@ -78,6 +78,11 @@ import {
 import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
 import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
 import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+import { AssignReviewerToContractUseCase } from '@domains/contract/use-cases/assign-reviewer-to-contract.use-case';
+import { RemoveReviewerFromContractUseCase } from '@domains/contract/use-cases/remove-reviewer-from-contract.use-case';
+import { GetContractReviewersUseCase } from '@domains/contract/use-cases/get-contract-reviewers.use-case';
+import { CheckUserCanReviewContractUseCase } from '@domains/contract/use-cases/check-user-can-review-contract.use-case';
+import { UpdateReviewerUseCase } from '@domains/contract/use-cases/update-reviewer.use-case';
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
@@ -106,6 +111,7 @@ import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/t
 import { TypeOrmDocumentHistoryRepository } from '@shared/infrastructure/repositories/typeorm-document-history.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { TypeOrmContractReviewerRepository } from '@shared/infrastructure/repositories/typeorm-contract-reviewer.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
@@ -123,6 +129,7 @@ export class DependencyContainer {
   private documentHistoryRepository!: TypeOrmDocumentHistoryRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
+  private contractReviewerRepository!: TypeOrmContractReviewerRepository;
   private fileRepository!: TypeOrmFileRepository;
 
   // Use Cases - User
@@ -190,6 +197,11 @@ export class DependencyContainer {
   private addSubcontractUseCase!: AddSubcontractUseCase;
   private removeSubcontractUseCase!: RemoveSubcontractUseCase;
   private getSubcontractsUseCase!: GetSubcontractsUseCase;
+  private assignReviewerToContractUseCase!: AssignReviewerToContractUseCase;
+  private removeReviewerFromContractUseCase!: RemoveReviewerFromContractUseCase;
+  private getContractReviewersUseCase!: GetContractReviewersUseCase;
+  private checkUserCanReviewContractUseCase!: CheckUserCanReviewContractUseCase;
+  private updateReviewerUseCase!: UpdateReviewerUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
@@ -236,6 +248,7 @@ export class DependencyContainer {
     this.documentHistoryRepository = new TypeOrmDocumentHistoryRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
     this.roleRepository = new TypeOrmRoleRepository();
+    this.contractReviewerRepository = new TypeOrmContractReviewerRepository();
     this.fileRepository = new TypeOrmFileRepository();
 
     // Initialize User use cases
@@ -309,6 +322,23 @@ export class DependencyContainer {
     this.addSubcontractUseCase = new AddSubcontractUseCase(this.contractRepository);
     this.removeSubcontractUseCase = new RemoveSubcontractUseCase(this.contractRepository);
     this.getSubcontractsUseCase = new GetSubcontractsUseCase(this.contractRepository);
+    this.assignReviewerToContractUseCase = new AssignReviewerToContractUseCase(
+      this.contractReviewerRepository,
+      this.contractRepository,
+      this.userRepository,
+    );
+    this.removeReviewerFromContractUseCase = new RemoveReviewerFromContractUseCase(
+      this.contractReviewerRepository,
+    );
+    this.getContractReviewersUseCase = new GetContractReviewersUseCase(
+      this.contractReviewerRepository,
+    );
+    this.checkUserCanReviewContractUseCase = new CheckUserCanReviewContractUseCase(
+      this.contractReviewerRepository,
+    );
+    this.updateReviewerUseCase = new UpdateReviewerUseCase(
+      this.contractReviewerRepository,
+    );
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
@@ -364,6 +394,10 @@ export class DependencyContainer {
       this.addSubcontractUseCase,
       this.removeSubcontractUseCase,
       this.getSubcontractsUseCase,
+      this.assignReviewerToContractUseCase,
+      this.removeReviewerFromContractUseCase,
+      this.getContractReviewersUseCase,
+      this.updateReviewerUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
@@ -400,6 +434,8 @@ export class DependencyContainer {
       this.approveDocumentUseCase,
       this.rejectDocumentUseCase,
       this.rejectDocumentWithCommentsUseCase,
+      this.contractReviewerRepository,
+      this.getAllDocumentTypesWithSubtypesUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(
@@ -540,5 +576,9 @@ export class DependencyContainer {
 
   public getAssignPermissionsToRoleUseCase(): AssignPermissionsToRoleUseCase {
     return this.assignPermissionsToRoleUseCase;
+  }
+
+  public getCheckUserCanReviewContractUseCase(): CheckUserCanReviewContractUseCase {
+    return this.checkUserCanReviewContractUseCase;
   }
 }

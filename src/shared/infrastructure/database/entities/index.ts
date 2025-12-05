@@ -1,5 +1,6 @@
 export { ColaboratorEntity } from './colaborators.entity';
 export { ContractEntity } from './contract.entity';
+export { ContractReviewerEntity } from './contract-reviewer.entity';
 export { DocumentTypeEntity } from './document-type.entity';
 export { DocumentSubtypeEntity } from './document-subtype.entity';
 export { DocumentEntity } from './document.entity';
