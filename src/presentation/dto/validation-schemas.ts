@@ -217,10 +217,20 @@ export const assignRoleToUserSchema = Joi.object({
 export const assignReviewerSchema = Joi.object({
   userId: Joi.string().uuid().required(),
   isPrimary: Joi.boolean().optional().default(false),
-  validUntil: Joi.date().iso().optional().min('now').messages({
-    'date.min': 'validUntil must be a future date.',
-  }),
+  validUntil: Joi.alternatives()
+    .try(
+      Joi.date().iso().min('now').messages({
+        'date.min': 'validUntil must be a future date.',
+      }),
+      Joi.string().valid('').optional(),
+    )
+    .optional(),
 }).custom((value, helpers) => {
+  // Convertir string vacío a undefined
+  if (value.validUntil === '') {
+    delete value.validUntil;
+  }
+
   // Si no es primario, debe tener validUntil
   if (value.isPrimary === false && !value.validUntil) {
     return helpers.error('any.invalid', {
