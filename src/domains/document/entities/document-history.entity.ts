@@ -7,8 +7,8 @@ import { DocumentStatus, DocumentAction } from '../value-objects/document-enums'
 export interface DocumentHistoryProps {
   id?: string;
   documentId: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  templateId: string;
+  colaboratorId: string;
   name: string;
   issuedDate: Date;
   expirationDate?: Date | null;
@@ -18,7 +18,7 @@ export interface DocumentHistoryProps {
   status?: string;
   comment?: string | null;
   action: string;
-  updatedBy: string;
+  updatedBy?: string;
   updatedByName?: string;
   updatedByLastName?: string;
   updatedAt?: Date;
@@ -27,8 +27,8 @@ export interface DocumentHistoryProps {
 export class DocumentHistory {
   id: string;
   documentId: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  templateId: string;
+  colaboratorId: string;
   name: string;
   issuedDate: Date;
   expirationDate: Date | null;
@@ -67,12 +67,12 @@ export class DocumentHistory {
       throw new ValidationError('El ID del documento es requerido');
     }
 
-    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
-      throw new ValidationError('El ID del tipo de documento es requerido');
+    if (!props.templateId || props.templateId.trim().length === 0) {
+      throw new ValidationError('El ID del template de documento es requerido');
     }
 
-    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
-      throw new ValidationError('El ID del subtipo de documento es requerido');
+    if (!props.colaboratorId || props.colaboratorId.trim().length === 0) {
+      throw new ValidationError('El ID del colaborador es requerido');
     }
 
     if (!props.name || props.name.trim().length === 0) {
@@ -95,9 +95,7 @@ export class DocumentHistory {
       throw new ValidationError('La acción es requerida');
     }
 
-    if (!props.updatedBy || props.updatedBy.trim().length === 0) {
-      throw new ValidationError('El usuario que actualiza es requerido');
-    }
+    // updatedBy optional (system changes)
 
     if (props.description && props.description.trim().length > 1000) {
       throw new ValidationError('La descripción no puede exceder 1000 caracteres');
@@ -122,8 +120,8 @@ export class DocumentHistory {
     return {
       id: this.id,
       documentId: this.documentId,
-      documentTypeId: this.documentTypeId,
-      documentSubtypeId: this.documentSubtypeId,
+      templateId: this.templateId,
+      colaboratorId: this.colaboratorId,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate),

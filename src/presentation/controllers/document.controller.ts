@@ -4,8 +4,8 @@ import {
   GetDocumentByIdUseCase,
   GetAllDocumentsUseCase,
   GetDocumentsByContractIdUseCase,
-  GetDocumentsByDocumentTypeIdUseCase,
-  GetDocumentsByDocumentSubtypeIdUseCase,
+  GetDocumentsByTemplateIdUseCase,
+  GetDocumentsByColaboratorIdUseCase,
   GetExpiredDocumentsUseCase,
   GetExpiringDocumentsUseCase,
 } from '../../domains/document/use-cases/get-document.use-case';
@@ -30,8 +30,8 @@ export class DocumentController {
     private getDocumentByIdUseCase: GetDocumentByIdUseCase,
     private getAllDocumentsUseCase: GetAllDocumentsUseCase,
     private getDocumentsByContractIdUseCase: GetDocumentsByContractIdUseCase,
-    private getDocumentsByDocumentTypeIdUseCase: GetDocumentsByDocumentTypeIdUseCase,
-    private getDocumentsByDocumentSubtypeIdUseCase: GetDocumentsByDocumentSubtypeIdUseCase,
+    private getDocumentsByTemplateIdUseCase: GetDocumentsByTemplateIdUseCase,
+    private getDocumentsByColaboratorIdUseCase: GetDocumentsByColaboratorIdUseCase,
     private getExpiredDocumentsUseCase: GetExpiredDocumentsUseCase,
     private getExpiringDocumentsUseCase: GetExpiringDocumentsUseCase,
     private updateDocumentUseCase: UpdateDocumentUseCase,
@@ -48,15 +48,15 @@ export class DocumentController {
     const dto: CreateDocumentDto = req.body;
 
     const document = await this.createDocumentUseCase.execute({
-      documentTypeId: dto.documentTypeId,
-      documentSubtypeId: dto.documentSubtypeId,
+      templateId: dto.templateId,
+      colaboratorId: dto.colaboratorId,
       name: dto.name,
       issuedDate: new Date(dto.issuedDate),
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
-      createdBy: req.user!.id,
+      createdBy: req.user?.id,
     });
 
     res.status(201).json({
@@ -128,9 +128,9 @@ export class DocumentController {
     });
   });
 
-  getDocumentsByDocumentTypeId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { documentTypeId } = req.params;
-    const documents = await this.getDocumentsByDocumentTypeIdUseCase.execute(documentTypeId);
+  getDocumentsByTemplateId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { templateId } = req.params;
+    const documents = await this.getDocumentsByTemplateIdUseCase.execute(templateId);
     res.status(200).json({
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
@@ -138,9 +138,9 @@ export class DocumentController {
     });
   });
 
-  getDocumentsByDocumentSubtypeId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { documentSubtypeId } = req.params;
-    const documents = await this.getDocumentsByDocumentSubtypeIdUseCase.execute(documentSubtypeId);
+  getDocumentsByColaboratorId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { colaboratorId } = req.params;
+    const documents = await this.getDocumentsByColaboratorIdUseCase.execute(colaboratorId);
     res.status(200).json({
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
@@ -172,15 +172,15 @@ export class DocumentController {
     const dto: UpdateDocumentDto = req.body;
 
     const document = await this.updateDocumentUseCase.execute(id, {
-      documentTypeId: dto.documentTypeId,
-      documentSubtypeId: dto.documentSubtypeId,
+      templateId: dto.templateId,
+      colaboratorId: dto.colaboratorId,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
-      updatedBy: req.user!.id,
+      updatedBy: req.user?.id,
       comment: dto.comment,
     });
 
@@ -202,7 +202,7 @@ export class DocumentController {
 
   sendToReview = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.sendToReviewDocumentUseCase.execute(id, req.user!.id);
+    await this.sendToReviewDocumentUseCase.execute(id, req.user?.id || 'system');
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -216,7 +216,7 @@ export class DocumentController {
 
   approveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.approveDocumentUseCase.execute(id, req.user!.id);
+    await this.approveDocumentUseCase.execute(id, req.user?.id || 'system');
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -230,7 +230,7 @@ export class DocumentController {
 
   rejectDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.rejectDocumentUseCase.execute(id, req.user!.id);
+    await this.rejectDocumentUseCase.execute(id, req.user?.id || 'system');
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -254,7 +254,7 @@ export class DocumentController {
       return;
     }
 
-    await this.rejectDocumentWithCommentsUseCase.execute(id, req.user!.id, comments);
+    await this.rejectDocumentWithCommentsUseCase.execute(id, req.user?.id || 'system', comments);
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -270,14 +270,15 @@ export class DocumentController {
     const json = document.toJSON();
     return {
       id: json.id,
-      documentTypeId: json.documentTypeId,
-      documentSubtypeId: json.documentSubtypeId,
+      templateId: json.templateId,
+      colaboratorId: json.colaboratorId,
+      templateName: document.templateName,
       documentTypeName: document.documentTypeName,
       documentSubtypeName: document.documentSubtypeName,
       name: json.name,
       issuedDate: json.issuedDate,
       expirationDate: json.expirationDate ? json.expirationDate : undefined,
-      contractId: json.contractId,
+      contractId: json.contractId ?? undefined,
       contractNumber: document.contractNumber,
       contractProjectName: document.contractProjectName,
       description: json.description,

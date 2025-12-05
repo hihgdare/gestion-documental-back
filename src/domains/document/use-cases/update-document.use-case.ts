@@ -4,10 +4,11 @@ import { Document } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError } from '@shared/domain/errors';
+import { ValidationError } from '@shared/domain/errors';
 
 export interface UpdateDocumentRequest {
-  documentTypeId?: string;
-  documentSubtypeId?: string;
+  templateId?: string;
+  colaboratorId?: string;
   name?: string;
   issuedDate?: Date;
   expirationDate?: Date;
@@ -35,12 +36,12 @@ export class UpdateDocumentUseCase {
       document.updateName(request.name);
     }
 
-    if (request.documentTypeId !== undefined) {
-      document.updateDocumentTypeId(request.documentTypeId);
+    if (request.templateId !== undefined) {
+      document.updateDocumentTypeId(request.templateId);
     }
 
-    if (request.documentSubtypeId !== undefined) {
-      document.updateDocumentSubtypeId(request.documentSubtypeId);
+    if (request.colaboratorId !== undefined) {
+      document.updateDocumentSubtypeId(request.colaboratorId);
     }
 
     if (request.issuedDate !== undefined || request.expirationDate !== undefined) {
@@ -62,6 +63,16 @@ export class UpdateDocumentUseCase {
       document.updateContractId(request.contractId);
     }
 
+    // Regla: no permitir documentos simultáneos con misma plantilla y colaborador
+    const exists = await this.documentRepository.existsByTemplateAndColaborator(
+      document.templateId,
+      document.colaboratorId,
+      document.id,
+    );
+    if (exists) {
+      throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
+    }
+
     // Al editar un documento, siempre vuelve a estado borrador
     document.setToDraft();
 
@@ -71,8 +82,8 @@ export class UpdateDocumentUseCase {
     // Create history entry
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
-      documentTypeId: updatedDocument.documentTypeId,
-      documentSubtypeId: updatedDocument.documentSubtypeId,
+      templateId: updatedDocument.templateId,
+      colaboratorId: updatedDocument.colaboratorId,
       name: updatedDocument.name,
       issuedDate: updatedDocument.issuedDate,
       expirationDate: updatedDocument.expirationDate,
@@ -85,7 +96,11 @@ export class UpdateDocumentUseCase {
       updatedBy: request.updatedBy || 'system',
     };
 
-    await this.documentHistoryRepository.save(historyProps);
+    try {
+      await this.documentHistoryRepository.save(historyProps);
+    } catch (_err) {
+      // ignore history persistence errors to not block document update
+    }
 
     return updatedDocument;
   }

@@ -30,19 +30,19 @@ export class GetDocumentsByContractIdUseCase {
   }
 }
 
-export class GetDocumentsByDocumentTypeIdUseCase {
+export class GetDocumentsByTemplateIdUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  public async execute(documentTypeId: string): Promise<Document[]> {
-    return await this.documentRepository.findByDocumentTypeId(documentTypeId);
+  public async execute(templateId: string): Promise<Document[]> {
+    return await this.documentRepository.findByTemplateId(templateId);
   }
 }
 
-export class GetDocumentsByDocumentSubtypeIdUseCase {
+export class GetDocumentsByColaboratorIdUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  public async execute(documentSubtypeId: string): Promise<Document[]> {
-    return await this.documentRepository.findByDocumentSubtypeId(documentSubtypeId);
+  public async execute(colaboratorId: string): Promise<Document[]> {
+    return await this.documentRepository.findByColaboratorId(colaboratorId);
   }
 }
 

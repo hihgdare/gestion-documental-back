@@ -27,9 +27,9 @@ export class RejectDocumentWithCommentsUseCase {
     const historyProps: DocumentHistoryProps = {
       documentId: document.id,
       action: DocumentAction.REJECTED_WITH_COMMENTS,
-      updatedBy: userId,
-      documentTypeId: document.documentTypeId,
-      documentSubtypeId: document.documentSubtypeId,
+      updatedBy: userId === 'system' ? undefined : userId,
+      templateId: document.templateId,
+      colaboratorId: document.colaboratorId,
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,

@@ -137,8 +137,8 @@ export const getDocumentSubtypeByIdSchema = Joi.object({
 });
 
 export const createDocumentSchema = Joi.object({
-  documentTypeId: Joi.string().uuid().required(),
-  documentSubtypeId: Joi.string().uuid().required(),
+  templateId: Joi.string().uuid().required(),
+  colaboratorId: Joi.string().uuid().required(),
   name: Joi.string().min(2).max(255).required(),
   issuedDate: Joi.date().required().messages({
     'date.base': 'issuedDate must be a valid date',
@@ -151,11 +151,11 @@ export const createDocumentSchema = Joi.object({
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow('', null),
   documentUrl: Joi.string().optional().allow('', null),
-});
+}).unknown(true);
 
 export const updateDocumentSchema = Joi.object({
-  documentTypeId: Joi.string().uuid().optional(),
-  documentSubtypeId: Joi.string().uuid().optional(),
+  templateId: Joi.string().uuid().optional(),
+  colaboratorId: Joi.string().uuid().optional(),
   name: Joi.string().min(2).max(255).optional(),
   issuedDate: Joi.date().optional().messages({
     'date.base': 'issuedDate must be a valid date',
@@ -167,6 +167,20 @@ export const updateDocumentSchema = Joi.object({
   description: Joi.string().max(1000).optional().allow(null, ''),
   documentUrl: Joi.string().optional().allow(null, ''),
 }).min(1).unknown(true); // Permitir campos desconocidos
+
+export const createDocumentTemplateSchema = Joi.object({
+  name: Joi.string().min(2).max(255).required(),
+  description: Joi.string().max(2000).optional().allow(null, ''),
+  documentTypeId: Joi.string().uuid().required(),
+  documentSubtypeId: Joi.string().uuid().required(),
+});
+
+export const updateDocumentTemplateSchema = Joi.object({
+  name: Joi.string().min(2).max(255).optional(),
+  description: Joi.string().max(2000).optional().allow(null, ''),
+  documentTypeId: Joi.string().uuid().optional(),
+  documentSubtypeId: Joi.string().uuid().optional(),
+}).min(1);
 
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
