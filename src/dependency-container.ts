@@ -466,6 +466,7 @@ export class DependencyContainer {
       this.removeReviewerFromContractUseCase,
       this.getContractReviewersUseCase,
       this.updateReviewerUseCase,
+      this.getUserByIdUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(

@@ -44,6 +44,7 @@ export class TypeOrmContractReviewerRepository implements ContractReviewerReposi
     const now = new Date();
     const entities = await this.repository
       .createQueryBuilder('reviewer')
+      .leftJoinAndSelect('reviewer.user', 'user')
       .where('reviewer.contractId = :contractId', { contractId })
       .andWhere(
         '(reviewer.isPrimary = true OR (reviewer.isPrimary = false AND reviewer.validUntil > :now))',

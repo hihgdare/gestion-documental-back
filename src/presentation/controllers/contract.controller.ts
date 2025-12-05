@@ -38,6 +38,7 @@ import { AssignReviewerDto } from '@presentation/dto/contract/assign-reviewer.dt
 import { UpdateReviewerDto } from '@presentation/dto/contract/update-reviewer.dto';
 import { ReviewerResponseDto } from '@presentation/dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
+import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 
 
 export class ContractController {
@@ -66,6 +67,7 @@ export class ContractController {
     private readonly removeReviewerFromContractUseCase: RemoveReviewerFromContractUseCase,
     private readonly getContractReviewersUseCase: GetContractReviewersUseCase,
     private readonly updateReviewerUseCase: UpdateReviewerUseCase,
+    private readonly getUserByIdUseCase: GetUserByIdUseCase,
   ) { }
 
 
@@ -320,11 +322,29 @@ export class ContractController {
   });
 
   // Reviewer management methods
-  private toReviewerResponseDto(reviewer: ContractReviewer): ReviewerResponseDto {
+  private async toReviewerResponseDto(reviewer: ContractReviewer): Promise<ReviewerResponseDto> {
     const json = reviewer.toJSON();
+
+    // Buscar información del usuario
+    let userName: string | undefined;
+    let userEmail: string | undefined;
+
+    try {
+      const user = await this.getUserByIdUseCase.execute(json.userId);
+      if (user) {
+        userName = `${user.firstName} ${user.lastName}`;
+        userEmail = user.email.toString();
+      }
+    } catch {
+      // Si no se encuentra el usuario, continuar sin sus datos
+      console.warn(`User ${json.userId} not found for reviewer ${json.id}`);
+    }
+
     return {
       id: json.id,
       userId: json.userId,
+      userName,
+      userEmail,
       contractId: json.contractId,
       isPrimary: json.isPrimary,
       validUntil: json.validUntil,
@@ -346,7 +366,7 @@ export class ContractController {
 
     res.status(200).json({
       success: true,
-      data: this.toReviewerResponseDto(reviewer),
+      data: await this.toReviewerResponseDto(reviewer),
       message: 'Reviewer assigned successfully',
     });
   });
@@ -376,7 +396,7 @@ export class ContractController {
 
     res.status(200).json({
       success: true,
-      data: reviewers.map((reviewer: ContractReviewer) => this.toReviewerResponseDto(reviewer)),
+      data: await Promise.all(reviewers.map((reviewer: ContractReviewer) => this.toReviewerResponseDto(reviewer))),
       count: reviewers.length,
     });
   });
@@ -394,7 +414,7 @@ export class ContractController {
 
     res.status(200).json({
       success: true,
-      data: this.toReviewerResponseDto(reviewer),
+      data: await this.toReviewerResponseDto(reviewer),
       message: 'Reviewer updated successfully',
     });
   });
