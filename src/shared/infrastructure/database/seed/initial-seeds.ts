@@ -11,7 +11,7 @@ const adminSections = ['contract', 'permission', 'role', 'user', 'document', 'co
 const adminActions = ['create', 'read', 'update', 'delete'];
 const otherPermissions = ['role:assign:permission', 'user:assign:role', 'document:review', 'contract:assign:reviewer', 'colaborator-group:assign:colaborator'];
 
-export async function runInitialSeedIfEmpty(): Promise<void> {
+export async function runInitialSeedsIfEmpty(): Promise<void> {
   const email = process.env.SEEDER_ADMIN_EMAIL;
   const password = process.env.SEEDER_ADMIN_PASSWORD;
   const roleName = process.env.SEEDER_ADMIN_ROLE;
