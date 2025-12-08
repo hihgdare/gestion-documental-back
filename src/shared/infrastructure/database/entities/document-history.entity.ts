@@ -14,10 +14,10 @@ import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents_history')
-@Index(['documentId'])
-@Index(['action'])
-@Index(['updatedBy'])
-@Index(['status'])
+@Index('IDX_documents_history_document', ['documentId'])
+@Index('IDX_documents_history_action', ['action'])
+@Index('IDX_documents_history_updated_by', ['updatedBy'])
+@Index('IDX_documents_history_status', ['status'])
 export class DocumentHistoryEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

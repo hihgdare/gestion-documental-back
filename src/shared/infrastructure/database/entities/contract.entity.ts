@@ -13,10 +13,10 @@ import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decor
 import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
 
 @Entity('contracts')
-@Index(['rutSociedad'])
-@Index(['nombreColaborador'])
-@Index(['contractType'])
-@Index(['status'])
+@Index('IDX_contracts_rut_sociedad', ['rutSociedad'])
+@Index('IDX_contracts_nombre_colaborador', ['nombreColaborador'])
+@Index('IDX_contracts_contract_type', ['contractType'])
+@Index('IDX_contracts_status', ['status'])
 export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

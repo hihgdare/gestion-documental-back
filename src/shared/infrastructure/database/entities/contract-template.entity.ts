@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
 
 @Entity('contract_templates')
-@Index(['contractId'])
-@Index(['documentTemplateId'])
+@Index('IDX_contract_templates_contract', ['contractId'])
+@Index('IDX_contract_templates_document_template', ['documentTemplateId'])
 export class ContractTemplateEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
