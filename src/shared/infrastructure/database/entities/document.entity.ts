@@ -15,8 +15,7 @@ import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
-@Index(['templateId', 'colaboratorId'], { unique: true })
-@Index(['contractId'])
+@Index(['templateId', 'contractId', 'colaboratorId'], { unique: true })
 @Index(['status'])
 @Index(['deletedAt'])
 export class DocumentEntity {

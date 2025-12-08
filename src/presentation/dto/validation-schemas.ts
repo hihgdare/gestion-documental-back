@@ -186,6 +186,16 @@ export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
 
+export const assignDocumentsFromTemplateToGroupSchema = Joi.object({
+  templateId: Joi.string().uuid().required(),
+  contractId: Joi.string().uuid().required(),
+  groupId: Joi.number().integer().required(),
+  issuedDate: Joi.date().optional(),
+  expirationDate: Joi.date().optional().allow(null),
+  name: Joi.string().min(2).max(255).optional(),
+  comment: Joi.string().max(1000).optional().allow('', null),
+});
+
 export const createPermissionSchema = Joi.object({
   name: Joi.string().min(2).max(50).required(),
   description: Joi.string().max(255).optional(),
