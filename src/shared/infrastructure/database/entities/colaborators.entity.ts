@@ -11,8 +11,8 @@ import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decor
 import { ColaboratorGroupEntity } from './colaborator-group.entity';
 
 @Entity('colaborators')
-@Index(['nombre', 'apellidoPaterno'])
-@Index(['status'])
+@Index('IDX_colaborators_name_surname', ['nombre', 'apellidoPaterno'])
+@Index('IDX_colaborators_status', ['status'])
 export class ColaboratorEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

@@ -15,9 +15,9 @@ import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
-@Index(['templateId', 'contractId', 'colaboratorId'], { unique: true })
-@Index(['status'])
-@Index(['deletedAt'])
+@Index('UQ_documents_template_contract_colaborator', ['templateId', 'contractId', 'colaboratorId'], { unique: true })
+@Index('IDX_documents_status', ['status'])
+@Index('IDX_documents_deleted_at', ['deletedAt'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
