@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { DocumentController } from '../controllers/document.controller';
 import { validateRequest } from '@shared/middleware/validation';
-import { createDocumentSchema, updateDocumentSchema } from '../dto/validation-schemas';
+import { createDocumentSchema, updateDocumentSchema, assignDocumentsFromTemplateToGroupSchema } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
 import { RequestHandler } from 'express';
@@ -15,6 +15,7 @@ export const createDocumentRoutes = (
 
   // POST routes
   router.post('/', authorize('document:create'), validateRequest(createDocumentSchema, true), controller.createDocument);
+  router.post('/assign-template-to-group', authorize('document:create'), validateRequest(assignDocumentsFromTemplateToGroupSchema, true), controller.assignDocumentsFromTemplateToGroup);
 
   // GET routes - specific routes before parameterized routes
   router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);

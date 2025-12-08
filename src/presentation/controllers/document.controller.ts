@@ -23,6 +23,7 @@ import { ContractReviewerRepository } from '@domains/contract/repositories/contr
 import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
+import { AssignDocumentsFromTemplateToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
 
 export class DocumentController {
   constructor(
@@ -42,6 +43,7 @@ export class DocumentController {
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
     private contractReviewerRepository: ContractReviewerRepository,
     private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
+    private assignDocumentsFromTemplateToGroupUseCase: AssignDocumentsFromTemplateToGroupUseCase,
   ) {}
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -164,6 +166,31 @@ export class DocumentController {
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
       count: documents.length,
+    });
+  });
+
+  assignDocumentsFromTemplateToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { templateId, contractId, groupId, issuedDate, expirationDate, name, comment } = req.body;
+    const result = await this.assignDocumentsFromTemplateToGroupUseCase.execute({
+      templateId,
+      contractId,
+      groupId: Number(groupId),
+      issuedDate: issuedDate ? new Date(issuedDate) : undefined,
+      expirationDate: expirationDate ? new Date(expirationDate) : undefined,
+      name,
+      createdBy: req.user?.id,
+      comment,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        created: result.created.map(d => this.toResponseDto(d)),
+        skipped: result.skipped,
+        createdCount: result.created.length,
+        skippedCount: result.skipped.length,
+      },
+      message: 'Asignación masiva completada',
     });
   });
 

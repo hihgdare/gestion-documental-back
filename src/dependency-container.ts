@@ -134,6 +134,7 @@ import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permiss
 import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
+import { AssignDocumentsFromTemplateToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
 
 export class DependencyContainer {
   // Repositories
@@ -201,6 +202,7 @@ export class DependencyContainer {
   private rejectDocumentUseCase!: RejectDocumentUseCase;
   private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
+  private assignDocumentsFromTemplateToGroupUseCase!: AssignDocumentsFromTemplateToGroupUseCase;
 
   // Use Cases - Contract
   private createContractUseCase!: CreateContractUseCase;
@@ -347,6 +349,13 @@ export class DependencyContainer {
     this.rejectDocumentUseCase = new RejectDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
+    this.assignDocumentsFromTemplateToGroupUseCase = new AssignDocumentsFromTemplateToGroupUseCase(
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.colaboratorGroupRepository,
+      this.documentTemplateRepository,
+      this.contractRepository,
+    );
 
     // Initialize Contract use cases
     this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
@@ -513,6 +522,7 @@ export class DependencyContainer {
       this.rejectDocumentWithCommentsUseCase,
       this.contractReviewerRepository,
       this.getAllDocumentTypesWithSubtypesUseCase,
+      this.assignDocumentsFromTemplateToGroupUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(
