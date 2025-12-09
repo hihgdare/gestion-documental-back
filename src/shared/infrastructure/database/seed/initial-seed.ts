@@ -7,9 +7,9 @@ import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-p
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 
-const adminSections = ['contract', 'permission', 'role', 'user', 'document'];
+const adminSections = ['contract', 'permission', 'role', 'user', 'document', 'colaborator', 'colaborator-group'];
 const adminActions = ['create', 'read', 'update', 'delete'];
-const otherPermissions = ['role:assign:permission', 'user:assign:role', 'document:review', 'contract:assign:reviewer'];
+const otherPermissions = ['role:assign:permission', 'user:assign:role', 'document:review', 'contract:assign:reviewer', 'colaborator-group:assign:colaborator'];
 
 export async function runInitialSeedIfEmpty(): Promise<void> {
   const email = process.env.SEEDER_ADMIN_EMAIL;

@@ -36,6 +36,37 @@ export interface ColaboratorProps {
   updatedAt?: Date;
 }
 
+export interface ColaboratorJson {
+  id: string;
+  tipoDocumento: DocumentType;
+  numeroDocumento: string;
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
+  nombreCompleto: string;
+  nacionalidad: string;
+  sexo: Gender;
+  estadoCivil: CivilStatus;
+  fechaNacimiento: Date;
+  edad: number;
+  paisResidencia: string;
+  region?: string;
+  comuna?: string;
+  estadoRegion?: string;
+  ciudadMunicipio?: string;
+  direccionResidencia: string;
+  telefono: string;
+  email: string;
+  contactoEmergencia?: string;
+  telefonoEmergencia?: string;
+  profesion: string;
+  cargo: string;
+  status: ColaboratorStatus;
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export class Colaborator extends BaseEntity {
   private constructor(
     public id: string,
@@ -397,7 +428,7 @@ export class Colaborator extends BaseEntity {
     return this._status === ColaboratorStatus.ACTIVE;
   }
 
-  public toJSON() {
+  public toJSON(): ColaboratorJson {
     return {
       id: this.id,
       tipoDocumento: this._tipoDocumento,

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
 import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
 import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
+import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
 import { CreateColaboratorDto } from '@presentation/dto/colaborator/create-colaborator.dto';
 import { UpdateColaboratorDto } from '@presentation/dto/colaborator/update-colaborator.dto';
 import { toColaboratorResponseDto } from '@presentation/dto/colaborator/colaborator-response.dto';
@@ -12,6 +13,7 @@ export class ColaboratorController {
     private readonly createColaboratorUseCase: CreateColaboratorUseCase,
     private readonly getColaboratorUseCase: GetColaboratorUseCase,
     private readonly updateColaboratorUseCase: UpdateColaboratorUseCase,
+    private readonly getColaboratorGroupsUseCase: GetColaboratorGroupsUseCase,
   ) {}
 
   public createColaborator = asyncHandler(async (req: Request, res: Response) => {
@@ -145,6 +147,16 @@ export class ColaboratorController {
       success: true,
       data: toColaboratorResponseDto(colaborator),
       message: 'Colaborator terminated successfully',
+    });
+  });
+
+  public getColaboratorGroups = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const groups = await this.getColaboratorGroupsUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: groups.map(g => g.toJSON()),
+      count: groups.length,
     });
   });
 }

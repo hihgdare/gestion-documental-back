@@ -57,6 +57,7 @@ export class ContractReviewerEntity {
       isPrimary: entity.isPrimary,
       validUntil: entity.validUntil,
       createdAt: entity.createdAt,
+      skipValidation: true, // Datos ya guardados en BD no necesitan validación de fecha futura
     });
   }
 }

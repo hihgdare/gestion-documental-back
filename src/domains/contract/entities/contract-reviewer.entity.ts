@@ -9,6 +9,7 @@ export interface CreateContractReviewerProps {
   isPrimary?: boolean;
   validUntil?: DateType | null;
   createdAt?: DateType;
+  skipValidation?: boolean; // Para cuando se carga desde BD
 }
 
 export interface UpdateContractReviewerProps {
@@ -36,7 +37,9 @@ export class ContractReviewer {
   createdAt: Date;
 
   constructor(props: CreateContractReviewerProps) {
-    ContractReviewer.validateRequired(props);
+    if (!props.skipValidation) {
+      ContractReviewer.validateRequired(props);
+    }
     EntityUtils.assign(this as ContractReviewer, props, {
       id: 'uuid',
       isPrimary: (isPrimary?: boolean) => isPrimary ?? false,

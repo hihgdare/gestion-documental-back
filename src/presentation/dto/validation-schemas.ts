@@ -217,10 +217,20 @@ export const assignRoleToUserSchema = Joi.object({
 export const assignReviewerSchema = Joi.object({
   userId: Joi.string().uuid().required(),
   isPrimary: Joi.boolean().optional().default(false),
-  validUntil: Joi.date().iso().optional().min('now').messages({
-    'date.min': 'validUntil must be a future date.',
-  }),
+  validUntil: Joi.alternatives()
+    .try(
+      Joi.date().iso().min('now').messages({
+        'date.min': 'validUntil must be a future date.',
+      }),
+      Joi.string().valid('').optional(),
+    )
+    .optional(),
 }).custom((value, helpers) => {
+  // Convertir string vacío a undefined
+  if (value.validUntil === '') {
+    delete value.validUntil;
+  }
+
   // Si no es primario, debe tener validUntil
   if (value.isPrimary === false && !value.validUntil) {
     return helpers.error('any.invalid', {
@@ -242,3 +252,17 @@ export const updateReviewerSchema = Joi.object({
     'date.min': 'validUntil must be a future date.',
   }),
 }).min(1);
+
+export const createColaboratorGroupSchema = Joi.object({
+  name: Joi.string().min(2).max(255).required(),
+  description: Joi.string().max(1000).optional(),
+});
+
+export const updateColaboratorGroupSchema = Joi.object({
+  name: Joi.string().min(2).max(255).optional(),
+  description: Joi.string().max(1000).optional(),
+}).min(1);
+
+export const assignColaboratorsToGroupSchema = Joi.object({
+  colaboratorIds: Joi.array().items(Joi.string().uuid()).required(),
+});

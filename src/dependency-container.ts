@@ -8,6 +8,7 @@ import { DocumentController } from '@presentation/controllers/document.controlle
 import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
 import { PermissionController } from '@presentation/controllers/permission.controller';
 import { RoleController } from '@presentation/controllers/role.controller';
+import { ColaboratorGroupController } from '@presentation/controllers/colaborator-group.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
@@ -94,6 +95,7 @@ import { UpdateReviewerUseCase } from '@domains/contract/use-cases/update-review
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
 import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
 import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
+import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
 
 // Permission domain
 import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
@@ -107,6 +109,13 @@ import { GetRoleByIdUseCase, GetAllRolesUseCase } from '@domains/role/use-cases/
 import { UpdateRoleUseCase, DeleteRoleUseCase } from '@domains/role/use-cases/update-role.use-case';
 import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 
+// ColaboratorGroup domain
+import { SaveColaboratorGroupUseCase } from '@domains/colaborator-group/use-cases/save-colaborator-group.use-case';
+import { GetColaboratorGroupByIdUseCase, GetAllColaboratorGroupsUseCase } from '@domains/colaborator-group/use-cases/get-colaborator-group.use-case';
+import { UpdateColaboratorGroupUseCase, DeleteColaboratorGroupUseCase } from '@domains/colaborator-group/use-cases/update-colaborator-group.use-case';
+import { AssignColaboratorsToGroupUseCase } from '@domains/colaborator-group/use-cases/assign-colaborators-to-group.use-case';
+import { GetColaboratorsFromGroupUseCase } from '@domains/colaborator-group/use-cases/get-colaborators-from-group.use-case';
+
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
@@ -119,10 +128,11 @@ import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/reposi
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { TypeOrmContractReviewerRepository } from '@shared/infrastructure/repositories/typeorm-contract-reviewer.repository';
+import { TypeOrmColaboratorGroupRepository } from '@shared/infrastructure/repositories/typeorm-colaborator-group.repository';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permissions-to-role.use-case';
 import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
 
 export class DependencyContainer {
@@ -138,6 +148,7 @@ export class DependencyContainer {
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
   private contractReviewerRepository!: TypeOrmContractReviewerRepository;
+  private colaboratorGroupRepository!: TypeOrmColaboratorGroupRepository;
   private fileRepository!: TypeOrmFileRepository;
 
   // Use Cases - User
@@ -222,6 +233,7 @@ export class DependencyContainer {
   private createColaboratorUseCase!: CreateColaboratorUseCase;
   private getColaboratorUseCase!: GetColaboratorUseCase;
   private updateColaboratorUseCase!: UpdateColaboratorUseCase;
+  private getColaboratorGroupsUseCase!: GetColaboratorGroupsUseCase;
 
   // Use Cases - Permission
   private savePermissionUseCase!: SavePermissionUseCase;
@@ -239,6 +251,15 @@ export class DependencyContainer {
   private assignPermissionsToRoleUseCase!: AssignPermissionsToRoleUseCase;
   private getPermissionsToRoleUseCase!: GetPermissionsToRoleUseCase;
 
+  // Use Cases - ColaboratorGroup
+  private saveColaboratorGroupUseCase!: SaveColaboratorGroupUseCase;
+  private getColaboratorGroupByIdUseCase!: GetColaboratorGroupByIdUseCase;
+  private getAllColaboratorGroupsUseCase!: GetAllColaboratorGroupsUseCase;
+  private updateColaboratorGroupUseCase!: UpdateColaboratorGroupUseCase;
+  private deleteColaboratorGroupUseCase!: DeleteColaboratorGroupUseCase;
+  private assignColaboratorsToGroupUseCase!: AssignColaboratorsToGroupUseCase;
+  private getColaboratorsFromGroupUseCase!: GetColaboratorsFromGroupUseCase;
+
   // Controllers
   private colaboratorController!: ColaboratorController;
   private contractController!: ContractController;
@@ -249,6 +270,7 @@ export class DependencyContainer {
   private documentTemplateController!: any;
   private permissionController!: PermissionController;
   private roleController!: RoleController;
+  private colaboratorGroupController!: ColaboratorGroupController;
   private userController!: UserController;
   private authController!: AuthController;
   private fileController!: FileController;
@@ -266,6 +288,7 @@ export class DependencyContainer {
     this.permissionRepository = new TypeOrmPermissionRepository();
     this.roleRepository = new TypeOrmRoleRepository();
     this.contractReviewerRepository = new TypeOrmContractReviewerRepository();
+    this.colaboratorGroupRepository = new TypeOrmColaboratorGroupRepository();
     this.fileRepository = new TypeOrmFileRepository();
 
     // Initialize User use cases
@@ -390,11 +413,32 @@ export class DependencyContainer {
       this.roleRepository,
     );
 
+    // Initialize ColaboratorGroup use cases
+    this.saveColaboratorGroupUseCase = new SaveColaboratorGroupUseCase(this.colaboratorGroupRepository);
+    this.getColaboratorGroupByIdUseCase = new GetColaboratorGroupByIdUseCase(this.colaboratorGroupRepository);
+    this.getAllColaboratorGroupsUseCase = new GetAllColaboratorGroupsUseCase(this.colaboratorGroupRepository);
+    this.updateColaboratorGroupUseCase = new UpdateColaboratorGroupUseCase(this.colaboratorGroupRepository);
+    this.deleteColaboratorGroupUseCase = new DeleteColaboratorGroupUseCase(this.colaboratorGroupRepository);
+    this.assignColaboratorsToGroupUseCase = new AssignColaboratorsToGroupUseCase(
+      this.colaboratorGroupRepository,
+      this.colaboratorRepository,
+    );
+    this.getColaboratorsFromGroupUseCase = new GetColaboratorsFromGroupUseCase(
+      this.colaboratorGroupRepository,
+    );
+
+    // Initialize Colaborator use case that needs ColaboratorGroup repository
+    this.getColaboratorGroupsUseCase = new GetColaboratorGroupsUseCase(
+      this.colaboratorRepository,
+      this.colaboratorGroupRepository,
+    );
+
     // Initialize Controllers
     this.colaboratorController = new ColaboratorController(
       this.createColaboratorUseCase,
       this.getColaboratorUseCase,
       this.updateColaboratorUseCase,
+      this.getColaboratorGroupsUseCase,
     );
 
     this.contractController = new ContractController(
@@ -422,6 +466,7 @@ export class DependencyContainer {
       this.removeReviewerFromContractUseCase,
       this.getContractReviewersUseCase,
       this.updateReviewerUseCase,
+      this.getUserByIdUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
@@ -492,6 +537,16 @@ export class DependencyContainer {
       this.getPermissionsToRoleUseCase,
     );
 
+    this.colaboratorGroupController = new ColaboratorGroupController(
+      this.saveColaboratorGroupUseCase,
+      this.getColaboratorGroupByIdUseCase,
+      this.getAllColaboratorGroupsUseCase,
+      this.updateColaboratorGroupUseCase,
+      this.deleteColaboratorGroupUseCase,
+      this.assignColaboratorsToGroupUseCase,
+      this.getColaboratorsFromGroupUseCase,
+    );
+
     this.userController = new UserController(
       this.createUserUseCase,
       this.getUserByIdUseCase,
@@ -550,6 +605,10 @@ export class DependencyContainer {
 
   public getRoleController(): RoleController {
     return this.roleController;
+  }
+
+  public getColaboratorGroupController(): ColaboratorGroupController {
+    return this.colaboratorGroupController;
   }
 
   public getAuthController(): AuthController {

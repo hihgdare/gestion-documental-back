@@ -19,6 +19,7 @@ import { createDocumentRoutes } from '@presentation/routes/document.routes';
 import { createDocumentHistoryRoutes } from '@presentation/routes/document-history.routes';
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
+import { createColaboratorGroupRoutes } from '@presentation/routes/colaborator-group.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
 import { DependencyContainer } from './dependency-container';
@@ -119,6 +120,7 @@ export class App {
           health: '/health',
           permissions: '/api/permissions',
           roles: '/api/roles',
+          colaboratorGroups: '/api/colaborator-groups',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -140,6 +142,7 @@ export class App {
     const documentTemplateController = this.dependencyContainer.getDocumentTemplateController();
     const permissionController = this.dependencyContainer.getPermissionController();
     const roleController = this.dependencyContainer.getRoleController();
+    const colaboratorGroupController = this.dependencyContainer.getColaboratorGroupController();
     const authController = this.dependencyContainer.getAuthController();
     const fileController = this.dependencyContainer.getFileController();
 
@@ -164,6 +167,7 @@ export class App {
     this.app.use('/api/documents', createDocumentRoutes(documentController, contractReviewerMiddleware));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
+    this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));
     this.app.use('/api/files', createFileRoutes(fileController));
 
     // Auth routes

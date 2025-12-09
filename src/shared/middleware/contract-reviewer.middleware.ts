@@ -25,9 +25,9 @@ export function createContractReviewerMiddleware(
       let contractId: string | undefined;
 
       // Si viene de params directamente (rutas de contrato)
-      contractId = req.params.contractId || req.params.id || req.body.contractId;
+      contractId = req.params.contractId || req.body.contractId;
 
-      // Si no hay contractId y tenemos documentRepository, obtenerlo del documento
+      // Si no hay contractId y tenemos documentRepository y params.id, obtenerlo del documento
       if (!contractId && documentRepository && req.params.id) {
         const document = await documentRepository.findById(req.params.id);
         if (!document) {
