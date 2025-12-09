@@ -3,64 +3,69 @@
 ## Objetivos
 
 - Roles jerárquicos con herencia de permisos.
-- Protección de endpoints por permisos.
-- Caché de permisos efectivos por usuario.
-- Compatibilidad retro con clientes existentes mediante flag.
+- Protección de endpoints por permisos efectivos.
+- Caché de permisos por usuario.
+- Compatibilidad retro mediante flag de activación.
 
 ## Activación
 
-- Flag de entorno: `ENABLE_RBAC=true` para habilitar autenticación/autorización.
-- Por defecto (`false`), los endpoints permanecen sin verificación (retrocompatibilidad).
+- Variable de entorno: `ENABLE_RBAC=true` habilita autenticación/autorización.
+- Header `x-enable-rbac`: en desarrollo/pruebas puede habilitar/deshabilitar dinámicamente.
+- Producción: prevalece `ENABLE_RBAC`; el header solo puede utilziarse para habilitarlo si está inactivo.
+
+## Autenticación
+
+- Autenticación vía JWT en `Authorization: Bearer <token>` y cookies.
+- En desarrollo/pruebas se permite `Bearer skip-token` para flujos sin validación real.
+- En modo test existe un fallback `x-user-id` para asociar un usuario y simular autenticación sin token.
+
+## Autorización
+
+- Middleware `authorize("perm")` valida el permiso efectivo del usuario.
+- Convención de nombres de permisos por módulo, ejemplo:
+- `user:create|read|update|delete|assign:role`
+- `role:create|read|update|delete|assign:permissions`
+- `permission:create|read|update|delete`
+- `contract:create|read|update|delete|assign:reviewer`
+- `document:create|read|update|delete|review`
+- `colaborator-group:create|read|update|delete|assign:colaborator`
 
 ## Modelo de Datos
 
-- `roles`
-  - `id`, `name` (único), `description`, `created_at`, `updated_at`.
-  - `parent_id` (opcional) referencia a `roles.id` para jerarquía.
-- `permissions`
-  - `id`, `name` (único), `description`, timestamps.
-- `role_permissions` (M:N)
-  - `role_id`, `permission_id`.
-- `user_roles` (M:N)
-  - `user_id`, `role_id`.
+- `roles`: `id`, `name` (único), `description`, timestamps, `parent_id` opcional para jerarquía.
+- `permissions`: `id`, `name` (único), `description`, timestamps.
+- `role_permissions` (M:N): `role_id`, `permission_id`.
+- `user_roles` (M:N): `user_id`, `role_id`.
 
 ## Herencia de Permisos
 
 - Un usuario hereda los permisos de todos sus roles.
 - Cada rol hereda los permisos de su `parent` recursivamente.
-- Algoritmo: unión de nombres de permisos propios + ancestrales.
-
-## Middleware
-
-- `auth`: exige cabecera `x-user-id` y adjunta el usuario a la request.
-- `authorize("perm")`: valida el permiso efectivo del usuario.
-- Uso en rutas:
-  - Roles: `role:create|read|update|delete|assign_permissions`.
-  - Permisos: `permission:create|read|update|delete`.
+- Resultado: unión de permisos propios + ancestrales.
 
 ## Caché
 
-- Caché en memoria con TTL (60s) por usuario.
-- Invalida automáticamente por expiración o manualmente.
+- Caché en memoria con TTL (60s) por usuario para permisos efectivos.
+- Invalida por expiración o manualmente cuando cambian roles/permisos.
 
 ## Endpoints protegidos
 
-- `/api/roles` y `/api/permissions` con permisos específicos por operación.
-- Extensible al resto de módulos siguiendo el mismo patrón.
+- `/api/roles`, `/api/permissions`, `/api/users`, `/api/contracts`, `/api/documents`, etc.
+- Aplicar `auth` + `authorize` según el permiso de operación.
 
 ## Migración y compatibilidad
 
-- El sistema puede convivir con clientes antiguos: desactivar RBAC (`ENABLE_RBAC=false`).
-- Recomendación: añadir `parent_id` en producción vía migración.
-- Verificar existencia de `user_roles` para M:N entre usuarios y roles.
+- Convivencia con clientes antiguos: desactivar RBAC (`ENABLE_RBAC=false`).
+- Recomendación: añadir `parent_id` en producción vía migración si se usa jerarquía.
+- Verificar relación M:N `user_roles` y `role_permissions` en migraciones.
 
 ## Pruebas
 
-- Integración: autorización, 401/403, herencia `parent→child`.
-- Controladores existentes siguen pasando con RBAC desactivado.
+- Validar 401/403, herencia `parent→child`, actualización de caché.
+- Controladores existentes siguen funcionando con RBAC desactivado.
 
 ## Buenas prácticas
 
-- Definir un catálogo de permisos por módulo.
-- Asignar permisos a roles (no a usuarios directamente).
+- Definir catálogo de permisos por módulo y documentarlo.
+- Asignar permisos a roles (no directamente a usuarios).
 - Usar caché distribuido (Redis) en producción.
