@@ -1,0 +1,79 @@
+@baseUrl = http://localhost:3000/api
+@module = document-templates
+
+###
+
+# @name create
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "name": "Template manual",
+  "description": "Manual spec template",
+  "documentTypeId": "",
+  "documentSubtypeId": ""
+}
+
+###
+
+# NOTE: Fill `documentTypeId` and `documentSubtypeId` using the responses
+@typeModule = document-types
+@subtypeModule = document-subtypes
+
+# Create a document type first
+POST {{baseUrl}}/{{typeModule}}
+Content-Type: application/json
+
+{
+  "name": "Type for Template"
+}
+
+###
+
+@typeId = {{ response.body.data.id }}
+
+# Create a document subtype
+POST {{baseUrl}}/{{subtypeModule}}
+Content-Type: application/json
+
+{
+  "name": "Subtype for Template",
+  "documentTypeId": "{{ typeId }}"
+}
+
+###
+
+@subtypeId = {{ response.body.data.id }}
+
+# Now create template with real ids
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "name": "Template manual",
+  "description": "Manual spec template",
+  "documentTypeId": "{{ typeId }}",
+  "documentSubtypeId": "{{ subtypeId }}"
+}
+
+###
+
+@id = {{ response.body.data.id }}
+
+# Get template
+GET {{baseUrl}}/{{module}}/{{id}}
+
+###
+
+# Update template
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "name": "Template manual updated"
+}
+
+###
+
+# Delete template
+DELETE {{baseUrl}}/{{module}}/{{id}}

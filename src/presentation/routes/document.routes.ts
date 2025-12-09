@@ -20,8 +20,8 @@ export const createDocumentRoutes = (
   router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);
   router.get('/expiring/:days', authorize('document:read'), controller.getExpiringDocuments);
   router.get('/by-contract/:contractId', authorize('document:read'), controller.getDocumentsByContractId);
-  router.get('/by-document-type/:documentTypeId', authorize('document:read'), controller.getDocumentsByDocumentTypeId);
-  router.get('/by-document-subtype/:documentSubtypeId', authorize('document:read'), controller.getDocumentsByDocumentSubtypeId);
+  router.get('/by-template/:templateId', authorize('document:read'), controller.getDocumentsByTemplateId);
+  router.get('/by-colaborator/:colaboratorId', authorize('document:read'), controller.getDocumentsByColaboratorId);
   router.get('/', authorize('document:read'), controller.getAllDocuments);
   router.get('/:id', authorize('document:read'), controller.getDocumentById);
 

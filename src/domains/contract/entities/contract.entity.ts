@@ -68,7 +68,7 @@ export type ContractJson = Overlap<BaseContractProps, {
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;
-}>
+}>;
 
 
 export class Contract {

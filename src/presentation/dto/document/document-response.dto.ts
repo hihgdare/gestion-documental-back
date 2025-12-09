@@ -1,13 +1,14 @@
 export interface DocumentResponseDto {
   id: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  templateId: string;
+  colaboratorId: string;
+  templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
   issuedDate: string; // ISO date string
   expirationDate?: string; // ISO date string
-  contractId: string | null;
+  contractId?: string;
   contractNumber?: string;
   contractProjectName?: string;
   description?: string;

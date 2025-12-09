@@ -1,6 +1,6 @@
 export type BasicProps<WithSoftDelete extends boolean = false, KeyType = unknown> = {
   id: KeyType;
-} & (WithSoftDelete extends true ? SoftDeleteProps : DateProps)
+} & (WithSoftDelete extends true ? SoftDeleteProps : DateProps);
 
 export interface DateProps {
   createdAt: Date;

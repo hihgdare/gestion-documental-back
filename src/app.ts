@@ -14,6 +14,7 @@ import { createColaboratorRoutes } from '@presentation/routes/colaborators.route
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
 import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
+import { createDocumentTemplateRoutes } from '@presentation/routes/document-template.routes';
 import { createDocumentRoutes } from '@presentation/routes/document.routes';
 import { createDocumentHistoryRoutes } from '@presentation/routes/document-history.routes';
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
@@ -136,6 +137,7 @@ export class App {
     const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
     const documentController = this.dependencyContainer.getDocumentController();
     const documentHistoryController = this.dependencyContainer.getDocumentHistoryController();
+    const documentTemplateController = this.dependencyContainer.getDocumentTemplateController();
     const permissionController = this.dependencyContainer.getPermissionController();
     const roleController = this.dependencyContainer.getRoleController();
     const authController = this.dependencyContainer.getAuthController();
@@ -157,6 +159,7 @@ export class App {
     this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
     this.app.use('/api/documents/types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
+    this.app.use('/api/document-templates', createDocumentTemplateRoutes(documentTemplateController));
     this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
     this.app.use('/api/documents', createDocumentRoutes(documentController, contractReviewerMiddleware));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));

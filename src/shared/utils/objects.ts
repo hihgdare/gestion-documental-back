@@ -38,11 +38,11 @@ export const only = <T extends object, K extends RecordKey>(obj: T, keys: K | re
     if (key in obj) result[key] = obj[key];
     return result;
   }, {} as Pick<T, Extract<K, keyof T>>)
-)
+);
 
 export const parseEnum = <T extends object>(value: unknown, enumType: T): T[keyof T] | null => (
   isValid(value, enumType) ? value : null
-)
+);
 
 export function recordReplace<O extends object>(obj: O, key: RecordKey, value: unknown) {
   if (key in obj) obj[key as keyof O] = value as O[keyof O];

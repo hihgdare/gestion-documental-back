@@ -1,0 +1,130 @@
+@baseUrl = http://localhost:3000/api
+@module = documents
+@colaboratorId = e1cb717d-7503-47f2-bf2c-99a09875c9be
+@contractId = 809af4e2-fcc4-4789-b981-60141a0d1e78
+@templateId = 112f7e56-505f-4295-a28a-759ec5340d1a
+@issuedDate = 2025-01-01
+@expirationDate = 2026-01-01
+
+###
+
+# @name create_document
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+Authorization: Bearer skip-token
+
+{
+  "templateId": "{{ templateId }}",
+  "colaboratorId": "{{ colaboratorId }}",
+  "contractId": "{{ contractId }}",
+  "name": "Documento manual",
+  "issuedDate": "{{ issuedDate }}",
+  "expirationDate": "{{ expirationDate }}",
+  "description": "Spec"
+}
+
+###
+
+# Prepare: create type, subtype, template and colaborator
+@types = document-types
+@subtypes = document-subtypes
+@templates = document-templates
+@colabs = colaborators
+
+POST {{baseUrl}}/{{types}}
+Content-Type: application/json
+
+{
+  "name": "Type for Doc"
+}
+
+###
+
+@typeId = {{ response.body.data.id }}
+
+POST {{baseUrl}}/{{subtypes}}
+Content-Type: application/json
+
+{
+  "name": "Subtype for Doc",
+  "documentTypeId": "{{ typeId }}"
+}
+
+###
+
+@subtypeId = {{ response.body.data.id }}
+
+POST {{baseUrl}}/{{templates}}
+Content-Type: application/json
+
+{
+  "name": "Template for Doc",
+  "documentTypeId": "{{ typeId }}",
+  "documentSubtypeId": "{{ subtypeId }}"
+}
+
+###
+
+@templateId = {{ response.body.data.id }}
+
+POST {{baseUrl}}/{{colabs}}
+Content-Type: application/json
+
+{
+  "tipoDocumento": "rut",
+  "numeroDocumento": "11111111-1",
+  "nombre": "Ana",
+  "apellidoPaterno": "Soto",
+  "nacionalidad": "Chilena",
+  "sexo": "femenino",
+  "estadoCivil": "soltero",
+  "fechaNacimiento": "1995-04-10",
+  "paisResidencia": "CL",
+  "region": "RM",
+  "comuna": "Santiago",
+  "direccionResidencia": "Calle 1",
+  "telefono": "987654321",
+  "email": "ana@example.com",
+  "profesion": "Ingeniera",
+  "cargo": "Analista"
+}
+
+###
+
+@colaboratorId = {{ response.body.data.id }}
+
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "templateId": "{{ templateId }}",
+  "colaboratorId": "{{ colaboratorId }}",
+  "name": "Documento manual",
+  "issuedDate": "2025-01-01",
+  "description": "Spec"
+}
+
+###
+
+@id = {{ response.body.data.id }}
+
+GET {{baseUrl}}/{{module}}/by-template/{{ templateId }}
+
+###
+
+GET {{baseUrl}}/{{module}}/by-colaborator/{{ colaboratorId }}
+
+###
+
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "name": "Documento manual editado",
+  "comment": "Actualizado"
+}
+
+###
+
+DELETE {{baseUrl}}/{{module}}/{{id}}
+

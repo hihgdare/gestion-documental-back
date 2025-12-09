@@ -6,8 +6,9 @@ import { DocumentStatus } from '../value-objects/document-enums';
 
 export interface DocumentProps {
   id?: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  templateId: string;
+  colaboratorId: string;
+  templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
@@ -29,8 +30,9 @@ export interface DocumentProps {
 
 export class Document {
   id: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  templateId: string;
+  colaboratorId: string;
+  templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
@@ -73,12 +75,12 @@ export class Document {
   }
 
   private static validateRequired(props: DocumentProps): void {
-    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
-      throw new ValidationError('El ID del tipo de documento es requerido');
+    if (!props.templateId || props.templateId.trim().length === 0) {
+      throw new ValidationError('El ID del template de documento es requerido');
     }
 
-    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
-      throw new ValidationError('El ID del subtipo de documento es requerido');
+    if (!props.colaboratorId || props.colaboratorId.trim().length === 0) {
+      throw new ValidationError('El ID del colaborador es requerido');
     }
 
     if (!props.name || props.name.trim().length === 0) {
@@ -161,7 +163,7 @@ export class Document {
       throw new ValidationError('El ID del tipo de documento es requerido');
     }
 
-    this.documentTypeId = documentTypeId;
+    this.templateId = documentTypeId;
     this.updatedAt = new Date();
   }
 
@@ -170,7 +172,7 @@ export class Document {
       throw new ValidationError('El ID del subtipo de documento es requerido');
     }
 
-    this.documentSubtypeId = documentSubtypeId;
+    this.colaboratorId = documentSubtypeId;
     this.updatedAt = new Date();
   }
 
@@ -265,8 +267,8 @@ export class Document {
   public toJSON() {
     return {
       id: this.id,
-      documentTypeId: this.documentTypeId,
-      documentSubtypeId: this.documentSubtypeId,
+      templateId: this.templateId,
+      colaboratorId: this.colaboratorId,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate, true),

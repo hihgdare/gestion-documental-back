@@ -9,34 +9,33 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { DocumentTypeEntity } from './document-type.entity';
-import { DocumentSubtypeEntity } from './document-subtype.entity';
+import { DocumentTemplateEntity } from './document-template.entity';
 import { ContractEntity } from './contract.entity';
+import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
+@Index(['templateId', 'colaboratorId'], { unique: true })
 @Index(['contractId'])
-@Index(['documentTypeId'])
-@Index(['documentSubtypeId'])
 @Index(['status'])
 @Index(['deletedAt'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
-  documentTypeId!: string;
+  @Column({ name: 'template_id', type: 'varchar', length: 36 })
+  templateId!: string;
 
-  @ManyToOne(() => DocumentTypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_type_id' })
-  documentType!: DocumentTypeEntity;
+  @ManyToOne(() => DocumentTemplateEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'template_id' })
+  template!: DocumentTemplateEntity;
 
-  @Column({ name: 'document_subtype_id', type: 'varchar', length: 36 })
-  documentSubtypeId!: string;
+  @Column({ name: 'colaborator_id', type: 'varchar', length: 36 })
+  colaboratorId!: string;
 
-  @ManyToOne(() => DocumentSubtypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_subtype_id' })
-  documentSubtype!: DocumentSubtypeEntity;
+  @ManyToOne(() => ColaboratorEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'colaborator_id' })
+  colaborator!: ColaboratorEntity;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;

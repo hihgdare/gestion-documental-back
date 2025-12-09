@@ -12,6 +12,7 @@
     "test:coverage": "bun test --coverage src",
     "lint": "bun run eslint src/**/*.ts",
     "lint:fix": "bun run eslint src/**/*.ts --fix",
+    "lint:ts": "bun run tsc -b --noEmit",
     "migration:create": "typeorm migration:create",
     "migration:generate": "typeorm migration:generate -d migrate-data-source.js",
     "migration:run": "typeorm migration:run -d migrate-data-source.js",

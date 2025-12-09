@@ -8,8 +8,8 @@ import {
   Index,
 } from 'typeorm';
 import { DocumentEntity } from './document.entity';
-import { DocumentTypeEntity } from './document-type.entity';
-import { DocumentSubtypeEntity } from './document-subtype.entity';
+import { DocumentTemplateEntity } from './document-template.entity';
+import { ColaboratorEntity } from './colaborators.entity';
 import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
@@ -29,19 +29,19 @@ export class DocumentHistoryEntity {
   @JoinColumn({ name: 'document_id' })
   document!: DocumentEntity;
 
-  @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
-  documentTypeId!: string;
+  @Column({ name: 'template_id', type: 'varchar', length: 36 })
+  templateId!: string;
 
-  @ManyToOne(() => DocumentTypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_type_id' })
-  documentType!: DocumentTypeEntity;
+  @ManyToOne(() => DocumentTemplateEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'template_id' })
+  template!: DocumentTemplateEntity;
 
-  @Column({ name: 'document_subtype_id', type: 'varchar', length: 36 })
-  documentSubtypeId!: string;
+  @Column({ name: 'colaborator_id', type: 'varchar', length: 36 })
+  colaboratorId!: string;
 
-  @ManyToOne(() => DocumentSubtypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_subtype_id' })
-  documentSubtype!: DocumentSubtypeEntity;
+  @ManyToOne(() => ColaboratorEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'colaborator_id' })
+  colaborator!: ColaboratorEntity;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;
@@ -74,12 +74,12 @@ export class DocumentHistoryEntity {
   @Column({ type: 'varchar', length: 50 })
   action!: string;
 
-  @Column({ name: 'updated_by', type: 'varchar', length: 36 })
-  updatedBy!: string;
+  @Column({ name: 'updated_by', type: 'varchar', length: 36, nullable: true })
+  updatedBy?: string;
 
-  @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => UserEntity, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'updated_by' })
-  updater!: UserEntity;
+  updater?: UserEntity;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;

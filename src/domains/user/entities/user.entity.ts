@@ -32,7 +32,7 @@ export type UserJson = Overlap<BaseUserProps, {
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;
-}>
+}>;
 
 export interface AsRole {
   name: string;

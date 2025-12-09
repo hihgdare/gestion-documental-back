@@ -77,7 +77,7 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
     console.error('❌ Error during database initialization:', error);
     throw error;
   }
-};
+}
 
 export async function clearDatabase(DataSource?: DataSource): Promise<void> {
   if (process.env.NODE_ENV === 'production') return;
