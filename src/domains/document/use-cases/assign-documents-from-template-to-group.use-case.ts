@@ -67,7 +67,7 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
         templateId: request.templateId,
         colaboratorId: colaborator.id,
         name: request.name?.trim() || template.name,
-        issuedDate: request.issuedDate || new Date(),
+        issuedDate: request.issuedDate,
         expirationDate: request.expirationDate,
         contractId: request.contractId,
         createdBy: request.createdBy,
@@ -76,7 +76,7 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
       const saved = await this.documentRepository.save(doc);
       created.push(saved);
 
-      if (request.createdBy && request.createdBy !== 'system') {
+      if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
           templateId: saved.templateId,
@@ -99,4 +99,3 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
     return { created, skipped };
   }
 }
-

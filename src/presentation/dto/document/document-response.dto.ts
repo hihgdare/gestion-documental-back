@@ -6,8 +6,8 @@ export interface DocumentResponseDto {
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
-  issuedDate: string; // ISO date string
-  expirationDate?: string; // ISO date string
+  issuedDate?: string | null; // ISO date string
+  expirationDate?: string | null; // ISO date string
   contractId?: string;
   contractNumber?: string;
   contractProjectName?: string;

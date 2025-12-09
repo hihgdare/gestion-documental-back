@@ -77,3 +77,6 @@ uploads/
 *.sqlite
 *.db
 *.tsbuildinfo
+
+# Development tools
+dc

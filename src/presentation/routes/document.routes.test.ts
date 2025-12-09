@@ -44,13 +44,13 @@ describe('DocumentController with template/colaborator', () => {
   }
 
   async function createColaborator() {
-    const base = `${Date.now()}`;
+    const base = `${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
     const res = await supertest(app)
       .post('/api/colaborators')
       .set('x-enable-rbac', 'false')
       .send({
         tipoDocumento: 'rut',
-        numeroDocumento: `12345678-${base.slice(-1)}`,
+        numeroDocumento: `12345678-${base}`,
         nombre: 'Juan',
         apellidoPaterno: 'Perez',
         apellidoMaterno: 'Gomez',
@@ -63,7 +63,7 @@ describe('DocumentController with template/colaborator', () => {
         comuna: 'Santiago',
         direccionResidencia: 'Av. Siempre Viva 123',
         telefono: '123456789',
-        email: `juan${base}@example.com`,
+        email: `juan-${base}@example.com`,
         profesion: 'Ingeniero',
         cargo: 'Analista',
       });
@@ -290,7 +290,7 @@ describe('DocumentController with template/colaborator', () => {
       const bulk1 = await supertest(app)
         .post('/api/documents/assign-template-to-group')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, contractId, groupId, issuedDate: '2025-01-01', name: 'Doc Bulk' });
+        .send({ templateId, contractId, groupId, name: 'Doc Bulk' });
       if (bulk1.status !== 201) {
         console.log('Bulk1 error:', bulk1.body);
       }
@@ -298,12 +298,18 @@ describe('DocumentController with template/colaborator', () => {
       expect(bulk1.body.success).toBe(true);
       expect(bulk1.body.data.createdCount).toBe(3);
       expect(bulk1.body.data.skippedCount).toBe(0);
+      const createdDocs = bulk1.body.data.created as Array<any>;
+      expect(createdDocs.length).toBe(3);
+      for (const d of createdDocs) {
+        expect(d.issuedDate).toBeNull();
+        expect(d.expirationDate).toBeNull();
+      }
 
       // Second bulk assignment should skip all
       const bulk2 = await supertest(app)
         .post('/api/documents/assign-template-to-group')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, contractId, groupId, issuedDate: '2025-01-02', name: 'Doc Bulk 2' });
+        .send({ templateId, contractId, groupId, name: 'Doc Bulk 2' });
       expect(bulk2.status).toBe(201);
       expect(bulk2.body.success).toBe(true);
       expect(bulk2.body.data.createdCount).toBe(0);

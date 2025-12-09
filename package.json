@@ -20,7 +20,7 @@
     "migration:show": "typeorm migration:show -d migrate-data-source.js",
     "install:bun": "bun install",
     "clean": "rm -rf node_modules bun.lockb dist",
-    "seed": "bun run seeder.ts"
+    "seeder": "bun run seeder.ts"
   },
   "keywords": [
     "nodejs",
