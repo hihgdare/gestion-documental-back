@@ -9,7 +9,7 @@ export interface CreateDocumentRequest {
   templateId: string;
   colaboratorId: string;
   name: string;
-  issuedDate: Date;
+  issuedDate?: Date;
   expirationDate?: Date;
   contractId?: string;
   description?: string;

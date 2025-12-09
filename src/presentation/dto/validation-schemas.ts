@@ -140,14 +140,19 @@ export const createDocumentSchema = Joi.object({
   templateId: Joi.string().uuid().required(),
   colaboratorId: Joi.string().uuid().required(),
   name: Joi.string().min(2).max(255).required(),
-  issuedDate: Joi.date().required().messages({
-    'date.base': 'issuedDate must be a valid date',
-    'any.required': 'issuedDate is required',
-  }),
-  expirationDate: Joi.date().optional().greater(Joi.ref('issuedDate')).allow(null).messages({
-    'date.greater': 'expirationDate must be after issuedDate',
-    'date.base': 'expirationDate must be a valid date',
-  }),
+  issuedDate: Joi.date()
+    .optional()
+    .messages({
+      'date.base': 'issuedDate must be a valid date',
+    }),
+  expirationDate: Joi.date()
+    .optional()
+    .greater(Joi.ref('issuedDate'))
+    .allow(null)
+    .messages({
+      'date.greater': 'expirationDate must be after issuedDate',
+      'date.base': 'expirationDate must be a valid date',
+    }),
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow('', null),
   documentUrl: Joi.string().optional().allow('', null),
@@ -157,12 +162,19 @@ export const updateDocumentSchema = Joi.object({
   templateId: Joi.string().uuid().optional(),
   colaboratorId: Joi.string().uuid().optional(),
   name: Joi.string().min(2).max(255).optional(),
-  issuedDate: Joi.date().optional().messages({
-    'date.base': 'issuedDate must be a valid date',
-  }),
-  expirationDate: Joi.date().optional().allow(null).messages({
-    'date.base': 'expirationDate must be a valid date',
-  }),
+  issuedDate: Joi.date()
+    .optional()
+    .messages({
+      'date.base': 'issuedDate must be a valid date',
+    }),
+  expirationDate: Joi.date()
+    .optional()
+    .greater(Joi.ref('issuedDate'))
+    .allow(null)
+    .messages({
+      'date.base': 'expirationDate must be a valid date',
+      'date.greater': 'expirationDate must be after issuedDate',
+    }),
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow(null, ''),
   documentUrl: Joi.string().optional().allow(null, ''),

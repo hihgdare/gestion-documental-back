@@ -156,7 +156,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       templateId: document.templateId,
       colaboratorId: document.colaboratorId,
       name: document.name,
-      issuedDate: DateUtils.toLocalDate(document.issuedDate)!,
+      issuedDate: document.issuedDate ? DateUtils.toLocalDate(document.issuedDate)! : undefined,
       expirationDate: document.expirationDate ? DateUtils.toLocalDate(document.expirationDate) : undefined,
       contractId: document.contractId || undefined,
       description: document.description,

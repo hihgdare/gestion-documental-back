@@ -39,8 +39,8 @@ export class DocumentEntity {
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
-  @Column({ name: 'issued_date', type: 'date' })
-  issuedDate!: Date;
+  @Column({ name: 'issued_date', type: 'date', nullable: true })
+  issuedDate?: Date;
 
   @Column({ name: 'expiration_date', type: 'date', nullable: true })
   expirationDate?: Date;

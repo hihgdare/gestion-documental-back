@@ -12,7 +12,7 @@ export interface DocumentProps {
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
-  issuedDate: Date;
+  issuedDate?: Date;
   expirationDate?: Date | null;
   contractId?: string | null;
   contractNumber?: string;
@@ -36,7 +36,7 @@ export class Document {
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
-  issuedDate: Date;
+  issuedDate: Date | null;
   expirationDate: Date | null;
   contractId: string | null;
   contractNumber?: string;
@@ -57,7 +57,7 @@ export class Document {
 
     EntityUtils.assign(this as Document, props, {
       id: 'uuid',
-      issuedDate: 'date',
+      issuedDate: 'dateNullable',
       expirationDate: 'dateNullable',
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
@@ -95,8 +95,10 @@ export class Document {
       throw new ValidationError('El nombre del documento no puede exceder 255 caracteres');
     }
 
-    if (!props.issuedDate) {
-      throw new ValidationError('La fecha de emisión es requerida');
+    if (props.documentUrl && props.documentUrl.trim().length > 0) {
+      if (!props.issuedDate) {
+        throw new ValidationError('La fecha de emisión es requerida cuando se suministra el archivo');
+      }
     }
 
     if (props.description && props.description.trim().length > 1000) {
@@ -108,8 +110,8 @@ export class Document {
     }
   }
 
-  private static validateDates(issuedDate: Date, expirationDate?: Date): void {
-    if (expirationDate && expirationDate <= issuedDate) {
+  private static validateDates(issuedDate?: Date | null, expirationDate?: Date | null): void {
+    if (issuedDate && expirationDate && expirationDate <= issuedDate) {
       throw new ValidationError('La fecha de vencimiento debe ser posterior a la fecha de emisión');
     }
   }
@@ -132,14 +134,10 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public updateDates(issuedDate: Date, expirationDate?: Date): void {
-    if (!issuedDate) {
-      throw new ValidationError('La fecha de emisión es requerida');
-    }
-
+  public updateDates(issuedDate?: Date | null, expirationDate?: Date | null): void {
     Document.validateDates(issuedDate, expirationDate);
 
-    this.issuedDate = issuedDate;
+    this.issuedDate = issuedDate || null;
     this.expirationDate = expirationDate || null;
     this.updatedAt = new Date();
   }
@@ -270,7 +268,7 @@ export class Document {
       templateId: this.templateId,
       colaboratorId: this.colaboratorId,
       name: this.name,
-      issuedDate: DateUtils.toString(this.issuedDate),
+      issuedDate: DateUtils.toString(this.issuedDate, true),
       expirationDate: DateUtils.toString(this.expirationDate, true),
       contractId: this.contractId,
       description: this.description,
