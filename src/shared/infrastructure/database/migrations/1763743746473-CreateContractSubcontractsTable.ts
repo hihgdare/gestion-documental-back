@@ -6,9 +6,7 @@ import {
   TableIndex,
 } from 'typeorm';
 
-export class CreateContractSubcontractsTable1763743746473
-implements MigrationInterface
-{
+export class CreateContractSubcontractsTable1763743746473 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({

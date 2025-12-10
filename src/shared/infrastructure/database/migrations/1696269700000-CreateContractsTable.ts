@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm';
 
 export class CreateContractsTable1696269700000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -122,6 +122,18 @@ export class CreateContractsTable1696269700000 implements MigrationInterface {
             isNullable: false,
           },
           {
+            name: 'employee_id',
+            type: 'varchar',
+            length: '36',
+            isNullable: true,
+          },
+          {
+            name: 'manager_id',
+            type: 'varchar',
+            length: '36',
+            isNullable: true,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'CURRENT_TIMESTAMP',
@@ -133,6 +145,11 @@ export class CreateContractsTable1696269700000 implements MigrationInterface {
             default: 'CURRENT_TIMESTAMP',
             onUpdate: 'CURRENT_TIMESTAMP',
             isNullable: false,
+          },
+          {
+            name: 'deleted_at',
+            type: 'datetime',
+            isNullable: true,
           },
         ],
         indices: [
@@ -185,9 +202,49 @@ export class CreateContractsTable1696269700000 implements MigrationInterface {
       }),
       true,
     );
+
+    await queryRunner.createForeignKey(
+      'contracts',
+      new TableForeignKey({
+        name: 'FK_CONTRACTS_EMPLOYEE_ID',
+        columnNames: ['employee_id'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      }),
+    );
+
+    await queryRunner.createForeignKey(
+      'contracts',
+      new TableForeignKey({
+        name: 'FK_CONTRACTS_MANAGER_ID',
+        columnNames: ['manager_id'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('contracts');
+    const table = await queryRunner.getTable('contracts');
+    if (table) {
+      const fkManager = table.foreignKeys.find(f => f.name === 'FK_CONTRACTS_MANAGER_ID' || f.columnNames.includes('manager_id'));
+      if (fkManager) {
+        await queryRunner.dropForeignKey('contracts', fkManager);
+      }
+      const fkEmployee = table.foreignKeys.find(f => f.name === 'FK_CONTRACTS_EMPLOYEE_ID' || f.columnNames.includes('employee_id'));
+      if (fkEmployee) {
+        await queryRunner.dropForeignKey('contracts', fkEmployee);
+      }
+      if (table.findColumnByName('deleted_at')) await queryRunner.dropColumn('contracts', 'deleted_at');
+      if (table.findColumnByName('manager_id')) await queryRunner.dropColumn('contracts', 'manager_id');
+      if (table.findColumnByName('employee_id')) await queryRunner.dropColumn('contracts', 'employee_id');
+    }
+    if (await queryRunner.getTable('contracts')) {
+      await queryRunner.dropTable('contracts');
+    }
   }
 }

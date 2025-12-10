@@ -164,21 +164,21 @@ export class CreateColaboratorsTable1730700000000 implements MigrationInterface 
         ],
         indices: [
           {
-            name: 'IDX_COLABORATOR_NUMERO_DOCUMENTO',
+            name: 'IDX_COLABORATORS_NUMERO_DOCUMENTO',
             columnNames: ['numero_documento'],
             isUnique: true,
           },
           {
-            name: 'IDX_COLABORATOR_EMAIL',
+            name: 'IDX_COLABORATORS_EMAIL',
             columnNames: ['email'],
             isUnique: true,
           },
           {
-            name: 'IDX_COLABORATOR_NOMBRE_APELLIDO',
+            name: 'IDX_COLABORATORS_NAME_SURNAME',
             columnNames: ['nombre', 'apellido_paterno'],
           },
           {
-            name: 'IDX_COLABORATOR_STATUS',
+            name: 'IDX_COLABORATORS_STATUS',
             columnNames: ['status'],
           },
         ],

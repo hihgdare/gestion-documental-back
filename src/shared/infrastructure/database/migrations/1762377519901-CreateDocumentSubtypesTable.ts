@@ -68,10 +68,15 @@ export class CreateDocumentSubtypesTable1762377519901 implements MigrationInterf
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop foreign key first
-    await queryRunner.dropForeignKey('document_subtypes', 'FK_DOCUMENT_SUBTYPES_DOCUMENT_TYPE');
-
-    // Then drop the table
-    await queryRunner.dropTable('document_subtypes');
+    const table = await queryRunner.getTable('document_subtypes');
+    if (table) {
+      const fk = table.foreignKeys.find(f => f.name === 'FK_DOCUMENT_SUBTYPES_DOCUMENT_TYPE' || f.columnNames.includes('document_type_id'));
+      if (fk) {
+        await queryRunner.dropForeignKey('document_subtypes', fk);
+      }
+    }
+    if (await queryRunner.getTable('document_subtypes')) {
+      await queryRunner.dropTable('document_subtypes');
+    }
   }
 }

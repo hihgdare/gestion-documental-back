@@ -46,12 +46,6 @@ export class CreateUsersTable1696269600000 implements MigrationInterface {
             isNullable: false,
           },
           {
-            name: 'role_id',
-            type: 'varchar',
-            length: '36',
-            isNullable: false,
-          },
-          {
             name: 'created_at',
             type: 'timestamp',
             default: 'CURRENT_TIMESTAMP',
@@ -64,6 +58,11 @@ export class CreateUsersTable1696269600000 implements MigrationInterface {
             onUpdate: 'CURRENT_TIMESTAMP',
             isNullable: false,
           },
+          {
+            name: 'deleted_at',
+            type: 'datetime',
+            isNullable: true,
+          },
         ],
         indices: [
           {
@@ -74,10 +73,6 @@ export class CreateUsersTable1696269600000 implements MigrationInterface {
           {
             name: 'IDX_USERS_STATUS',
             columnNames: ['status'],
-          },
-          {
-            name: 'IDX_USERS_ROLE_ID',
-            columnNames: ['role_id'],
           },
         ],
       }),

@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner, Table } from "typeorm";
 
-export class CreateRolesTable1762312653817 implements MigrationInterface {
+export class CreateRolesTable1762315701200 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
@@ -47,7 +47,22 @@ export class CreateRolesTable1762312653817 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('roles');
+    const roleHierarchy = await queryRunner.getTable('role_hierarchy');
+    if (roleHierarchy) {
+      const fkParent = roleHierarchy.foreignKeys.find(f => f.columnNames.includes('parent_role_id'));
+      if (fkParent) {
+        await queryRunner.dropForeignKey('role_hierarchy', fkParent);
+      }
+      const fkChild = roleHierarchy.foreignKeys.find(f => f.columnNames.includes('child_role_id'));
+      if (fkChild) {
+        await queryRunner.dropForeignKey('role_hierarchy', fkChild);
+      }
+      await queryRunner.dropTable('role_hierarchy');
+    }
+
+    if (await queryRunner.getTable('roles')) {
+      await queryRunner.dropTable('roles');
+    }
   }
 
 }

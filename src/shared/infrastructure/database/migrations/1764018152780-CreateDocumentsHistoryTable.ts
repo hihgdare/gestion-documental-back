@@ -20,13 +20,13 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
             isNullable: false,
           },
           {
-            name: 'document_type_id',
+            name: 'template_id',
             type: 'varchar',
             length: '36',
             isNullable: false,
           },
           {
-            name: 'document_subtype_id',
+            name: 'colaborator_id',
             type: 'varchar',
             length: '36',
             isNullable: false,
@@ -39,12 +39,12 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
           },
           {
             name: 'issued_date',
-            type: 'datetime',
+            type: 'date',
             isNullable: false,
           },
           {
             name: 'expiration_date',
-            type: 'datetime',
+            type: 'date',
             isNullable: true,
           },
           {
@@ -85,7 +85,7 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
             name: 'updated_by',
             type: 'varchar',
             length: '36',
-            isNullable: false,
+            isNullable: true,
           },
           {
             name: 'updated_at',
@@ -98,120 +98,167 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
       true,
     );
 
-    // Create foreign key for document_id
-    await queryRunner.createForeignKey(
-      'documents_history',
-      new TableForeignKey({
-        name: 'FK_DOCUMENTS_HISTORY_DOCUMENT',
-        columnNames: ['document_id'],
-        referencedTableName: 'documents',
-        referencedColumnNames: ['id'],
-        onDelete: 'CASCADE',
-        onUpdate: 'CASCADE',
-      }),
-    );
+    const tableAfterCreate = await queryRunner.getTable('documents_history');
+    const hasFkDoc = tableAfterCreate?.foreignKeys.some(f => f.name === 'FK_DOCUMENTS_HISTORY_DOCUMENT' || f.columnNames.includes('document_id'));
+    if (!hasFkDoc) {
+      await queryRunner.createForeignKey(
+        'documents_history',
+        new TableForeignKey({
+          name: 'FK_DOCUMENTS_HISTORY_DOCUMENT',
+          columnNames: ['document_id'],
+          referencedTableName: 'documents',
+          referencedColumnNames: ['id'],
+          onDelete: 'CASCADE',
+          onUpdate: 'CASCADE',
+        }),
+      );
+    }
 
-    // Create foreign key for document_type_id
-    await queryRunner.createForeignKey(
-      'documents_history',
-      new TableForeignKey({
-        name: 'FK_DOCUMENTS_HISTORY_DOCUMENT_TYPE',
-        columnNames: ['document_type_id'],
-        referencedTableName: 'document_types',
-        referencedColumnNames: ['id'],
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
-      }),
-    );
+    // Create foreign key for template_id
+    const hasFkTemplate = tableAfterCreate?.foreignKeys.some(f => f.name === 'FK_DOCUMENTS_HISTORY_TEMPLATE' || f.columnNames.includes('template_id'));
+    if (!hasFkTemplate) {
+      await queryRunner.createForeignKey(
+        'documents_history',
+        new TableForeignKey({
+          name: 'FK_DOCUMENTS_HISTORY_TEMPLATE',
+          columnNames: ['template_id'],
+          referencedTableName: 'document_templates',
+          referencedColumnNames: ['id'],
+          onDelete: 'RESTRICT',
+          onUpdate: 'CASCADE',
+        }),
+      );
+    }
 
-    // Create foreign key for document_subtype_id
-    await queryRunner.createForeignKey(
-      'documents_history',
-      new TableForeignKey({
-        name: 'FK_DOCUMENTS_HISTORY_DOCUMENT_SUBTYPE',
-        columnNames: ['document_subtype_id'],
-        referencedTableName: 'document_subtypes',
-        referencedColumnNames: ['id'],
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
-      }),
-    );
+    // Create foreign key for colaborator_id
+    const hasFkColaborator = tableAfterCreate?.foreignKeys.some(f => f.name === 'FK_DOCUMENTS_HISTORY_COLABORATOR' || f.columnNames.includes('colaborator_id'));
+    if (!hasFkColaborator) {
+      await queryRunner.createForeignKey(
+        'documents_history',
+        new TableForeignKey({
+          name: 'FK_DOCUMENTS_HISTORY_COLABORATOR',
+          columnNames: ['colaborator_id'],
+          referencedTableName: 'colaborators',
+          referencedColumnNames: ['id'],
+          onDelete: 'RESTRICT',
+          onUpdate: 'CASCADE',
+        }),
+      );
+    }
 
     // Create foreign key for contract_id (nullable)
-    await queryRunner.createForeignKey(
-      'documents_history',
-      new TableForeignKey({
-        name: 'FK_DOCUMENTS_HISTORY_CONTRACT',
-        columnNames: ['contract_id'],
-        referencedTableName: 'contracts',
-        referencedColumnNames: ['id'],
-        onDelete: 'SET NULL',
-        onUpdate: 'CASCADE',
-      }),
-    );
+    const hasFkContract = tableAfterCreate?.foreignKeys.some(f => f.name === 'FK_DOCUMENTS_HISTORY_CONTRACT' || f.columnNames.includes('contract_id'));
+    if (!hasFkContract) {
+      await queryRunner.createForeignKey(
+        'documents_history',
+        new TableForeignKey({
+          name: 'FK_DOCUMENTS_HISTORY_CONTRACT',
+          columnNames: ['contract_id'],
+          referencedTableName: 'contracts',
+          referencedColumnNames: ['id'],
+          onDelete: 'SET NULL',
+          onUpdate: 'CASCADE',
+        }),
+      );
+    }
 
     // Create foreign key for updated_by
-    await queryRunner.createForeignKey(
-      'documents_history',
-      new TableForeignKey({
-        name: 'FK_DOCUMENTS_HISTORY_UPDATED_BY',
-        columnNames: ['updated_by'],
-        referencedTableName: 'users',
-        referencedColumnNames: ['id'],
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
-      }),
-    );
+    const hasFkUpdatedBy = tableAfterCreate?.foreignKeys.some(f => f.name === 'FK_DOCUMENTS_HISTORY_UPDATED_BY' || f.columnNames.includes('updated_by'));
+    if (!hasFkUpdatedBy) {
+      await queryRunner.createForeignKey(
+        'documents_history',
+        new TableForeignKey({
+          name: 'FK_DOCUMENTS_HISTORY_UPDATED_BY',
+          columnNames: ['updated_by'],
+          referencedTableName: 'users',
+          referencedColumnNames: ['id'],
+          onDelete: 'RESTRICT',
+          onUpdate: 'CASCADE',
+        }),
+      );
+    }
 
     // Create indices
-    await queryRunner.createIndex(
-      'documents_history',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_HISTORY_DOCUMENT_ID',
-        columnNames: ['document_id'],
-      }),
-    );
+    const historyTable = await queryRunner.getTable('documents_history');
+    const hasIdxDoc = historyTable?.indices.some(i => i.name === 'IDX_DOCUMENTS_HISTORY_DOCUMENT');
+    if (!hasIdxDoc) {
+      await queryRunner.createIndex(
+        'documents_history',
+        new TableIndex({
+          name: 'IDX_DOCUMENTS_HISTORY_DOCUMENT',
+          columnNames: ['document_id'],
+        }),
+      ).catch(() => { });
+    }
 
-    await queryRunner.createIndex(
-      'documents_history',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_HISTORY_ACTION',
-        columnNames: ['action'],
-      }),
-    );
+    const hasIdxAction = historyTable?.indices.some(i => i.name === 'IDX_DOCUMENTS_HISTORY_ACTION');
+    if (!hasIdxAction) {
+      await queryRunner.createIndex(
+        'documents_history',
+        new TableIndex({
+          name: 'IDX_DOCUMENTS_HISTORY_ACTION',
+          columnNames: ['action'],
+        }),
+      ).catch(() => { });
+    }
 
-    await queryRunner.createIndex(
-      'documents_history',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_HISTORY_UPDATED_BY',
-        columnNames: ['updated_by'],
-      }),
-    );
+    const hasIdxUpdatedBy = historyTable?.indices.some(i => i.name === 'IDX_DOCUMENTS_HISTORY_UPDATED_BY');
+    if (!hasIdxUpdatedBy) {
+      await queryRunner.createIndex(
+        'documents_history',
+        new TableIndex({
+          name: 'IDX_DOCUMENTS_HISTORY_UPDATED_BY',
+          columnNames: ['updated_by'],
+        }),
+      ).catch(() => { });
+    }
 
-    await queryRunner.createIndex(
-      'documents_history',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_HISTORY_STATUS',
-        columnNames: ['status'],
-      }),
-    );
+    const hasIdxStatus = historyTable?.indices.some(i => i.name === 'IDX_DOCUMENTS_HISTORY_STATUS');
+    if (!hasIdxStatus) {
+      await queryRunner.createIndex(
+        'documents_history',
+        new TableIndex({
+          name: 'IDX_DOCUMENTS_HISTORY_STATUS',
+          columnNames: ['status'],
+        }),
+      ).catch(() => { });
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop indices
-    await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_STATUS');
-    await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_UPDATED_BY');
-    await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_ACTION');
-    await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_DOCUMENT_ID');
+    const table = await queryRunner.getTable('documents_history');
 
-    // Drop foreign keys
-    await queryRunner.dropForeignKey('documents_history', 'FK_DOCUMENTS_HISTORY_UPDATED_BY');
-    await queryRunner.dropForeignKey('documents_history', 'FK_DOCUMENTS_HISTORY_CONTRACT');
-    await queryRunner.dropForeignKey('documents_history', 'FK_DOCUMENTS_HISTORY_DOCUMENT_SUBTYPE');
-    await queryRunner.dropForeignKey('documents_history', 'FK_DOCUMENTS_HISTORY_DOCUMENT_TYPE');
-    await queryRunner.dropForeignKey('documents_history', 'FK_DOCUMENTS_HISTORY_DOCUMENT');
+    // Drop foreign keys (idempotente)
+    if (table) {
+      const fkUpdatedBy = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_UPDATED_BY' || f.columnNames.includes('updated_by'));
+      if (fkUpdatedBy) await queryRunner.dropForeignKey('documents_history', fkUpdatedBy);
+      const fkContract = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_CONTRACT' || f.columnNames.includes('contract_id'));
+      if (fkContract) await queryRunner.dropForeignKey('documents_history', fkContract);
+      const fkColaborator = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_COLABORATOR' || f.columnNames.includes('colaborator_id'));
+      if (fkColaborator) await queryRunner.dropForeignKey('documents_history', fkColaborator);
+      const fkTemplate = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_TEMPLATE' || f.columnNames.includes('template_id'));
+      if (fkTemplate) await queryRunner.dropForeignKey('documents_history', fkTemplate);
+      const fkDocument = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_DOCUMENT' || f.columnNames.includes('document_id'));
+      if (fkDocument) await queryRunner.dropForeignKey('documents_history', fkDocument);
+
+      // Drop indices (idempotente)
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_HISTORY_STATUS')) {
+        await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_STATUS');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_HISTORY_UPDATED_BY')) {
+        await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_UPDATED_BY');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_HISTORY_ACTION')) {
+        await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_ACTION');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_HISTORY_DOCUMENT')) {
+        await queryRunner.dropIndex('documents_history', 'IDX_DOCUMENTS_HISTORY_DOCUMENT');
+      }
+    }
 
     // Drop table
-    await queryRunner.dropTable('documents_history');
+    if (await queryRunner.getTable('documents_history')) {
+      await queryRunner.dropTable('documents_history');
+    }
   }
 }

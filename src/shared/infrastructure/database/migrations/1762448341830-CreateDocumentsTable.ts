@@ -14,13 +14,13 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'document_type_id',
+            name: 'template_id',
             type: 'varchar',
             length: '36',
             isNullable: false,
           },
           {
-            name: 'document_subtype_id',
+            name: 'colaborator_id',
             type: 'varchar',
             length: '36',
             isNullable: false,
@@ -33,19 +33,19 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
           },
           {
             name: 'issued_date',
-            type: 'datetime',
-            isNullable: false,
+            type: 'date',
+            isNullable: true,
           },
           {
             name: 'expiration_date',
-            type: 'datetime',
+            type: 'date',
             isNullable: true,
           },
           {
             name: 'contract_id',
             type: 'varchar',
             length: '36',
-            isNullable: false,
+            isNullable: true,
           },
           {
             name: 'description',
@@ -56,6 +56,35 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
             name: 'document_url',
             type: 'varchar',
             length: '500',
+            isNullable: true,
+          },
+          {
+            name: 'status',
+            type: 'varchar',
+            length: '50',
+            isNullable: false,
+            default: "'draft'",
+          },
+          {
+            name: 'created_by',
+            type: 'varchar',
+            length: '36',
+            isNullable: true,
+          },
+          {
+            name: 'comment',
+            type: 'text',
+            isNullable: true,
+          },
+          {
+            name: 'deleted_at',
+            type: 'datetime',
+            isNullable: true,
+          },
+          {
+            name: 'deleted_by',
+            type: 'varchar',
+            length: '36',
             isNullable: true,
           },
           {
@@ -74,26 +103,26 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       true,
     );
 
-    // Create foreign key for document_type_id
+    // Create foreign key for template_id
     await queryRunner.createForeignKey(
       'documents',
       new TableForeignKey({
-        name: 'FK_DOCUMENTS_DOCUMENT_TYPE',
-        columnNames: ['document_type_id'],
-        referencedTableName: 'document_types',
+        name: 'FK_DOCUMENTS_TEMPLATE',
+        columnNames: ['template_id'],
+        referencedTableName: 'document_templates',
         referencedColumnNames: ['id'],
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
       }),
     );
 
-    // Create foreign key for document_subtype_id
+    // Create foreign key for colaborator_id
     await queryRunner.createForeignKey(
       'documents',
       new TableForeignKey({
-        name: 'FK_DOCUMENTS_DOCUMENT_SUBTYPE',
-        columnNames: ['document_subtype_id'],
-        referencedTableName: 'document_subtypes',
+        name: 'FK_DOCUMENTS_COLABORATOR',
+        columnNames: ['colaborator_id'],
+        referencedTableName: 'colaborators',
         referencedColumnNames: ['id'],
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
@@ -113,6 +142,32 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       }),
     );
 
+    // Create foreign key for created_by
+    await queryRunner.createForeignKey(
+      'documents',
+      new TableForeignKey({
+        name: 'FK_DOCUMENTS_CREATED_BY',
+        columnNames: ['created_by'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+        onUpdate: 'CASCADE',
+      }),
+    );
+
+    // Create foreign key for deleted_by
+    await queryRunner.createForeignKey(
+      'documents',
+      new TableForeignKey({
+        name: 'FK_DOCUMENTS_DELETED_BY',
+        columnNames: ['deleted_by'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      }),
+    );
+
     // Create index on contract_id for performance
     await queryRunner.createIndex(
       'documents',
@@ -122,21 +177,21 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       }),
     );
 
-    // Create index on document_type_id for performance
+    // Create index on template_id for performance
     await queryRunner.createIndex(
       'documents',
       new TableIndex({
-        name: 'IDX_DOCUMENTS_DOCUMENT_TYPE_ID',
-        columnNames: ['document_type_id'],
+        name: 'IDX_DOCUMENTS_TEMPLATE_ID',
+        columnNames: ['template_id'],
       }),
     );
 
-    // Create index on document_subtype_id for performance
+    // Create index on colaborator_id for performance
     await queryRunner.createIndex(
       'documents',
       new TableIndex({
-        name: 'IDX_DOCUMENTS_DOCUMENT_SUBTYPE_ID',
-        columnNames: ['document_subtype_id'],
+        name: 'IDX_DOCUMENTS_COLABORATOR_ID',
+        columnNames: ['colaborator_id'],
       }),
     );
 
@@ -148,21 +203,80 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
         columnNames: ['expiration_date'],
       }),
     );
+
+    // Add entity-defined indices
+    await queryRunner.createIndex(
+      'documents',
+      new TableIndex({
+        name: 'IDX_DOCUMENTS_STATUS',
+        columnNames: ['status'],
+      }),
+    );
+
+    await queryRunner.createIndex(
+      'documents',
+      new TableIndex({
+        name: 'IDX_DOCUMENTS_DELETED_AT',
+        columnNames: ['deleted_at'],
+      }),
+    );
+
+    // Unique constraint defined in entity: template + contract + colaborator
+    await queryRunner.createIndex(
+      'documents',
+      new TableIndex({
+        name: 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR',
+        columnNames: ['template_id', 'contract_id', 'colaborator_id'],
+        isUnique: true,
+      }),
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop indices
-    await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_EXPIRATION_DATE');
-    await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_DOCUMENT_SUBTYPE_ID');
-    await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_DOCUMENT_TYPE_ID');
-    await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_CONTRACT_ID');
+    const table = await queryRunner.getTable('documents');
 
-    // Drop foreign keys
-    await queryRunner.dropForeignKey('documents', 'FK_DOCUMENTS_CONTRACT');
-    await queryRunner.dropForeignKey('documents', 'FK_DOCUMENTS_DOCUMENT_SUBTYPE');
-    await queryRunner.dropForeignKey('documents', 'FK_DOCUMENTS_DOCUMENT_TYPE');
+    // Drop foreign keys first (idempotente)
+    if (table) {
+      const fkContract = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_CONTRACT' || f.columnNames.includes('contract_id'));
+      if (fkContract) await queryRunner.dropForeignKey('documents', fkContract);
+      const fkColaborator = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_COLABORATOR' || f.columnNames.includes('colaborator_id'));
+      if (fkColaborator) await queryRunner.dropForeignKey('documents', fkColaborator);
+      const fkTemplate = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_TEMPLATE' || f.columnNames.includes('template_id'));
+      if (fkTemplate) await queryRunner.dropForeignKey('documents', fkTemplate);
+      const fkCreatedBy = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_CREATED_BY' || f.columnNames.includes('created_by'));
+      if (fkCreatedBy) await queryRunner.dropForeignKey('documents', fkCreatedBy);
+      const fkDeletedBy = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_DELETED_BY' || f.columnNames.includes('deleted_by'));
+      if (fkDeletedBy) await queryRunner.dropForeignKey('documents', fkDeletedBy);
+    }
+
+    // Drop indices after FKs (idempotente)
+    if (table) {
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_EXPIRATION_DATE')) {
+        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_EXPIRATION_DATE');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_COLABORATOR_ID')) {
+        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_COLABORATOR_ID');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_TEMPLATE_ID')) {
+        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_TEMPLATE_ID');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_CONTRACT_ID')) {
+        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_CONTRACT_ID');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_STATUS')) {
+        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_STATUS');
+      }
+      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_DELETED_AT')) {
+        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_DELETED_AT');
+      }
+      if (table.indices.find(i => i.name === 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR')) {
+        await queryRunner.dropIndex('documents', 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR');
+      }
+    }
 
     // Drop table
-    await queryRunner.dropTable('documents');
+    if (await queryRunner.getTable('documents')) {
+      await queryRunner.dropTable('documents');
+    }
   }
 }

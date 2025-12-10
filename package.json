@@ -18,6 +18,7 @@
     "migration:run": "typeorm migration:run -d migrate-data-source.js",
     "migration:revert": "typeorm migration:revert -d migrate-data-source.js",
     "migration:show": "typeorm migration:show -d migrate-data-source.js",
+    "migration:compare": "node dev/scripts/compare-migrations.js",
     "install:bun": "bun install",
     "clean": "rm -rf node_modules bun.lockb dist",
     "seeder": "bun run seeder.ts"
