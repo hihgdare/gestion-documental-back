@@ -23,7 +23,7 @@ import { createColaboratorGroupRoutes } from '@presentation/routes/colaborator-g
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
 import { DependencyContainer } from './dependency-container';
-import { runInitialSeedIfEmpty } from '@shared/infrastructure/database/seed/initial-seed';
+import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seed/initial-seeds';
 
 export class App {
   private app: Application;
@@ -41,7 +41,7 @@ export class App {
     // Initialize dependencies
     await this.dependencyContainer.initialize();
 
-    await runInitialSeedIfEmpty();
+    await runInitialSeedsIfEmpty();
 
     // Setup middleware
     this.setupMiddleware();

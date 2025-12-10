@@ -96,11 +96,24 @@ DB_DATABASE=gestion_documental
 Las migraciones permiten versionar y aplicar cambios en el esquema de la base de datos:
 
 ```bash
-# Ejecutar migraciones
-bun run typeorm migration:run
+# Crear migración vacía
+bun run migration:create <nombre>
+
+# Generar migración desde entidades
+bun run migration:generate <nombre>
+
+# Ejecutar migraciones pendientes
+bun run migration:run
+
+# Revertir última migración
+bun run migration:revert
+# para revertir más de una migración se ejecuta varias veces
 
 # Ver estado de migraciones
-bun run typeorm migration:show
+bun run migration:show
+
+# Comparar entidades vs migraciones generadas
+bun run migration:compare
 ```
 
 📚 **[Guía completa de Migraciones](src/shared/infrastructure/database/migrations/README.md)** - Cómo crear, ejecutar y gestionar migraciones
@@ -112,6 +125,13 @@ bun run dev      # Desarrollo con hot reload
 bun run build    # Compilar para producción
 bun start        # Ejecutar en producción
 bun test         # Ejecutar tests
+bun run lint     # Lint con ESLint
+bun run lint:fix # Auto-fix donde sea posible
+bun run lint:ts  # Chequeo de tipos TypeScript (sin emitir código)
+
+# Seeds de datos (solo en development)
+bun run seeder           # ejecuta seeds
+bun run seeder --clean   # limpia la base y vuelve a sembrar
 ```
 
 ## 🏗️ Arquitectura
@@ -158,3 +178,8 @@ Por el momento solo está disponible la base de datos.
 ```bash
 docker-compose up -d
 ```
+
+## 📚 Especificaciones y pruebas manuales
+
+- Directorio `specs/http/` contiene archivos utilizables con el plugin REST Client para probar endpoints.
+- Ver `specs/general.md` para arquitectura y comandos del proyecto.

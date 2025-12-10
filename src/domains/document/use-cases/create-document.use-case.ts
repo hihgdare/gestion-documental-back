@@ -9,7 +9,7 @@ export interface CreateDocumentRequest {
   templateId: string;
   colaboratorId: string;
   name: string;
-  issuedDate: Date;
+  issuedDate?: Date;
   expirationDate?: Date;
   contractId?: string;
   description?: string;
@@ -25,13 +25,23 @@ export class CreateDocumentUseCase {
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
-    // Regla: no permitir documentos simultáneos con misma plantilla y colaborador
-    const exists = await this.documentRepository.existsByTemplateAndColaborator(
-      request.templateId,
-      request.colaboratorId,
-    );
-    if (exists) {
-      throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
+    if (request.contractId) {
+      const existsTriple = await this.documentRepository.existsByTemplateContractColaborator(
+        request.templateId,
+        request.contractId,
+        request.colaboratorId,
+      );
+      if (existsTriple) {
+        throw new ValidationError('Ya existe un documento activo con la misma plantilla, contrato y colaborador');
+      }
+    } else {
+      const existsPair = await this.documentRepository.existsByTemplateAndColaborator(
+        request.templateId,
+        request.colaboratorId,
+      );
+      if (existsPair) {
+        throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
+      }
     }
     // Create document
     const documentProps: DocumentProps = {

@@ -10,7 +10,7 @@ import {
 import { ContractEntity } from './contract.entity';
 
 @Entity('contract_subcontracts')
-@Index(['contractId', 'subcontractId'], { unique: true })
+@Index('UQ_contract_subcontracts_contract_subcontract', ['contractId', 'subcontractId'], { unique: true })
 export class ContractSubcontractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

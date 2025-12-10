@@ -44,13 +44,13 @@ describe('DocumentController with template/colaborator', () => {
   }
 
   async function createColaborator() {
-    const base = `${Date.now()}`;
+    const base = `${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
     const res = await supertest(app)
       .post('/api/colaborators')
       .set('x-enable-rbac', 'false')
       .send({
         tipoDocumento: 'rut',
-        numeroDocumento: `12345678-${base.slice(-1)}`,
+        numeroDocumento: `12345678-${base}`,
         nombre: 'Juan',
         apellidoPaterno: 'Perez',
         apellidoMaterno: 'Gomez',
@@ -63,7 +63,7 @@ describe('DocumentController with template/colaborator', () => {
         comuna: 'Santiago',
         direccionResidencia: 'Av. Siempre Viva 123',
         telefono: '123456789',
-        email: `juan${base}@example.com`,
+        email: `juan-${base}@example.com`,
         profesion: 'Ingeniero',
         cargo: 'Analista',
       });
@@ -190,6 +190,130 @@ describe('DocumentController with template/colaborator', () => {
         .send({ templateId, comment: 'try duplicate' });
       expect(dupUpdate.status).toBe(400);
       expect(dupUpdate.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should enforce uniqueness on template+contract+colaborator when contractId provided', async () => {
+      const { templateId } = await createTypeSubtypeAndTemplate();
+
+      // Create colaborator and contract
+      const colaboratorId = await createColaborator();
+
+      const today = new Date();
+      const startDateStr = new Date(today.getTime()).toISOString().slice(0, 10);
+      const endDateStr = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      const contractBase = {
+        rutSociedad: '12.345.678-5',
+        nombreColaborador: 'Juan Perez',
+        administradorContratoMandante: 'Admin M',
+        administradorContratoEmpresa: 'Admin E',
+        rutAdministradorContrato: '23.456.789-6',
+        contractNumber: `CN-${Date.now()}`,
+        nombreMandante: 'Mandante SA',
+        startDate: startDateStr,
+        endDate: endDateStr,
+        contractType: 'consultoria',
+        jornadaTrabajo: 'completa',
+      };
+
+      const contractRes = await supertest(app)
+        .post('/api/contracts')
+        .set('x-enable-rbac', 'false')
+        .send(contractBase);
+      expect(contractRes.status).toBe(201);
+      const contractId = contractRes.body.data.id as string;
+
+      // First create succeeds
+      const first = await supertest(app)
+        .post('/api/documents')
+        .set('x-enable-rbac', 'false')
+        .send({ templateId, colaboratorId, contractId, name: 'Doc C1', issuedDate: '2025-01-01' });
+      expect(first.status).toBe(201);
+
+      // Duplicate triple should fail
+      const dup = await supertest(app)
+        .post('/api/documents')
+        .set('x-enable-rbac', 'false')
+        .send({ templateId, colaboratorId, contractId, name: 'Doc C2', issuedDate: '2025-01-02' });
+      expect(dup.status).toBe(400);
+      expect(dup.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should assign documents from template to all colaborators in a group and skip duplicates', async () => {
+      const { templateId } = await createTypeSubtypeAndTemplate();
+
+      // Create 3 colaborators
+      const c1 = await createColaborator();
+      const c2 = await createColaborator();
+      const c3 = await createColaborator();
+
+      // Create group
+      const groupRes = await supertest(app)
+        .post('/api/colaborator-groups')
+        .set('x-enable-rbac', 'false')
+        .send({ name: `group-${Date.now()}`, description: 'test group' });
+      expect(groupRes.status).toBe(201);
+      const groupId = groupRes.body.data.id as number;
+
+      // Assign colaborators to group
+      const assignRes = await supertest(app)
+        .post(`/api/colaborator-groups/${groupId}/colaborators`)
+        .set('x-enable-rbac', 'false')
+        .send({ colaboratorIds: [c1, c2, c3] });
+      expect(assignRes.status).toBe(200);
+
+      // Create contract
+      const now = new Date();
+      const startDate = now.toISOString().slice(0, 10);
+      const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const contractDto = {
+        rutSociedad: '76.543.210-1',
+        nombreColaborador: 'Empresa X',
+        administradorContratoMandante: 'Admin M',
+        administradorContratoEmpresa: 'Admin E',
+        rutAdministradorContrato: '19.876.543-2',
+        contractNumber: `CN-GRP-${Date.now()}`,
+        nombreMandante: 'Mandante X',
+        startDate,
+        endDate,
+        contractType: 'consultoria',
+        jornadaTrabajo: 'completa',
+      };
+      const contractRes = await supertest(app)
+        .post('/api/contracts')
+        .set('x-enable-rbac', 'false')
+        .send(contractDto);
+      expect(contractRes.status).toBe(201);
+      const contractId = contractRes.body.data.id as string;
+
+      // First bulk assignment
+      const bulk1 = await supertest(app)
+        .post('/api/documents/assign-template-to-group')
+        .set('x-enable-rbac', 'false')
+        .send({ templateId, contractId, groupId, name: 'Doc Bulk' });
+      if (bulk1.status !== 201) {
+        console.log('Bulk1 error:', bulk1.body);
+      }
+      expect(bulk1.status).toBe(201);
+      expect(bulk1.body.success).toBe(true);
+      expect(bulk1.body.data.createdCount).toBe(3);
+      expect(bulk1.body.data.skippedCount).toBe(0);
+      const createdDocs = bulk1.body.data.created as Array<any>;
+      expect(createdDocs.length).toBe(3);
+      for (const d of createdDocs) {
+        expect(d.issuedDate).toBeNull();
+        expect(d.expirationDate).toBeNull();
+      }
+
+      // Second bulk assignment should skip all
+      const bulk2 = await supertest(app)
+        .post('/api/documents/assign-template-to-group')
+        .set('x-enable-rbac', 'false')
+        .send({ templateId, contractId, groupId, name: 'Doc Bulk 2' });
+      expect(bulk2.status).toBe(201);
+      expect(bulk2.body.success).toBe(true);
+      expect(bulk2.body.data.createdCount).toBe(0);
+      expect(bulk2.body.data.skippedCount).toBe(3);
     });
   });
 });

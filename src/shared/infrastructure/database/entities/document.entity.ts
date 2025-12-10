@@ -15,10 +15,9 @@ import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
-@Index(['templateId', 'colaboratorId'], { unique: true })
-@Index(['contractId'])
-@Index(['status'])
-@Index(['deletedAt'])
+@Index('UQ_documents_template_contract_colaborator', ['templateId', 'contractId', 'colaboratorId'], { unique: true })
+@Index('IDX_documents_status', ['status'])
+@Index('IDX_documents_deleted_at', ['deletedAt'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -40,8 +39,8 @@ export class DocumentEntity {
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
-  @Column({ name: 'issued_date', type: 'date' })
-  issuedDate!: Date;
+  @Column({ name: 'issued_date', type: 'date', nullable: true })
+  issuedDate?: Date;
 
   @Column({ name: 'expiration_date', type: 'date', nullable: true })
   expirationDate?: Date;

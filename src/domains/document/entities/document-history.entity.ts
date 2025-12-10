@@ -10,7 +10,7 @@ export interface DocumentHistoryProps {
   templateId: string;
   colaboratorId: string;
   name: string;
-  issuedDate: Date;
+  issuedDate?: Date | null;
   expirationDate?: Date | null;
   contractId?: string | null;
   description?: string;

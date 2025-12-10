@@ -113,6 +113,18 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return !!existing;
   }
 
+  async existsByTemplateContractColaborator(
+    templateId: string,
+    contractId: string,
+    colaboratorId: string,
+    excludeId?: string,
+  ): Promise<boolean> {
+    const where: any = { templateId, contractId, colaboratorId, deletedAt: null };
+    if (excludeId) where.id = Not(excludeId);
+    const existing = await this.repository.findOne({ where });
+    return !!existing;
+  }
+
   private toDomain(entity: DocumentEntity): Document {
     const props: DocumentProps = {
       id: entity.id,
@@ -144,7 +156,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       templateId: document.templateId,
       colaboratorId: document.colaboratorId,
       name: document.name,
-      issuedDate: DateUtils.toLocalDate(document.issuedDate)!,
+      issuedDate: document.issuedDate ? DateUtils.toLocalDate(document.issuedDate)! : undefined,
       expirationDate: document.expirationDate ? DateUtils.toLocalDate(document.expirationDate) : undefined,
       contractId: document.contractId || undefined,
       description: document.description,

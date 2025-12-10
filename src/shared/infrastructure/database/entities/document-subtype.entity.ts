@@ -11,7 +11,7 @@ import {
 import { DocumentTypeEntity } from './document-type.entity';
 
 @Entity('document_subtypes')
-@Index(['documentTypeId'])
+@Index('IDX_document_subtypes_document_type', ['documentTypeId'])
 export class DocumentSubtypeEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

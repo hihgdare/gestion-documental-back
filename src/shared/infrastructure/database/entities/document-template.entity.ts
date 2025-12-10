@@ -3,8 +3,8 @@ import { DocumentTypeEntity } from './document-type.entity';
 import { DocumentSubtypeEntity } from './document-subtype.entity';
 
 @Entity('document_templates')
-@Index(['documentTypeId'])
-@Index(['documentSubtypeId'])
+@Index('IDX_document_templates_document_type', ['documentTypeId'])
+@Index('IDX_document_templates_document_subtype', ['documentSubtypeId'])
 export class DocumentTemplateEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
