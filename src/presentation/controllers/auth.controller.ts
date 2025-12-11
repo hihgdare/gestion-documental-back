@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, CookieOptions } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '@domains/user/entities/user.entity';
 import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
@@ -31,6 +31,27 @@ export class AuthController {
     this.getToken = this.getToken.bind(this);
   }
 
+  private getCookieOptions(): CookieOptions {
+    const secure = process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === 'true'
+      : process.env.NODE_ENV === 'production';
+
+    const sameSiteEnv = process.env.COOKIE_SAMESITE?.toLowerCase();
+    const sameSite: CookieOptions['sameSite'] =
+      sameSiteEnv === 'lax' || sameSiteEnv === 'strict' || sameSiteEnv === 'none'
+        ? sameSiteEnv
+        : 'strict';
+
+    const maxAge = Number(process.env.COOKIE_MAX_AGE_MS || '3600000');
+
+    return {
+      httpOnly: true,
+      secure,
+      sameSite,
+      maxAge,
+    };
+  }
+
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
@@ -48,13 +69,7 @@ export class AuthController {
         { expiresIn: '1h' },
       );
 
-      // Set token in HTTP-only cookie
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 3600000, // 1 hour
-      });
+      res.cookie('token', token, this.getCookieOptions());
 
       res.status(200).json({
         success: true,
@@ -71,12 +86,7 @@ export class AuthController {
 
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Clear the token cookie
-      res.clearCookie('token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-      });
+      res.clearCookie('token', this.getCookieOptions());
 
       res.status(200).json({
         success: true,
@@ -115,13 +125,7 @@ export class AuthController {
         { expiresIn: '1h' },
       );
 
-      // Update token in HTTP-only cookie
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 3600000, // 1 hour
-      });
+      res.cookie('token', token, this.getCookieOptions());
 
       res.status(200).json({
         success: true,
