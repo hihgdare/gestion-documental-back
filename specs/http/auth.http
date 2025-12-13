@@ -1,11 +1,12 @@
 @baseUrl = http://localhost:3000/api
 @module = auth
-@password = password
+@email = {{$dotenv AUTH_EMAIL}}
+@password = {{$dotenv AUTH_PASSWORD}}
 
 ### Login
 
 # @name login
-# @prompt email
+# -- @prompt email
 POST {{baseUrl}}/{{module}}/login
 Content-Type: application/json
 
@@ -14,9 +15,15 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
-### Permissions (requires token)
-
 @token = {{ login.response.body.token }}
+
+### User data (requires token)
+
+# @name me
+GET {{baseUrl}}/{{module}}/me
+Authorization: Bearer {{token}}
+
+### Permissions (requires token)
 
 # @name get-permissions
 GET {{baseUrl}}/{{module}}/permissions

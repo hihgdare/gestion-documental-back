@@ -46,8 +46,7 @@ export function createContractReviewerMiddleware(
       }
 
       // Verificar si el usuario tiene permiso para revisar documentos
-      const hasPermission = user.can('document:review');
-      if (!hasPermission) {
+      if (!user.can('document:review')) {
         return res.status(403).json({
           message: 'User does not have document review permission',
           code: 'MISSING_PERMISSION',
