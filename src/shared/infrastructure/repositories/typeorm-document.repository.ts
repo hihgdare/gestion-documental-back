@@ -23,6 +23,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findAll(): Promise<Document[]> {
     const documentEntities = await this.repository.find({
+      where: { deletedAt: null },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborator'],
       order: { createdAt: 'DESC' },
     });
@@ -43,12 +44,12 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.repository.softDelete(id);
   }
 
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { contractId },
+      where: { contractId, deletedAt: null },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborator'],
       order: { createdAt: 'DESC' },
     });
@@ -57,7 +58,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByTemplateId(templateId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { templateId },
+      where: { templateId, deletedAt: null },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborator'],
       order: { createdAt: 'DESC' },
     });
@@ -66,7 +67,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByColaboratorId(colaboratorId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { colaboratorId },
+      where: { colaboratorId, deletedAt: null },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborator'],
       order: { createdAt: 'DESC' },
     });
@@ -77,6 +78,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository.find({
       where: {
         expirationDate: LessThanOrEqual(new Date()),
+        deletedAt: null,
       },
       relations: ['contract', 'template', 'colaborator'],
       order: { expirationDate: 'ASC' },
@@ -99,6 +101,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .where('document.expiration_date IS NOT NULL')
       .andWhere('document.expiration_date > :today', { today })
       .andWhere('document.expiration_date <= :futureDate', { futureDate })
+      .andWhere('document.deleted_at IS NULL')
       .orderBy('document.expiration_date', 'ASC')
       .getMany();
 
