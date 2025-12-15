@@ -3,6 +3,7 @@ import { ContractStatus, ContractType, JornadaTrabajo } from '../value-objects/c
 import { ValidationError } from '@shared/domain/errors';
 import { isValid, parseEnum } from '@shared/utils/objects';
 import { DateTimeUtils, DateUtils } from '@shared/utils/date';
+import { Colaborator, ColaboratorJson } from '@domains/colaborators/entities/colaborator.entity';
 
 interface BaseContractProps {
   rutSociedad: string;
@@ -31,6 +32,7 @@ interface BaseContractProps {
 }
 
 export interface CreateContractProps extends BaseContractProps {
+  colaborators?: Colaborator[];
   id?: string;
 }
 
@@ -67,6 +69,7 @@ export type ContractJson = Overlap<BaseContractProps, {
   isExpired: boolean;
   createdAt?: string;
   updatedAt?: string;
+  colaborators?: ColaboratorJson[];
   deletedAt?: string | null;
 }>;
 
@@ -96,6 +99,7 @@ export class Contract {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  colaborators: Colaborator[];
 
   constructor(props: CreateContractProps) {
     Contract.validateRequired(props);
@@ -111,6 +115,7 @@ export class Contract {
       createdAt: 'datetime',
       updatedAt: 'datetime',
       deletedAt: 'datetimeNullable',
+      colaborators: (colaborators?: Colaborator[]) => colaborators ?? [],
     });
   }
 
@@ -231,9 +236,11 @@ export class Contract {
       duration: this.getDuration(),
       isActive: this.isActive(),
       isExpired: this.isExpired(),
+      colaborators: this.colaborators?.map((colaborator) => colaborator.toJSON()) ?? [],
       createdAt: DateTimeUtils.toString(this.createdAt),
       updatedAt: DateTimeUtils.toString(this.updatedAt),
       deletedAt: DateTimeUtils.toString(this.deletedAt, true),
     };
   }
 }
+

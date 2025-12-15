@@ -6,15 +6,26 @@ import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { DateUtils } from '@shared/utils/date';
+import { DependencyContainer } from '@/dependency-container';
+import { ColaboratorStatus, DocumentType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
 
 describe('ContractController', () => {
   let appInstance: App;
   let app: Application;
+  let colaboratorRepository: ColaboratorRepository;
+  let createColaboratorUseCase: CreateColaboratorUseCase;
 
   beforeAll(async () => {
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
+
+    const dependencyContainer = new DependencyContainer();
+    await dependencyContainer.initialize();
+    colaboratorRepository = dependencyContainer.getColaboratorRepository();
+    createColaboratorUseCase = new CreateColaboratorUseCase(colaboratorRepository);
   });
 
   beforeEach(async () => {
@@ -389,6 +400,134 @@ describe('ContractController', () => {
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Subcontract ID is required');
+    });
+  });
+
+  describe('/api/contracts/:id/colaborators', () => {
+    const startDate = DateUtils.todayString();
+    const endDate = DateUtils.toString(DateUtils.addMonths(startDate, 1));
+    let contractId: string;
+    let colaboratorId: string;
+
+    const baseContractDto = {
+      contractNumber: '',
+      rutSociedad: '12.345.678-5',
+      nombreColaborador: 'Juan Perez',
+      administradorContratoMandante: 'Admin Mandante',
+      administradorContratoEmpresa: 'Admin Empresa',
+      rutAdministradorContrato: '23.456.789-6',
+      nombreMandante: 'Mandante SA',
+      startDate,
+      endDate,
+      contractType: ContractType.CONSULTORIA,
+      jornadaTrabajo: JornadaTrabajo.COMPLETA,
+    };
+
+    const colaboratorDto = {
+      tipoDocumento: DocumentType.RUT,
+      numeroDocumento: '12345678-9',
+      nombre: 'John',
+      apellidoPaterno: 'Doe',
+      nacionalidad: 'Chilean',
+      sexo: Gender.MASCULINO,
+      estadoCivil: CivilStatus.SOLTERO,
+      fechaNacimiento: new Date('1990-01-01'),
+      paisResidencia: 'CL',
+      region: 'Metropolitana',
+      comuna: 'Santiago',
+      direccionResidencia: 'Av. Test 123',
+      telefono: '+56912345678',
+      email: 'john.doe@example.com',
+      profesion: 'Developer',
+      cargo: 'Senior Dev',
+      status: ColaboratorStatus.ACTIVE,
+    };
+
+    beforeEach(async () => {
+      // Create contract
+      baseContractDto.contractNumber = getNewId();
+      const contractRes = await supertest(app)
+        .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
+        .send(baseContractDto);
+      contractId = contractRes.body.data.id;
+
+      // Create colaborator directly via UseCase as we don't need to test colaborator creation here
+      // But for tests usually we might want to use the API if possible, but UseCase is faster/easier setup
+      // However, createColaboratorUseCase expects properties.
+      // Let's use repo save or use case.
+      const colaborator = await createColaboratorUseCase.execute(colaboratorDto);
+      colaboratorId = colaborator.id;
+    });
+
+    it('should add a colaborator to a contract', async () => {
+      const response = await supertest(app)
+        .post(`/api/contracts/${contractId}/colaborators`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
+        .send({ colaboratorId });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Colaborator added successfully');
+    });
+
+    it('should get all colaborators of a contract', async () => {
+      // Add first
+      await supertest(app)
+        .post(`/api/contracts/${contractId}/colaborators`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
+        .send({ colaboratorId });
+
+      const response = await supertest(app)
+        .get(`/api/contracts/${contractId}/colaborators`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.count).toBe(1);
+      expect(response.body.data[0].id).toBe(colaboratorId);
+    });
+
+    it('should remove a colaborator from a contract', async () => {
+      // Add first
+      await supertest(app)
+        .post(`/api/contracts/${contractId}/colaborators`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
+        .send({ colaboratorId });
+
+      const response = await supertest(app)
+        .delete(`/api/contracts/${contractId}/colaborators/${colaboratorId}`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Colaborator removed successfully');
+
+      // Verify removal
+      const getResponse = await supertest(app)
+        .get(`/api/contracts/${contractId}/colaborators`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token');
+
+      expect(getResponse.body.count).toBe(0);
+    });
+
+    it('should return 400 if colaboratorId is missing', async () => {
+      const response = await supertest(app)
+        .post(`/api/contracts/${contractId}/colaborators`)
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
+        .send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Colaborator ID is required');
     });
   });
 });

@@ -90,6 +90,9 @@ import { RemoveReviewerFromContractUseCase } from '@domains/contract/use-cases/r
 import { GetContractReviewersUseCase } from '@domains/contract/use-cases/get-contract-reviewers.use-case';
 import { CheckUserCanReviewContractUseCase } from '@domains/contract/use-cases/check-user-can-review-contract.use-case';
 import { UpdateReviewerUseCase } from '@domains/contract/use-cases/update-reviewer.use-case';
+import { AddColaboratorToContractUseCase } from '@domains/contract/use-cases/add-colaborator-to-contract.use-case';
+import { RemoveColaboratorFromContractUseCase } from '@domains/contract/use-cases/remove-colaborator-from-contract.use-case';
+import { GetContractColaboratorsUseCase } from '@domains/contract/use-cases/get-contract-colaborators.use-case';
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
@@ -230,6 +233,9 @@ export class DependencyContainer {
   private getContractReviewersUseCase!: GetContractReviewersUseCase;
   private checkUserCanReviewContractUseCase!: CheckUserCanReviewContractUseCase;
   private updateReviewerUseCase!: UpdateReviewerUseCase;
+  private addColaboratorToContractUseCase!: AddColaboratorToContractUseCase;
+  private removeColaboratorFromContractUseCase!: RemoveColaboratorFromContractUseCase;
+  private getContractColaboratorsUseCase!: GetContractColaboratorsUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
@@ -395,6 +401,9 @@ export class DependencyContainer {
     this.updateReviewerUseCase = new UpdateReviewerUseCase(
       this.contractReviewerRepository,
     );
+    this.addColaboratorToContractUseCase = new AddColaboratorToContractUseCase(this.contractRepository);
+    this.removeColaboratorFromContractUseCase = new RemoveColaboratorFromContractUseCase(this.contractRepository);
+    this.getContractColaboratorsUseCase = new GetContractColaboratorsUseCase(this.contractRepository);
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
@@ -476,6 +485,9 @@ export class DependencyContainer {
       this.getContractReviewersUseCase,
       this.updateReviewerUseCase,
       this.getUserByIdUseCase,
+      this.addColaboratorToContractUseCase,
+      this.removeColaboratorFromContractUseCase,
+      this.getContractColaboratorsUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
