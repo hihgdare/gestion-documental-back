@@ -95,6 +95,17 @@ export const createColaboratorSchema = Joi.object({
   telefonoEmergencia: Joi.string().min(7).max(20).optional(),
   profesion: Joi.string().min(2).max(100).required(),
   cargo: Joi.string().min(2).max(100).required(),
+  contractIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
+    'array.min': 'At least one contract is required',
+    'any.required': 'Contracts are required',
+  }),
+});
+
+export const updateColaboratorContractsSchema = Joi.object({
+  contractIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
+    'array.min': 'At least one contract is required',
+    'any.required': 'Contracts are required',
+  }),
 });
 
 export const updateColaboratorSchema = Joi.object({

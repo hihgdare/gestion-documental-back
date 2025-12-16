@@ -453,11 +453,20 @@ describe('ContractController', () => {
         .send(baseContractDto);
       contractId = contractRes.body.data.id;
 
-      // Create colaborator directly via UseCase as we don't need to test colaborator creation here
-      // But for tests usually we might want to use the API if possible, but UseCase is faster/easier setup
-      // However, createColaboratorUseCase expects properties.
-      // Let's use repo save or use case.
-      const colaborator = await createColaboratorUseCase.execute(colaboratorDto);
+      // Create a different contract for the colaborator
+      const otherContractDto = { ...baseContractDto, contractNumber: getNewId() };
+      const otherContractRes = await supertest(app)
+        .post('/api/contracts')
+        .set('x-enable-rbac', 'true')
+        .set('Authorization', 'Bearer skip-token')
+        .send(otherContractDto);
+      const otherContractId = otherContractRes.body.data.id;
+
+      // Create colaborator with the other contract
+      const colaborator = await createColaboratorUseCase.execute({
+        ...colaboratorDto,
+        contractIds: [otherContractId],
+      });
       colaboratorId = colaborator.id;
     });
 

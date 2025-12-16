@@ -4,6 +4,7 @@ import { validateRequest } from '@shared/middleware/validation';
 import {
   createColaboratorSchema,
   updateColaboratorSchema,
+  updateColaboratorContractsSchema,
 } from '../dto/validation-schemas';
 
 export const createColaboratorRoutes = (colaboratorController: ColaboratorController): Router => {
@@ -38,6 +39,9 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
 
   // PATCH /api/colaborators/:id/activate - Activate colaborator
   router.patch('/:id/activate', colaboratorController.activateColaborator);
+
+  // PUT /api/colaborators/:id/contracts - Update colaborator contracts
+  router.put('/:id/contracts', validateRequest(updateColaboratorContractsSchema), colaboratorController.updateColaboratorContracts);
 
   // PATCH /api/colaborators/:id/suspend - Suspend colaborator
   router.patch('/:id/suspend', colaboratorController.suspendColaborator);
