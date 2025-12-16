@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 import { DocumentEntity } from './document.entity';
 import { DocumentTemplateEntity } from './document-template.entity';
-import { ColaboratorEntity } from './colaborators.entity';
 import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
@@ -35,13 +34,6 @@ export class DocumentHistoryEntity {
   @ManyToOne(() => DocumentTemplateEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'template_id' })
   template!: DocumentTemplateEntity;
-
-  @Column({ name: 'colaborator_id', type: 'varchar', length: 36 })
-  colaboratorId!: string;
-
-  @ManyToOne(() => ColaboratorEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'colaborator_id' })
-  colaborator!: ColaboratorEntity;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;

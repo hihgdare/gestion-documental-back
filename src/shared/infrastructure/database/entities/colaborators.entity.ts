@@ -6,9 +6,11 @@ import {
   UpdateDateColumn,
   Index,
   ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { ColaboratorGroupEntity } from './colaborator-group.entity';
+import { DocumentEntity } from './document.entity';
 
 @Entity('colaborators')
 @Index('IDX_colaborators_name_surname', ['nombre', 'apellidoPaterno'])
@@ -102,4 +104,12 @@ export class ColaboratorEntity {
 
   @ManyToMany(() => ColaboratorGroupEntity, (group) => group.colaborators)
   groups!: ColaboratorGroupEntity[];
+
+  @ManyToMany(() => DocumentEntity)
+  @JoinTable({
+    name: 'document_colaborators',
+    joinColumn: { name: 'colaborator_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'document_id', referencedColumnName: 'id' },
+  })
+  documents!: DocumentEntity[];
 }

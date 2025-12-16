@@ -65,7 +65,7 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
 
       const props: DocumentProps = {
         templateId: request.templateId,
-        colaboratorId: colaborator.id,
+        colaboratorIds: [colaborator.id],
         name: request.name?.trim() || template.name,
         issuedDate: request.issuedDate,
         expirationDate: request.expirationDate,
@@ -80,7 +80,7 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
           templateId: saved.templateId,
-          colaboratorId: saved.colaboratorId,
+
           name: saved.name,
           issuedDate: saved.issuedDate,
           expirationDate: saved.expirationDate || undefined,

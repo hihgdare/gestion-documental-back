@@ -3,11 +3,10 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
-import { ValidationError } from '@shared/domain/errors';
 
 export interface CreateDocumentRequest {
   templateId: string;
-  colaboratorId: string;
+  colaboratorIds: string[];
   name: string;
   issuedDate?: Date;
   expirationDate?: Date;
@@ -25,28 +24,10 @@ export class CreateDocumentUseCase {
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
-    if (request.contractId) {
-      const existsTriple = await this.documentRepository.existsByTemplateContractColaborator(
-        request.templateId,
-        request.contractId,
-        request.colaboratorId,
-      );
-      if (existsTriple) {
-        throw new ValidationError('Ya existe un documento activo con la misma plantilla, contrato y colaborador');
-      }
-    } else {
-      const existsPair = await this.documentRepository.existsByTemplateAndColaborator(
-        request.templateId,
-        request.colaboratorId,
-      );
-      if (existsPair) {
-        throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
-      }
-    }
     // Create document
     const documentProps: DocumentProps = {
       templateId: request.templateId,
-      colaboratorId: request.colaboratorId,
+      colaboratorIds: request.colaboratorIds,
       name: request.name,
       issuedDate: request.issuedDate,
       expirationDate: request.expirationDate,
@@ -66,7 +47,6 @@ export class CreateDocumentUseCase {
       const historyProps: DocumentHistoryProps = {
         documentId: savedDocument.id,
         templateId: savedDocument.templateId,
-        colaboratorId: savedDocument.colaboratorId,
         name: savedDocument.name,
         issuedDate: savedDocument.issuedDate,
         expirationDate: savedDocument.expirationDate,

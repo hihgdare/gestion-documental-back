@@ -29,7 +29,6 @@ export class ApproveDocumentUseCase {
       action: DocumentAction.APPROVED,
       updatedBy: userId === 'system' ? undefined : userId,
       templateId: document.templateId,
-      colaboratorId: document.colaboratorId,
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,

@@ -4,11 +4,10 @@ import { Document } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError } from '@shared/domain/errors';
-import { ValidationError } from '@shared/domain/errors';
 
 export interface UpdateDocumentRequest {
   templateId?: string;
-  colaboratorId?: string;
+  colaboratorIds?: string[];
   name?: string;
   issuedDate?: Date;
   expirationDate?: Date;
@@ -40,8 +39,8 @@ export class UpdateDocumentUseCase {
       document.updateDocumentTypeId(request.templateId);
     }
 
-    if (request.colaboratorId !== undefined) {
-      document.updateDocumentSubtypeId(request.colaboratorId);
+    if (request.colaboratorIds !== undefined) {
+      document.updateColaborators(request.colaboratorIds);
     }
 
     if (request.issuedDate !== undefined || request.expirationDate !== undefined) {
@@ -63,15 +62,16 @@ export class UpdateDocumentUseCase {
       document.updateContractId(request.contractId);
     }
 
-    // Regla: no permitir documentos simultáneos con misma plantilla y colaborador
-    const exists = await this.documentRepository.existsByTemplateAndColaborator(
-      document.templateId,
-      document.colaboratorId,
-      document.id,
-    );
-    if (exists) {
-      throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
-    }
+    // Regla: no permitir documentos simultáneos con misma plantilla (sin validar colaboradores por N:M)
+    // La validación de unicidad debe hacerse a nivel de negocio
+    // const exists = await this.documentRepository.existsByTemplateAndColaborator(
+    //   document.templateId,
+    //   document.colaboratorIds[0],
+    //   document.id,
+    // );
+    // if (exists) {
+    //   throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
+    // }
 
     // Al editar un documento, siempre vuelve a estado borrador
     document.setToDraft();
@@ -83,7 +83,6 @@ export class UpdateDocumentUseCase {
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
       templateId: updatedDocument.templateId,
-      colaboratorId: updatedDocument.colaboratorId,
       name: updatedDocument.name,
       issuedDate: updatedDocument.issuedDate,
       expirationDate: updatedDocument.expirationDate,

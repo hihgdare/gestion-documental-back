@@ -6,7 +6,9 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   ManyToOne,
+  ManyToMany,
   JoinColumn,
+  JoinTable,
   Index,
 } from 'typeorm';
 import { DocumentTemplateEntity } from './document-template.entity';
@@ -15,7 +17,7 @@ import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
-@Index('UQ_documents_template_contract_colaborator', ['templateId', 'contractId', 'colaboratorId'], { unique: true })
+@Index('UQ_documents_template_contract', ['templateId', 'contractId'], { unique: false })
 @Index('IDX_documents_status', ['status'])
 @Index('IDX_documents_deleted_at', ['deletedAt'])
 export class DocumentEntity {
@@ -29,12 +31,13 @@ export class DocumentEntity {
   @JoinColumn({ name: 'template_id' })
   template!: DocumentTemplateEntity;
 
-  @Column({ name: 'colaborator_id', type: 'varchar', length: 36 })
-  colaboratorId!: string;
-
-  @ManyToOne(() => ColaboratorEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'colaborator_id' })
-  colaborator!: ColaboratorEntity;
+  @ManyToMany(() => ColaboratorEntity)
+  @JoinTable({
+    name: 'document_colaborators',
+    joinColumn: { name: 'document_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'colaborator_id', referencedColumnName: 'id' },
+  })
+  colaborators!: ColaboratorEntity[];
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;

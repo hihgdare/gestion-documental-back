@@ -8,7 +8,6 @@ export interface DocumentHistoryProps {
   id?: string;
   documentId: string;
   templateId: string;
-  colaboratorId: string;
   name: string;
   issuedDate?: Date | null;
   expirationDate?: Date | null;
@@ -28,7 +27,6 @@ export class DocumentHistory {
   id: string;
   documentId: string;
   templateId: string;
-  colaboratorId: string;
   name: string;
   issuedDate: Date;
   expirationDate: Date | null;
@@ -69,10 +67,6 @@ export class DocumentHistory {
 
     if (!props.templateId || props.templateId.trim().length === 0) {
       throw new ValidationError('El ID del template de documento es requerido');
-    }
-
-    if (!props.colaboratorId || props.colaboratorId.trim().length === 0) {
-      throw new ValidationError('El ID del colaborador es requerido');
     }
 
     if (!props.name || props.name.trim().length === 0) {
@@ -121,7 +115,6 @@ export class DocumentHistory {
       id: this.id,
       documentId: this.documentId,
       templateId: this.templateId,
-      colaboratorId: this.colaboratorId,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate),

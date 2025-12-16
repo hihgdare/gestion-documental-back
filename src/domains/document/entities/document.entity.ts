@@ -7,7 +7,7 @@ import { DocumentStatus } from '../value-objects/document-enums';
 export interface DocumentProps {
   id?: string;
   templateId: string;
-  colaboratorId: string;
+  colaboratorIds?: string[];
   templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
@@ -31,7 +31,7 @@ export interface DocumentProps {
 export class Document {
   id: string;
   templateId: string;
-  colaboratorId: string;
+  colaboratorIds: string[];
   templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
@@ -67,6 +67,7 @@ export class Document {
       deletedBy: (deletedBy?: string | null) => deletedBy || null,
       createdAt: 'datetime',
       updatedAt: 'datetime',
+      colaboratorIds: (ids?: string[]) => ids ?? [],
     });
   }
 
@@ -79,8 +80,12 @@ export class Document {
       throw new ValidationError('El ID del template de documento es requerido');
     }
 
-    if (!props.colaboratorId || props.colaboratorId.trim().length === 0) {
-      throw new ValidationError('El ID del colaborador es requerido');
+    if (!props.colaboratorIds || props.colaboratorIds.length === 0) {
+      throw new ValidationError('Al menos un ID de colaborador es requerido');
+    }
+
+    if (props.colaboratorIds.some((id) => !id || id.trim().length === 0)) {
+      throw new ValidationError('Los IDs de colaboradores no pueden estar vacíos');
     }
 
     if (!props.name || props.name.trim().length === 0) {
@@ -170,7 +175,20 @@ export class Document {
       throw new ValidationError('El ID del subtipo de documento es requerido');
     }
 
-    this.colaboratorId = documentSubtypeId;
+    // Nota: Esta función no actualiza colaboradores, ese es trabajo de updateColaborators
+    this.updatedAt = new Date();
+  }
+
+  public updateColaborators(colaboratorIds: string[]): void {
+    if (!colaboratorIds || colaboratorIds.length === 0) {
+      throw new ValidationError('Al menos un ID de colaborador es requerido');
+    }
+
+    if (colaboratorIds.some((id) => !id || id.trim().length === 0)) {
+      throw new ValidationError('Los IDs de colaboradores no pueden estar vacíos');
+    }
+
+    this.colaboratorIds = colaboratorIds;
     this.updatedAt = new Date();
   }
 
@@ -266,7 +284,7 @@ export class Document {
     return {
       id: this.id,
       templateId: this.templateId,
-      colaboratorId: this.colaboratorId,
+      colaboratorIds: this.colaboratorIds,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate, true),
       expirationDate: DateUtils.toString(this.expirationDate, true),
