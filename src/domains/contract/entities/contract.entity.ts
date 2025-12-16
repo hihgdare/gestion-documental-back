@@ -172,8 +172,81 @@ export class Contract {
     this.nombreColaborador = nombre.trim();
   }
 
+  public updateRutSociedad(rutSociedad: string): void {
+    if (!rutSociedad?.trim()) {
+      throw new ValidationError('RUT Sociedad is required', 'rutSociedad');
+    }
+    this.rutSociedad = rutSociedad.trim();
+  }
+
+  public updateContractNumber(contractNumber: string): void {
+    if (!contractNumber?.trim()) {
+      throw new ValidationError('Contract number is required', 'contractNumber');
+    }
+    this.contractNumber = contractNumber.trim();
+  }
+
+  public updateContractType(contractType: string): void {
+    if (!contractType) {
+      throw new ValidationError('Contract type is required', 'contractType');
+    }
+    this.contractType = parseEnum(contractType, ContractType) ?? ContractType.PLAZO_FIJO;
+  }
+
+  public updateStartDate(startDate: DateType): void {
+    const parsedDate = DateUtils.parse(startDate, true);
+    if (!parsedDate) {
+      throw new ValidationError('Start date is required', 'startDate');
+    }
+    this.startDate = parsedDate;
+  }
+
+  public updateAdministradorContratoMandante(administrador: string): void {
+    if (!administrador?.trim()) {
+      throw new ValidationError('Administrador contrato mandante is required', 'administradorContratoMandante');
+    }
+    this.administradorContratoMandante = administrador.trim();
+  }
+
+  public updateAdministradorContratoEmpresa(administrador: string): void {
+    if (!administrador?.trim()) {
+      throw new ValidationError('Administrador contrato empresa is required', 'administradorContratoEmpresa');
+    }
+    this.administradorContratoEmpresa = administrador.trim();
+  }
+
+  public updateRutAdministradorContrato(rut: string): void {
+    if (!rut?.trim()) {
+      throw new ValidationError('RUT administrador contrato is required', 'rutAdministradorContrato');
+    }
+    this.rutAdministradorContrato = rut.trim();
+  }
+
+  public updateNombreMandante(nombre: string): void {
+    if (!nombre?.trim()) {
+      throw new ValidationError('Nombre mandante is required', 'nombreMandante');
+    }
+    this.nombreMandante = nombre.trim();
+  }
+
   public updateDescripcionServicio(descripcion?: string): void {
     this.descripcionServicio = descripcion?.trim();
+  }
+
+  public updateDivision(division?: string): void {
+    this.division = division?.trim();
+  }
+
+  public updateArea(area?: string): void {
+    this.area = area?.trim();
+  }
+
+  public updateNombreProyecto(nombreProyecto?: string): void {
+    this.nombreProyecto = nombreProyecto?.trim();
+  }
+
+  public updateJornadaTrabajo(jornadaTrabajo: string): void {
+    this.jornadaTrabajo = parseEnum(jornadaTrabajo, JornadaTrabajo) ?? JornadaTrabajo.COMPLETA;
   }
 
   public updateDotaciones(personal: number, vehiculos: number): void {
@@ -194,6 +267,14 @@ export class Contract {
 
   public isActive(): boolean {
     return this.status === ContractStatus.ACTIVE;
+  }
+
+  public isEditable(): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(this.startDate);
+    start.setHours(0, 0, 0, 0);
+    return start > today;
   }
 
   public isExpired(): boolean {

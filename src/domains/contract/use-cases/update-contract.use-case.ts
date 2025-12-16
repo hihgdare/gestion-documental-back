@@ -12,12 +12,64 @@ export class UpdateContractUseCase {
       throw new NotFoundError('Contract', request.id);
     }
 
+    if (!contract.isEditable()) {
+      throw new Error('Contract is not editable. Only contracts with start date in the future can be edited.');
+    }
+
+    if (request.rutSociedad) {
+      contract.updateRutSociedad(request.rutSociedad);
+    }
+
     if (request.nombreColaborador) {
       contract.updateNombreColaborador(request.nombreColaborador);
     }
 
+    if (request.contractNumber) {
+      contract.updateContractNumber(request.contractNumber);
+    }
+
+    if (request.contractType) {
+      contract.updateContractType(request.contractType);
+    }
+
+    if (request.startDate) {
+      contract.updateStartDate(new Date(request.startDate));
+    }
+
+    if (request.administradorContratoMandante) {
+      contract.updateAdministradorContratoMandante(request.administradorContratoMandante);
+    }
+
+    if (request.administradorContratoEmpresa) {
+      contract.updateAdministradorContratoEmpresa(request.administradorContratoEmpresa);
+    }
+
+    if (request.rutAdministradorContrato) {
+      contract.updateRutAdministradorContrato(request.rutAdministradorContrato);
+    }
+
+    if (request.nombreMandante) {
+      contract.updateNombreMandante(request.nombreMandante);
+    }
+
     if (request.descripcionServicio !== undefined) {
       contract.updateDescripcionServicio(request.descripcionServicio);
+    }
+
+    if (request.division !== undefined) {
+      contract.updateDivision(request.division);
+    }
+
+    if (request.area !== undefined) {
+      contract.updateArea(request.area);
+    }
+
+    if (request.nombreProyecto !== undefined) {
+      contract.updateNombreProyecto(request.nombreProyecto);
+    }
+
+    if (request.jornadaTrabajo !== undefined) {
+      contract.updateJornadaTrabajo(request.jornadaTrabajo);
     }
 
     if (request.dotacionPersonal !== undefined || request.dotacionVehiculos !== undefined) {
@@ -33,9 +85,21 @@ export class UpdateContractUseCase {
 
     const updateFields = only(contract, [
       'id',
-      'endDate',
+      'rutSociedad',
       'nombreColaborador',
+      'contractNumber',
+      'startDate',
+      'endDate',
+      'contractType',
+      'administradorContratoMandante',
+      'administradorContratoEmpresa',
+      'rutAdministradorContrato',
+      'nombreMandante',
       'descripcionServicio',
+      'nombreProyecto',
+      'division',
+      'area',
+      'jornadaTrabajo',
       'dotacionPersonal',
       'dotacionVehiculos',
     ]);
