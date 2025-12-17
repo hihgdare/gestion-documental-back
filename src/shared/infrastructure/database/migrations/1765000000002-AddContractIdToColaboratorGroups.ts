@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey } from "t
 export class AddContractIdToColaboratorGroups1765000000002 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Borrar todo el contenido de la tabla colaborator_groups
-    await queryRunner.clearTable('colaborator_groups');
+    await queryRunner.query('DELETE FROM colaborator_groups');
 
     await queryRunner.addColumn(
       'colaborator_groups',
