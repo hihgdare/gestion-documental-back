@@ -80,11 +80,8 @@ export class Document {
       throw new ValidationError('El ID del template de documento es requerido');
     }
 
-    if (!props.colaboratorIds || props.colaboratorIds.length === 0) {
-      throw new ValidationError('Al menos un ID de colaborador es requerido');
-    }
-
-    if (props.colaboratorIds.some((id) => !id || id.trim().length === 0)) {
+    // Los colaboradores son opcionales en la creación, se pueden asignar después
+    if (props.colaboratorIds && props.colaboratorIds.some((id) => !id || id.trim().length === 0)) {
       throw new ValidationError('Los IDs de colaboradores no pueden estar vacíos');
     }
 
@@ -180,15 +177,11 @@ export class Document {
   }
 
   public updateColaborators(colaboratorIds: string[]): void {
-    if (!colaboratorIds || colaboratorIds.length === 0) {
-      throw new ValidationError('Al menos un ID de colaborador es requerido');
-    }
-
-    if (colaboratorIds.some((id) => !id || id.trim().length === 0)) {
+    if (colaboratorIds && colaboratorIds.some((id) => !id || id.trim().length === 0)) {
       throw new ValidationError('Los IDs de colaboradores no pueden estar vacíos');
     }
 
-    this.colaboratorIds = colaboratorIds;
+    this.colaboratorIds = colaboratorIds || [];
     this.updatedAt = new Date();
   }
 

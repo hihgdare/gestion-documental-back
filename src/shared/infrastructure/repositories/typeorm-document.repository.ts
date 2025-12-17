@@ -50,6 +50,27 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async update(document: Document): Promise<Document> {
     const documentEntity = this.toEntity(document);
     await this.repository.update(document.id, documentEntity);
+
+    // Manejar la relación N:M con colaboradores
+    if (document.colaboratorIds && document.colaboratorIds.length > 0) {
+      const colaboratorRepository = AppDataSource.getRepository(ColaboratorEntity);
+      const colaborators = await colaboratorRepository.find({
+        where: { id: In(document.colaboratorIds) },
+      });
+      const updatedEntity = await this.repository.findOne({ where: { id: document.id } });
+      if (updatedEntity) {
+        updatedEntity.colaborators = colaborators;
+        await this.repository.save(updatedEntity);
+      }
+    } else {
+      // Si no hay colaboradores, limpiar la relación
+      const updatedEntity = await this.repository.findOne({ where: { id: document.id } });
+      if (updatedEntity) {
+        updatedEntity.colaborators = [];
+        await this.repository.save(updatedEntity);
+      }
+    }
+
     const updatedEntity = await this.repository.findOne({
       where: { id: document.id },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],

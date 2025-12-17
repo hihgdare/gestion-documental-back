@@ -6,7 +6,7 @@ import { DocumentAction } from '../value-objects/document-enums';
 
 export interface CreateDocumentRequest {
   templateId: string;
-  colaboratorIds: string[];
+  colaboratorIds?: string[];
   name: string;
   issuedDate?: Date;
   expirationDate?: Date;
