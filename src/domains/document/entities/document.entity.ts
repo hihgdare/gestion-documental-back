@@ -216,10 +216,6 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public isDeleted(): boolean {
-    return this.deletedAt !== null;
-  }
-
   public isExpired(): boolean {
     if (!this.expirationDate) return false;
     return DateUtils.isAfter(new Date(), this.expirationDate);
@@ -286,9 +282,8 @@ export class Document {
       status: this.status,
       createdBy: this.createdBy,
       comment: this.comment,
-      deletedAt: DateTimeUtils.toString(this.deletedAt),
+      deletedAt: DateTimeUtils.toString(this.deletedAt, true),
       deletedBy: this.deletedBy,
-      isDeleted: this.isDeleted(),
       isExpired: this.isExpired(),
       daysUntilExpiration: this.daysUntilExpiration(),
       createdAt: DateTimeUtils.toString(this.createdAt),

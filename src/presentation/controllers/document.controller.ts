@@ -24,6 +24,8 @@ import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 import { AssignDocumentsFromTemplateToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
+import { GetDashboardMetricsUseCase } from '../../domains/document/use-cases/get-dashboard-metrics.use-case';
+import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 
 export class DocumentController {
   constructor(
@@ -44,6 +46,7 @@ export class DocumentController {
     private contractReviewerRepository: ContractReviewerRepository,
     private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
     private assignDocumentsFromTemplateToGroupUseCase: AssignDocumentsFromTemplateToGroupUseCase,
+    private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
   ) {}
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -331,4 +334,12 @@ export class DocumentController {
       createdAt: json.createdAt,
     };
   }
+
+  getDashboardMetrics = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const metrics = await this.getDashboardMetricsUseCase.execute();
+    res.status(200).json({
+      success: true,
+      data: metrics as DashboardMetricsDto,
+    });
+  });
 }

@@ -58,6 +58,7 @@ import { ApproveDocumentUseCase } from '@domains/document/use-cases/approve-docu
 import { RejectDocumentUseCase } from '@domains/document/use-cases/reject-document.use-case';
 import { RejectDocumentWithCommentsUseCase } from '@domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentHistoryUseCase as _CreateDocumentHistoryUseCase } from '@domains/document/use-cases/create-document-history.use-case';
+import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-document-history.use-case';
 
 // Contract domain
@@ -207,6 +208,7 @@ export class DependencyContainer {
   private rejectDocumentUseCase!: RejectDocumentUseCase;
   private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
+  private getDashboardMetricsUseCase!: GetDashboardMetricsUseCase;
   private assignDocumentsFromTemplateToGroupUseCase!: AssignDocumentsFromTemplateToGroupUseCase;
 
   // Use Cases - Contract
@@ -359,6 +361,7 @@ export class DependencyContainer {
     this.rejectDocumentUseCase = new RejectDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
+    this.getDashboardMetricsUseCase = new GetDashboardMetricsUseCase(this.documentRepository);
     this.assignDocumentsFromTemplateToGroupUseCase = new AssignDocumentsFromTemplateToGroupUseCase(
       this.documentRepository,
       this.documentHistoryRepository,
@@ -543,6 +546,7 @@ export class DependencyContainer {
       this.contractReviewerRepository,
       this.getAllDocumentTypesWithSubtypesUseCase,
       this.assignDocumentsFromTemplateToGroupUseCase,
+      this.getDashboardMetricsUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(
