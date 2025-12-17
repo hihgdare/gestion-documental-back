@@ -222,29 +222,7 @@ export async function runSampleSeeds(): Promise<void> {
     colaboratorIds.push(saved.id);
   }
 
-  const groupNames = ['Equipo A', 'Equipo B', 'Equipo C'];
-  const groups: { id: number; name: string; description?: string }[] = [];
-  for (const name of groupNames) {
-    let found = await groupRepo.findByName(name);
-    if (!found) {
-      const created = await groupRepo.save({ name, description: 'Grupo de prueba', colaborators: [] as any });
-      found = created;
-    }
-    groups.push({ id: (found as any).id, name: found!.name, description: (found as any).description });
-  }
-
-  const [A, B, C] = groups;
-  const cids = colaboratorIds;
-  if (cids.length >= 7) {
-    const groupAColabs = [cids[0], cids[3], cids[4], cids[5]];
-    const groupBColabs = [cids[1], cids[3], cids[4], cids[6]];
-    const groupCColabs = [cids[2], cids[3], cids[5], cids[6]];
-
-    await groupRepo.update({ id: A.id, name: A.name, description: A.description, colaborators: groupAColabs.map(id => ({ id } as any)) });
-    await groupRepo.update({ id: B.id, name: B.name, description: B.description, colaborators: groupBColabs.map(id => ({ id } as any)) });
-    await groupRepo.update({ id: C.id, name: C.name, description: C.description, colaborators: groupCColabs.map(id => ({ id } as any)) });
-  }
-
+  /* Create Contracts */
   const today = new Date();
   const contractsData = [
     {
@@ -288,9 +266,45 @@ export async function runSampleSeeds(): Promise<void> {
     },
   ];
 
+  const contractIds: string[] = [];
   for (const c of contractsData) {
-    const exists = await contractRepo.findByContractNumber(c.contractNumber);
-    if (exists) continue;
-    await contractRepo.save(c as any);
+    let contract = await contractRepo.findByContractNumber(c.contractNumber);
+    if (!contract) {
+      contract = await contractRepo.save(c as any);
+    }
+    contractIds.push(contract.id);
+  }
+
+  /* Create Groups */
+  const groupNames = ['Equipo A', 'Equipo B', 'Equipo C'];
+  const groups: { id: number; name: string; description?: string }[] = [];
+  let groupIndex = 0;
+  for (const name of groupNames) {
+    let found = await groupRepo.findByName(name);
+    if (!found) {
+      // Assign specific contract based on index rotation
+      const assignedContractId = contractIds[groupIndex % contractIds.length];
+      const created = await groupRepo.save({
+        name,
+        description: 'Grupo de prueba',
+        colaborators: [] as any,
+        contractId: assignedContractId,
+      });
+      found = created;
+    }
+    groups.push({ id: (found as any).id, name: found!.name, description: (found as any).description });
+    groupIndex++;
+  }
+
+  const [A, B, C] = groups;
+  const cids = colaboratorIds;
+  if (cids.length >= 7 && groups.length >= 3) {
+    const groupAColabs = [cids[0], cids[3], cids[4], cids[5]];
+    const groupBColabs = [cids[1], cids[3], cids[4], cids[6]];
+    const groupCColabs = [cids[2], cids[3], cids[5], cids[6]];
+
+    await groupRepo.update({ id: A.id, colaborators: groupAColabs.map(id => ({ id } as any)) });
+    await groupRepo.update({ id: B.id, colaborators: groupBColabs.map(id => ({ id } as any)) });
+    await groupRepo.update({ id: C.id, colaborators: groupCColabs.map(id => ({ id } as any)) });
   }
 }

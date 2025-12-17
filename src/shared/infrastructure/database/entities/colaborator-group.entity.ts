@@ -11,6 +11,8 @@ import { ColaboratorGroup } from '@domains/colaborator-group/entities/colaborato
 import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
 import { EntityProps } from '@shared/infrastructure/entity-props';
 import { ColaboratorEntity } from './colaborators.entity';
+import { ContractEntity } from './contract.entity';
+import { ManyToOne, JoinColumn } from 'typeorm';
 import {
   DocumentType,
   Gender,
@@ -27,6 +29,13 @@ export class ColaboratorGroupEntity implements ColaboratorGroupProps {
 
   @Column({ type: 'varchar', length: 255, unique: true })
   name!: string;
+
+  @Column({ name: 'contract_id', type: 'varchar', length: 36 })
+  contractId!: string;
+
+  @ManyToOne(() => ContractEntity)
+  @JoinColumn({ name: 'contract_id' })
+  contract!: ContractEntity;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
@@ -49,6 +58,7 @@ export class ColaboratorGroupEntity implements ColaboratorGroupProps {
     return Object.assign(new ColaboratorGroupEntity(), {
       id: group.id!,
       name: group.name,
+      contractId: group.contractId,
       description: group.description,
       colaborators: group.colaborators || [],
     });
@@ -58,6 +68,7 @@ export class ColaboratorGroupEntity implements ColaboratorGroupProps {
     return new ColaboratorGroup({
       id: entity.id,
       name: entity.name,
+      contractId: entity.contractId,
       description: entity.description,
       colaborators: entity.colaborators?.map(c => ColaboratorGroupEntity.colaboratorToDomain(c)) ?? [],
       createdAt: entity.createdAt,
