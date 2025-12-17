@@ -62,17 +62,6 @@ export class UpdateDocumentUseCase {
       document.updateContractId(request.contractId);
     }
 
-    // Regla: no permitir documentos simultáneos con misma plantilla (sin validar colaboradores por N:M)
-    // La validación de unicidad debe hacerse a nivel de negocio
-    // const exists = await this.documentRepository.existsByTemplateAndColaborator(
-    //   document.templateId,
-    //   document.colaboratorIds[0],
-    //   document.id,
-    // );
-    // if (exists) {
-    //   throw new ValidationError('Ya existe un documento activo con la misma plantilla y colaborador');
-    // }
-
     // Al editar un documento, siempre vuelve a estado borrador
     document.setToDraft();
 

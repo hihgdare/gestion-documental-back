@@ -172,7 +172,6 @@ export class Document {
       throw new ValidationError('El ID del subtipo de documento es requerido');
     }
 
-    // Nota: Esta función no actualiza colaboradores, ese es trabajo de updateColaborators
     this.updatedAt = new Date();
   }
 
