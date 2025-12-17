@@ -29,4 +29,5 @@ export interface ContractRepository {
   addColaborator(contractId: string, colaboratorId: string): Promise<void>;
   removeColaborator(contractId: string, colaboratorId: string): Promise<void>;
   findColaborators(contractId: string): Promise<Colaborator[]>;
+  findByColaboratorId(colaboratorId: string): Promise<Contract[]>;
 }

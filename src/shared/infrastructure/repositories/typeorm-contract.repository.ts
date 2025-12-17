@@ -103,6 +103,16 @@ export class TypeOrmContractRepository implements ContractRepository {
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
+  async findByColaboratorId(colaboratorId: string): Promise<Contract[]> {
+    const contractEntities = await this.repository.createQueryBuilder('contract')
+      .innerJoin('contract.colaborators', 'colaborator')
+      .where('colaborator.id = :colaboratorId', { colaboratorId })
+      .orderBy('contract.createdAt', 'DESC')
+      .getMany();
+
+    return contractEntities.map(entity => this.toDomain(entity));
+  }
+
   async findByStatus(status: ContractStatus): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
       where: { status },

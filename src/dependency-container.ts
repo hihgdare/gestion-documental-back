@@ -100,6 +100,7 @@ import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colab
 import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
 import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
 import { UpdateColaboratorContractsUseCase } from '@domains/colaborators/use-cases/update-colaborator-contracts.use-case';
+import { GetContractsByColaboratorUseCase } from '@domains/contract/use-cases/get-contracts-by-colaborator.use-case';
 
 // Permission domain
 import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
@@ -244,6 +245,7 @@ export class DependencyContainer {
   private updateColaboratorUseCase!: UpdateColaboratorUseCase;
   private getColaboratorGroupsUseCase!: GetColaboratorGroupsUseCase;
   private updateColaboratorContractsUseCase!: UpdateColaboratorContractsUseCase;
+  private getContractsByColaboratorUseCase!: GetContractsByColaboratorUseCase;
 
   // Use Cases - Permission
   private savePermissionUseCase!: SavePermissionUseCase;
@@ -412,6 +414,7 @@ export class DependencyContainer {
     this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorContractsUseCase = new UpdateColaboratorContractsUseCase(this.colaboratorRepository);
+    this.getContractsByColaboratorUseCase = new GetContractsByColaboratorUseCase(this.contractRepository);
 
     // Initialize Permission use cases
     this.savePermissionUseCase = new SavePermissionUseCase(this.permissionRepository);
@@ -461,6 +464,7 @@ export class DependencyContainer {
       this.updateColaboratorUseCase,
       this.getColaboratorGroupsUseCase,
       this.updateColaboratorContractsUseCase,
+      this.getContractsByColaboratorUseCase,
     );
 
     this.contractController = new ContractController(
