@@ -23,11 +23,16 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   async findAll(): Promise<Document[]> {
-    const documentEntities = await this.repository.find({
-      where: { deletedAt: null },
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
-      order: { createdAt: 'DESC' },
-    });
+    const documentEntities = await this.repository
+      .createQueryBuilder('document')
+      .leftJoinAndSelect('document.contract', 'contract')
+      .leftJoinAndSelect('document.template', 'template')
+      .leftJoinAndSelect('template.documentType', 'documentType')
+      .leftJoinAndSelect('template.documentSubtype', 'documentSubtype')
+      .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .where('document.deletedAt IS NULL')
+      .orderBy('document.createdAt', 'DESC')
+      .getMany();
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
@@ -85,7 +90,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { contractId, deletedAt: null },
+      where: { contractId, deletedAt: undefined },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -94,7 +99,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByTemplateId(templateId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { templateId, deletedAt: null },
+      where: { templateId, deletedAt: undefined },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -121,9 +126,9 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository.find({
       where: {
         expirationDate: LessThanOrEqual(new Date()),
-        deletedAt: null,
+        deletedAt: undefined,
       },
-      relations: ['contract', 'template', 'colaborators'],
+      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { expirationDate: 'ASC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));

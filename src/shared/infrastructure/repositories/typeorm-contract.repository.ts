@@ -16,14 +16,14 @@ export class TypeOrmContractRepository implements ContractRepository {
   }
 
   async findById(id: string): Promise<Contract | null> {
-    const contractEntity = await this.repository.findOne({ where: { id, deletedAt: null } });
+    const contractEntity = await this.repository.findOne({ where: { id, deletedAt: undefined } });
     if (!contractEntity) return null;
     return this.toDomain(contractEntity);
   }
 
   async findAll(): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { deletedAt: null },
+      where: { deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -90,7 +90,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByRutSociedad(rutSociedad: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { rutSociedad, deletedAt: null },
+      where: { rutSociedad, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -98,7 +98,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByNombreColaborador(nombre: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { nombreColaborador: nombre, deletedAt: null },
+      where: { nombreColaborador: nombre, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -116,7 +116,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByStatus(status: ContractStatus): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { status, deletedAt: null },
+      where: { status, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -124,7 +124,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByContractType(type: ContractType): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { contractType: type, deletedAt: null },
+      where: { contractType: type, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -132,7 +132,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByNombreMandante(nombreMandante: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { nombreMandante, deletedAt: null },
+      where: { nombreMandante, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -140,7 +140,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByDivision(division: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { division, deletedAt: null },
+      where: { division, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -148,7 +148,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByArea(area: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { area, deletedAt: null },
+      where: { area, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -156,7 +156,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByJornadaTrabajo(jornada: JornadaTrabajo): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { jornadaTrabajo: jornada, deletedAt: null },
+      where: { jornadaTrabajo: jornada, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -164,7 +164,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByContractNumber(contractNumber: string): Promise<Contract | null> {
     const contractEntity = await this.repository.findOne({
-      where: { contractNumber, deletedAt: null },
+      where: { contractNumber, deletedAt: undefined },
     });
     if (!contractEntity) return null;
     return this.toDomain(contractEntity);
@@ -172,14 +172,14 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async existsByContractNumber(contractNumber: string): Promise<boolean> {
     const count = await this.repository.count({
-      where: { contractNumber, deletedAt: null },
+      where: { contractNumber, deletedAt: undefined },
     });
     return count > 0;
   }
 
   async findActiveContracts(): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { status: ContractStatus.ACTIVE, deletedAt: null },
+      where: { status: ContractStatus.ACTIVE, deletedAt: undefined },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -269,7 +269,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findSubcontracts(contractId: string): Promise<Contract[]> {
     // Verify contract exists
-    const contract = await this.repository.findOne({ where: { id: contractId, deletedAt: null } });
+    const contract = await this.repository.findOne({ where: { id: contractId, deletedAt: undefined } });
     if (!contract) {
       throw new NotFoundError('Contract not found');
     }
