@@ -58,6 +58,8 @@ export type UpdateContractProps = {
   dotacionVehiculos?: number;
   employeeId?: string;
   managerId?: string;
+  userId?: string;
+  userRoles?: Array<{ id: number; name: string }>;
 };
 
 export type ContractJson = Overlap<BaseContractProps, {
