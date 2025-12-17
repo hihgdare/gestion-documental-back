@@ -8,9 +8,9 @@ export interface DocumentRepository {
   update(request: Document & { id: string }): Promise<Document>;
   delete(id: string): Promise<void>;
   findByTemplateId(templateId: string): Promise<Document[]>;
-  findByColaboratorId(colaboratorId: string): Promise<Document[]>;
+  findByColaboratorIds(colaboratorIds: string[]): Promise<Document[]>;
   findExpiredDocuments(): Promise<Document[]>;
   findExpiringDocuments(days: number): Promise<Document[]>;
-  existsByTemplateAndColaborator(templateId: string, colaboratorId: string, excludeId?: string): Promise<boolean>;
-  existsByTemplateContractColaborator(templateId: string, contractId: string, colaboratorId: string, excludeId?: string): Promise<boolean>;
+  existsByTemplateAndColaborators(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
+  existsByTemplateContractColaborators(templateId: string, contractId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
 }
