@@ -28,7 +28,7 @@ export class DocumentHistory {
   documentId: string;
   templateId: string;
   name: string;
-  issuedDate: Date;
+  issuedDate: Date | null;
   expirationDate: Date | null;
   contractId: string | null;
   description?: string;
@@ -46,7 +46,7 @@ export class DocumentHistory {
 
     EntityUtils.assign(this as DocumentHistory, props, {
       id: 'uuid',
-      issuedDate: 'date',
+      issuedDate: 'dateNullable',
       expirationDate: 'dateNullable',
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
@@ -81,9 +81,8 @@ export class DocumentHistory {
       throw new ValidationError('El nombre del documento no puede exceder 255 caracteres');
     }
 
-    if (!props.issuedDate) {
-      throw new ValidationError('La fecha de emisión es requerida');
-    }
+    // La fecha de emisión es opcional para documentos en DRAFT
+    // Se valida en Document.validateRequired si documentUrl está presente
 
     if (!props.action || props.action.trim().length === 0) {
       throw new ValidationError('La acción es requerida');

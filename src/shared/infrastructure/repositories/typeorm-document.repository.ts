@@ -151,7 +151,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   async existsByTemplateAndColaborator(templateId: string, colaboratorId: string, excludeId?: string): Promise<boolean> {
-    // This method is deprecated - use query builder for N:M relation
     const where: any = { templateId, deletedAt: null };
     if (excludeId) where.id = Not(excludeId);
 
@@ -224,8 +223,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       createdBy: document.createdBy || undefined,
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
-      // Nota: La relación de colaboradores se maneja separadamente en el save/update
-      // mediante la tabla de unión document_colaborators
     };
   }
 }
