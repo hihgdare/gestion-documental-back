@@ -29,7 +29,6 @@ export class RejectDocumentUseCase {
       action: DocumentAction.REJECTED,
       updatedBy: userId === 'system' ? undefined : userId,
       templateId: document.templateId,
-      colaboratorId: document.colaboratorId,
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,

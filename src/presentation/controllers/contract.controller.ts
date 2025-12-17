@@ -234,10 +234,14 @@ export class ContractController {
   public updateContract = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const dto: UpdateContractDto = req.body;
+    const user = (req as any).user;
+
     const updateRequest = {
       ...dto,
       id,
       endDate: DateUtils.parse(dto.endDate, true) ?? undefined,
+      userId: user?.id,
+      userRoles: user?.roles,
     };
 
     const contract = await this.updateContractUseCase.execute(updateRequest);

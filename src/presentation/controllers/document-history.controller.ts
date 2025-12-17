@@ -7,9 +7,8 @@ interface DocumentHistoryResponseDto {
   id: string;
   documentId: string;
   templateId: string;
-  colaboratorId: string;
   name: string;
-  issuedDate: string;
+  issuedDate: string | null;
   expirationDate: string | null;
   contractId: string | null;
   description?: string;
@@ -54,9 +53,8 @@ export class DocumentHistoryController {
       id: history.id,
       documentId: history.documentId,
       templateId: history.templateId,
-      colaboratorId: history.colaboratorId,
       name: history.name,
-      issuedDate: history.issuedDate.toISOString().split('T')[0],
+      issuedDate: history.issuedDate ? history.issuedDate.toISOString().split('T')[0] : null,
       expirationDate: history.expirationDate ? history.expirationDate.toISOString().split('T')[0] : null,
       contractId: history.contractId,
       description: history.description,

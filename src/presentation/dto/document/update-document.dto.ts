@@ -1,6 +1,6 @@
 export interface UpdateDocumentDto {
   templateId?: string;
-  colaboratorId?: string;
+  colaboratorIds?: string[];
   name?: string;
   issuedDate?: string; // ISO date string
   expirationDate?: string; // ISO date string

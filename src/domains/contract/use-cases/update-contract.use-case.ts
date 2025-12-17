@@ -12,7 +12,13 @@ export class UpdateContractUseCase {
       throw new NotFoundError('Contract', request.id);
     }
 
-    if (!contract.isEditable()) {
+    // Verificar si el usuario es administrador
+    const isUserAdmin = request.userRoles?.some(
+      role => role.name?.toLowerCase() === 'admin' || role.name?.toLowerCase() === 'administrador',
+    );
+
+    // Validar editabilidad: permitir si es admin O si el contrato es editable
+    if (!contract.isEditable() && !isUserAdmin) {
       throw new Error('Contract is not editable. Only contracts with start date in the future can be edited.');
     }
 

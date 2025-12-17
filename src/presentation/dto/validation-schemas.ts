@@ -163,7 +163,7 @@ export const getDocumentSubtypeByIdSchema = Joi.object({
 
 export const createDocumentSchema = Joi.object({
   templateId: Joi.string().uuid().required(),
-  colaboratorId: Joi.string().uuid().required(),
+  colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).required(),
   issuedDate: Joi.date()
     .optional()
@@ -185,7 +185,7 @@ export const createDocumentSchema = Joi.object({
 
 export const updateDocumentSchema = Joi.object({
   templateId: Joi.string().uuid().optional(),
-  colaboratorId: Joi.string().uuid().optional(),
+  colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).optional(),
   issuedDate: Joi.date()
     .optional()

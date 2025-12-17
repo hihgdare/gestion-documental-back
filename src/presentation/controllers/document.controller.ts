@@ -51,7 +51,7 @@ export class DocumentController {
 
     const document = await this.createDocumentUseCase.execute({
       templateId: dto.templateId,
-      colaboratorId: dto.colaboratorId,
+      colaboratorIds: dto.colaboratorIds,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
@@ -200,7 +200,7 @@ export class DocumentController {
 
     const document = await this.updateDocumentUseCase.execute(id, {
       templateId: dto.templateId,
-      colaboratorId: dto.colaboratorId,
+      colaboratorIds: dto.colaboratorIds,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
@@ -298,7 +298,7 @@ export class DocumentController {
     return {
       id: json.id,
       templateId: json.templateId,
-      colaboratorId: json.colaboratorId,
+      colaboratorIds: json.colaboratorIds || [],
       templateName: document.templateName,
       documentTypeName: document.documentTypeName,
       documentSubtypeName: document.documentSubtypeName,

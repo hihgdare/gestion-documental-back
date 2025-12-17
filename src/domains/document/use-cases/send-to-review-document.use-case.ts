@@ -29,7 +29,7 @@ export class SendToReviewDocumentUseCase {
       action: DocumentAction.SUBMITTED_FOR_REVIEW,
       updatedBy: userId === 'system' ? undefined : userId,
       templateId: document.templateId,
-      colaboratorId: document.colaboratorId,
+
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,
