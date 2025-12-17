@@ -22,4 +22,5 @@ export interface CreateColaboratorDto {
   telefonoEmergencia?: string;
   profesion: string;
   cargo: string;
+  contractIds: string[];
 }

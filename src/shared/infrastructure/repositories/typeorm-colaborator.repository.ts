@@ -8,6 +8,7 @@ import {
   CivilStatus,
 } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ColaboratorEntity } from '../database/entities/colaborators.entity';
+import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
 
 export class TypeOrmColaboratorRepository implements ColaboratorRepository {
@@ -163,6 +164,22 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     });
     if (!colaboratorEntity) return null;
     return this.toDomain(colaboratorEntity);
+  }
+
+  async updateContracts(colaboratorId: string, contractIds: string[]): Promise<void> {
+    const colaborator = await this.repository.findOne({
+      where: { id: colaboratorId },
+      relations: ['contracts'],
+    });
+
+    if (!colaborator) {
+      throw new Error('Colaborator not found');
+    }
+
+    // We can use the repository to save the relation
+    // Or we can use query builder to replace relations
+    colaborator.contracts = contractIds.map(id => ({ id } as ContractEntity));
+    await this.repository.save(colaborator);
   }
 
   private toDomain(entity: ColaboratorEntity): Colaborator {

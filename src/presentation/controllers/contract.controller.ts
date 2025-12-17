@@ -39,6 +39,10 @@ import { UpdateReviewerDto } from '@presentation/dto/contract/update-reviewer.dt
 import { ReviewerResponseDto } from '@presentation/dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
+import { AddColaboratorToContractUseCase } from '@domains/contract/use-cases/add-colaborator-to-contract.use-case';
+import { RemoveColaboratorFromContractUseCase } from '@domains/contract/use-cases/remove-colaborator-from-contract.use-case';
+import { GetContractColaboratorsUseCase } from '@domains/contract/use-cases/get-contract-colaborators.use-case';
+import { Colaborator } from '@domains/colaborators/entities/colaborator.entity';
 
 
 export class ContractController {
@@ -68,6 +72,9 @@ export class ContractController {
     private readonly getContractReviewersUseCase: GetContractReviewersUseCase,
     private readonly updateReviewerUseCase: UpdateReviewerUseCase,
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
+    private readonly addColaboratorToContractUseCase: AddColaboratorToContractUseCase,
+    private readonly removeColaboratorFromContractUseCase: RemoveColaboratorFromContractUseCase,
+    private readonly getContractColaboratorsUseCase: GetContractColaboratorsUseCase,
   ) { }
 
 
@@ -416,6 +423,36 @@ export class ContractController {
       success: true,
       data: await this.toReviewerResponseDto(reviewer),
       message: 'Reviewer updated successfully',
+    });
+  });
+
+  // Colaborator management methods
+  public addColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { colaboratorId } = req.body;
+
+    if (!colaboratorId) {
+      res.status(400).json({ success: false, message: 'Colaborator ID is required' });
+      return;
+    }
+
+    await this.addColaboratorToContractUseCase.execute(id, colaboratorId);
+    res.status(200).json({ success: true, message: 'Colaborator added successfully' });
+  });
+
+  public removeColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id, colaboratorId } = req.params;
+    await this.removeColaboratorFromContractUseCase.execute(id, colaboratorId);
+    res.status(200).json({ success: true, message: 'Colaborator removed successfully' });
+  });
+
+  public getColaborators = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const colaborators = await this.getContractColaboratorsUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: colaborators.map((c: Colaborator) => c.toJSON()),
+      count: colaborators.length,
     });
   });
 }

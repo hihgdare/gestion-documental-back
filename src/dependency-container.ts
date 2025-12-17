@@ -90,12 +90,17 @@ import { RemoveReviewerFromContractUseCase } from '@domains/contract/use-cases/r
 import { GetContractReviewersUseCase } from '@domains/contract/use-cases/get-contract-reviewers.use-case';
 import { CheckUserCanReviewContractUseCase } from '@domains/contract/use-cases/check-user-can-review-contract.use-case';
 import { UpdateReviewerUseCase } from '@domains/contract/use-cases/update-reviewer.use-case';
+import { AddColaboratorToContractUseCase } from '@domains/contract/use-cases/add-colaborator-to-contract.use-case';
+import { RemoveColaboratorFromContractUseCase } from '@domains/contract/use-cases/remove-colaborator-from-contract.use-case';
+import { GetContractColaboratorsUseCase } from '@domains/contract/use-cases/get-contract-colaborators.use-case';
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
 import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
 import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
 import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
+import { UpdateColaboratorContractsUseCase } from '@domains/colaborators/use-cases/update-colaborator-contracts.use-case';
+import { GetContractsByColaboratorUseCase } from '@domains/contract/use-cases/get-contracts-by-colaborator.use-case';
 
 // Permission domain
 import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
@@ -230,12 +235,17 @@ export class DependencyContainer {
   private getContractReviewersUseCase!: GetContractReviewersUseCase;
   private checkUserCanReviewContractUseCase!: CheckUserCanReviewContractUseCase;
   private updateReviewerUseCase!: UpdateReviewerUseCase;
+  private addColaboratorToContractUseCase!: AddColaboratorToContractUseCase;
+  private removeColaboratorFromContractUseCase!: RemoveColaboratorFromContractUseCase;
+  private getContractColaboratorsUseCase!: GetContractColaboratorsUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
   private getColaboratorUseCase!: GetColaboratorUseCase;
   private updateColaboratorUseCase!: UpdateColaboratorUseCase;
   private getColaboratorGroupsUseCase!: GetColaboratorGroupsUseCase;
+  private updateColaboratorContractsUseCase!: UpdateColaboratorContractsUseCase;
+  private getContractsByColaboratorUseCase!: GetContractsByColaboratorUseCase;
 
   // Use Cases - Permission
   private savePermissionUseCase!: SavePermissionUseCase;
@@ -395,11 +405,16 @@ export class DependencyContainer {
     this.updateReviewerUseCase = new UpdateReviewerUseCase(
       this.contractReviewerRepository,
     );
+    this.addColaboratorToContractUseCase = new AddColaboratorToContractUseCase(this.contractRepository);
+    this.removeColaboratorFromContractUseCase = new RemoveColaboratorFromContractUseCase(this.contractRepository);
+    this.getContractColaboratorsUseCase = new GetContractColaboratorsUseCase(this.contractRepository);
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
     this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository);
+    this.updateColaboratorContractsUseCase = new UpdateColaboratorContractsUseCase(this.colaboratorRepository);
+    this.getContractsByColaboratorUseCase = new GetContractsByColaboratorUseCase(this.contractRepository);
 
     // Initialize Permission use cases
     this.savePermissionUseCase = new SavePermissionUseCase(this.permissionRepository);
@@ -448,6 +463,8 @@ export class DependencyContainer {
       this.getColaboratorUseCase,
       this.updateColaboratorUseCase,
       this.getColaboratorGroupsUseCase,
+      this.updateColaboratorContractsUseCase,
+      this.getContractsByColaboratorUseCase,
     );
 
     this.contractController = new ContractController(
@@ -476,6 +493,9 @@ export class DependencyContainer {
       this.getContractReviewersUseCase,
       this.updateReviewerUseCase,
       this.getUserByIdUseCase,
+      this.addColaboratorToContractUseCase,
+      this.removeColaboratorFromContractUseCase,
+      this.getContractColaboratorsUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(

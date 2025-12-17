@@ -25,6 +25,7 @@ export interface CreateColaboratorRequest {
   telefonoEmergencia?: string;
   profesion: string;
   cargo: string;
+  contractIds: string[];
 }
 
 export class CreateColaboratorUseCase {
@@ -49,7 +50,13 @@ export class CreateColaboratorUseCase {
     };
 
     const colaborator = Colaborator.create(colaboratorProps);
+    const savedColaborator = await this.colaboratorRepository.save(colaborator);
 
-    return await this.colaboratorRepository.save(colaborator);
+    // Assign contracts
+    if (request.contractIds && request.contractIds.length > 0) {
+      await this.colaboratorRepository.updateContracts(savedColaborator.id, request.contractIds);
+    }
+
+    return savedColaborator;
   }
 }

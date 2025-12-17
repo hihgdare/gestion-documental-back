@@ -88,6 +88,16 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // DELETE /api/contracts/:id/reviewers/:userId - Remove a reviewer from a contract
   router.delete('/:id/reviewers/:userId', authorize('contract:assign:reviewer'), contractController.removeReviewer);
 
+  // Colaborator management routes
+  // POST /api/contracts/:id/colaborators - Add a colaborator to a contract
+  router.post('/:id/colaborators', authorize('contract:update'), contractController.addColaborator);
+
+  // DELETE /api/contracts/:id/colaborators/:colaboratorId - Remove a colaborator from a contract
+  router.delete('/:id/colaborators/:colaboratorId', authorize('contract:update'), contractController.removeColaborator);
+
+  // GET /api/contracts/:id/colaborators - Get all colaborators of a contract
+  router.get('/:id/colaborators', authorize('contract:read'), contractController.getColaborators);
+
   return router;
 };
 

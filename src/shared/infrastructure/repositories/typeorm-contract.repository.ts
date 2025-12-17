@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { Contract, CreateContractProps, UpdateContractProps } from '@domains/contract/entities/contract.entity';
+import { Colaborator } from '@domains/colaborators/entities/colaborator.entity';
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
@@ -15,13 +16,14 @@ export class TypeOrmContractRepository implements ContractRepository {
   }
 
   async findById(id: string): Promise<Contract | null> {
-    const contractEntity = await this.repository.findOne({ where: { id } });
+    const contractEntity = await this.repository.findOne({ where: { id, deletedAt: null } });
     if (!contractEntity) return null;
     return this.toDomain(contractEntity);
   }
 
   async findAll(): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
+      where: { deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -88,7 +90,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByRutSociedad(rutSociedad: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { rutSociedad },
+      where: { rutSociedad, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -96,15 +98,25 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByNombreColaborador(nombre: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { nombreColaborador: nombre },
+      where: { nombreColaborador: nombre, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
+  async findByColaboratorId(colaboratorId: string): Promise<Contract[]> {
+    const contractEntities = await this.repository.createQueryBuilder('contract')
+      .innerJoin('contract.colaborators', 'colaborator')
+      .where('colaborator.id = :colaboratorId', { colaboratorId })
+      .orderBy('contract.createdAt', 'DESC')
+      .getMany();
+
+    return contractEntities.map(entity => this.toDomain(entity));
+  }
+
   async findByStatus(status: ContractStatus): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { status },
+      where: { status, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -112,7 +124,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByContractType(type: ContractType): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { contractType: type },
+      where: { contractType: type, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -120,7 +132,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByNombreMandante(nombreMandante: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { nombreMandante },
+      where: { nombreMandante, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -128,7 +140,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByDivision(division: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { division },
+      where: { division, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -136,7 +148,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByArea(area: string): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { area },
+      where: { area, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -144,7 +156,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByJornadaTrabajo(jornada: JornadaTrabajo): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { jornadaTrabajo: jornada },
+      where: { jornadaTrabajo: jornada, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -152,7 +164,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findByContractNumber(contractNumber: string): Promise<Contract | null> {
     const contractEntity = await this.repository.findOne({
-      where: { contractNumber },
+      where: { contractNumber, deletedAt: null },
     });
     if (!contractEntity) return null;
     return this.toDomain(contractEntity);
@@ -160,14 +172,14 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async existsByContractNumber(contractNumber: string): Promise<boolean> {
     const count = await this.repository.count({
-      where: { contractNumber },
+      where: { contractNumber, deletedAt: null },
     });
     return count > 0;
   }
 
   async findActiveContracts(): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
-      where: { status: ContractStatus.ACTIVE },
+      where: { status: ContractStatus.ACTIVE, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -179,6 +191,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       .createQueryBuilder('contract')
       .where('contract.endDate < :now', { now })
       .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
+      .andWhere('contract.deleted_at IS NULL')
       .orderBy('contract.createdAt', 'DESC')
       .getMany();
 
@@ -190,6 +203,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       .createQueryBuilder('contract')
       .where('contract.endDate <= :date', { date })
       .andWhere('contract.status = :status', { status: ContractStatus.ACTIVE })
+      .andWhere('contract.deleted_at IS NULL')
       .orderBy('contract.endDate', 'ASC')
       .getMany();
 
@@ -255,7 +269,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
   async findSubcontracts(contractId: string): Promise<Contract[]> {
     // Verify contract exists
-    const contract = await this.repository.findOne({ where: { id: contractId } });
+    const contract = await this.repository.findOne({ where: { id: contractId, deletedAt: null } });
     if (!contract) {
       throw new NotFoundError('Contract not found');
     }
@@ -269,10 +283,53 @@ export class TypeOrmContractRepository implements ContractRepository {
         'cs.subcontract_id = contract.id',
       )
       .where('cs.contract_id = :contractId', { contractId })
+      .andWhere('contract.deleted_at IS NULL')
       .orderBy('contract.createdAt', 'DESC')
       .getMany();
 
     return subcontracts.map(entity => this.toDomain(entity));
+  }
+
+  // Colaborator management methods
+  async addColaborator(contractId: string, colaboratorId: string): Promise<void> {
+    const contract = await this.repository.findOne({ where: { id: contractId } });
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    try {
+      await this.repository
+        .createQueryBuilder()
+        .relation(ContractEntity, 'colaborators')
+        .of(contractId)
+        .add(colaboratorId);
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+        throw new Error('This colaborator is already assigned to the contract');
+      }
+      throw error;
+    }
+  }
+
+  async removeColaborator(contractId: string, colaboratorId: string): Promise<void> {
+    await this.repository
+      .createQueryBuilder()
+      .relation(ContractEntity, 'colaborators')
+      .of(contractId)
+      .remove(colaboratorId);
+  }
+
+  async findColaborators(contractId: string): Promise<Colaborator[]> {
+    const contract = await this.repository.findOne({
+      where: { id: contractId },
+      relations: ['colaborators'],
+    });
+
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    return contract.colaborators?.map((entity: any) => Colaborator.fromPersistence(entity)) ?? [];
   }
 
   private toDomain(entity: ContractEntity): Contract {
@@ -302,6 +359,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
+      colaborators: entity.colaborators?.map((c: any) => Colaborator.fromPersistence(c)) ?? [],
     });
   }
 

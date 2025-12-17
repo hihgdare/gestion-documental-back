@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { ColaboratorGroupEntity } from './colaborator-group.entity';
+import { ContractEntity } from './contract.entity';
 import { DocumentEntity } from './document.entity';
 
 @Entity('colaborators')
@@ -104,6 +105,9 @@ export class ColaboratorEntity {
 
   @ManyToMany(() => ColaboratorGroupEntity, (group) => group.colaborators)
   groups!: ColaboratorGroupEntity[];
+
+  @ManyToMany(() => ContractEntity, (contract) => contract.colaborators)
+  contracts!: ContractEntity[];
 
   @ManyToMany(() => DocumentEntity)
   @JoinTable({

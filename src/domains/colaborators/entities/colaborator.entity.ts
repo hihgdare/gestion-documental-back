@@ -149,7 +149,7 @@ export class Colaborator extends BaseEntity {
       props.nacionalidad,
       props.sexo,
       props.estadoCivil,
-      props.fechaNacimiento,
+      props.fechaNacimiento instanceof Date ? props.fechaNacimiento : new Date(props.fechaNacimiento),
       props.paisResidencia,
       props.region,
       props.comuna,
@@ -163,8 +163,8 @@ export class Colaborator extends BaseEntity {
       props.profesion,
       props.cargo,
       status,
-      props.createdAt!,
-      props.updatedAt!,
+      props.createdAt! instanceof Date ? props.createdAt! : new Date(props.createdAt!),
+      props.updatedAt! instanceof Date ? props.updatedAt! : new Date(props.updatedAt!),
     );
   }
 

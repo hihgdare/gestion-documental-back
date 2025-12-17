@@ -1,4 +1,6 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { Contract } from '@domains/contract/entities/contract.entity';
+import { DateUtils } from '@shared/utils/date';
 
 export interface ContractResponseDto {
   id: string;
@@ -26,4 +28,35 @@ export interface ContractResponseDto {
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
   deletedAt?: string | null; // ISO date string, optional
+}
+
+export function toContractResponseDto(contract: Contract): ContractResponseDto {
+  const json = contract.toJSON();
+  return {
+    id: json.id,
+    rutSociedad: json.rutSociedad,
+    nombreColaborador: json.nombreColaborador,
+    startDate: DateUtils.toString(json.startDate)!,
+    endDate: DateUtils.toString(json.endDate),
+    contractType: json.contractType as ContractType,
+    administradorContratoMandante: json.administradorContratoMandante,
+    administradorContratoEmpresa: json.administradorContratoEmpresa,
+    rutAdministradorContrato: json.rutAdministradorContrato,
+    contractNumber: json.contractNumber,
+    nombreMandante: json.nombreMandante,
+    division: json.division,
+    area: json.area,
+    dotacionPersonal: json.dotacionPersonal ?? 0,
+    dotacionVehiculos: json.dotacionVehiculos ?? 0,
+    descripcionServicio: json.descripcionServicio,
+    nombreProyecto: json.nombreProyecto,
+    jornadaTrabajo: json.jornadaTrabajo as JornadaTrabajo,
+    status: json.status as ContractStatus,
+    duration: json.duration,
+    isActive: json.isActive,
+    isExpired: json.isExpired,
+    createdAt: DateUtils.toString(json.createdAt)!,
+    updatedAt: DateUtils.toString(json.updatedAt)!,
+    deletedAt: DateUtils.toString(json.deletedAt),
+  };
 }

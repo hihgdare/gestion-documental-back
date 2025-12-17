@@ -43,8 +43,34 @@ describe('DocumentController with template/colaborator', () => {
     return { typeId, subtypeId, templateId };
   }
 
+  async function createContract() {
+    const now = new Date();
+    const startDate = now.toISOString().slice(0, 10);
+    const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const contractDto = {
+      rutSociedad: '12.345.678-5',
+      nombreColaborador: 'Test Colaborador',
+      administradorContratoMandante: 'Admin M',
+      administradorContratoEmpresa: 'Admin E',
+      rutAdministradorContrato: '23.456.789-6',
+      contractNumber: `CN-${Date.now()}-${Math.random().toString(16).slice(2,8)}`,
+      nombreMandante: 'Mandante SA',
+      startDate,
+      endDate,
+      contractType: 'consultoria',
+      jornadaTrabajo: 'completa',
+    };
+    const res = await supertest(app)
+      .post('/api/contracts')
+      .set('x-enable-rbac', 'false')
+      .send(contractDto);
+    expect(res.status).toBe(201);
+    return res.body.data.id as string;
+  }
+
   async function createColaborator() {
     const base = `${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
+    const contractId = await createContract();
     const res = await supertest(app)
       .post('/api/colaborators')
       .set('x-enable-rbac', 'false')
@@ -66,6 +92,7 @@ describe('DocumentController with template/colaborator', () => {
         email: `juan-${base}@example.com`,
         profesion: 'Ingeniero',
         cargo: 'Analista',
+        contractIds: [contractId],
       });
     expect(res.status).toBe(201);
     return res.body.data.id as string;

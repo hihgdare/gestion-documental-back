@@ -1,5 +1,6 @@
 import { Contract, CreateContractProps, UpdateContractProps } from '../entities/contract.entity';
 import { ContractStatus, ContractType, JornadaTrabajo } from '../value-objects/contract-enums';
+import { Colaborator } from '@domains/colaborators/entities/colaborator.entity';
 
 export interface ContractRepository {
   findByRutSociedad(rutSociedad: string): Promise<Contract[]>;
@@ -24,4 +25,9 @@ export interface ContractRepository {
   addSubcontract(contractId: string, subcontractId: string): Promise<void>;
   removeSubcontract(contractId: string, subcontractId: string): Promise<void>;
   findSubcontracts(contractId: string): Promise<Contract[]>;
+  // Colaborator management
+  addColaborator(contractId: string, colaboratorId: string): Promise<void>;
+  removeColaborator(contractId: string, colaboratorId: string): Promise<void>;
+  findColaborators(contractId: string): Promise<Colaborator[]>;
+  findByColaboratorId(colaboratorId: string): Promise<Contract[]>;
 }

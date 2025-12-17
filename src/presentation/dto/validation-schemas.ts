@@ -46,9 +46,23 @@ export const createContractSchema = Joi.object({
 });
 
 export const updateContractSchema = Joi.object({
-  endDate: Joi.date().iso().optional(),
+  rutSociedad: Joi.string().trim().min(8).max(12).optional(),
   nombreColaborador: Joi.string().trim().min(2).max(100).optional(),
+  contractNumber: Joi.string().trim().min(1).max(50).optional(),
+  startDate: Joi.date().iso().optional(),
+  endDate: Joi.date().iso().optional().greater(Joi.ref('startDate')).messages({
+    'date.greater': 'endDate should be after startDate.',
+  }),
+  contractType: Joi.string().valid(...Object.values(ContractType)).optional(),
+  administradorContratoMandante: Joi.string().trim().min(2).max(100).optional(),
+  administradorContratoEmpresa: Joi.string().trim().min(2).max(100).optional(),
+  rutAdministradorContrato: Joi.string().trim().min(8).max(12).optional(),
+  nombreMandante: Joi.string().trim().min(2).max(100).optional(),
   descripcionServicio: Joi.string().max(1000).optional(),
+  nombreProyecto: Joi.string().max(100).optional(),
+  division: Joi.string().trim().max(100).optional(),
+  area: Joi.string().max(100).optional(),
+  jornadaTrabajo: Joi.string().valid(...Object.values(JornadaTrabajo)).optional(),
   dotacionPersonal: Joi.number().integer().min(0).optional(),
   dotacionVehiculos: Joi.number().integer().min(0).optional(),
 }).min(1);
@@ -95,6 +109,17 @@ export const createColaboratorSchema = Joi.object({
   telefonoEmergencia: Joi.string().min(7).max(20).optional(),
   profesion: Joi.string().min(2).max(100).required(),
   cargo: Joi.string().min(2).max(100).required(),
+  contractIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
+    'array.min': 'At least one contract is required',
+    'any.required': 'Contracts are required',
+  }),
+});
+
+export const updateColaboratorContractsSchema = Joi.object({
+  contractIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
+    'array.min': 'At least one contract is required',
+    'any.required': 'Contracts are required',
+  }),
 });
 
 export const updateColaboratorSchema = Joi.object({
