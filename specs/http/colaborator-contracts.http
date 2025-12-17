@@ -1,0 +1,74 @@
+### Create Contract
+POST http://localhost:3000/api/contracts
+Content-Type: application/json
+x-enable-rbac: false
+
+{
+  "contractNumber": "CN-TEST-001",
+  "rutSociedad": "12.345.678-5",
+  "nombreColaborador": "Juan Perez",
+  "administradorContratoMandante": "Admin Mandante",
+  "administradorContratoEmpresa": "Admin Empresa",
+  "rutAdministradorContrato": "23.456.789-6",
+  "nombreMandante": "Mandante SA",
+  "startDate": "2025-01-01",
+  "endDate": "2025-12-31",
+  "contractType": "consultoria",
+  "jornadaTrabajo": "completa"
+}
+
+### Create Colaborator with Contract
+POST http://localhost:3000/api/colaborators
+Content-Type: application/json
+x-enable-rbac: false
+
+{
+  "tipoDocumento": "rut",
+  "numeroDocumento": "12345678-9",
+  "nombre": "John",
+  "apellidoPaterno": "Doe",
+  "apellidoMaterno": "Smith",
+  "nacionalidad": "Chilean",
+  "sexo": "masculino",
+  "estadoCivil": "soltero",
+  "fechaNacimiento": "1990-01-01",
+  "paisResidencia": "CL",
+  "region": "Metropolitana",
+  "comuna": "Santiago",
+  "direccionResidencia": "Av. Test 123",
+  "telefono": "+56912345678",
+  "email": "john.doe@example.com",
+  "profesion": "Developer",
+  "cargo": "Senior Dev",
+  "contractIds": ["<CONTRACT_ID>"]
+}
+
+### Update Colaborator Contracts
+# Replace <COLABORATOR_ID> with actual ID
+PUT http://localhost:3000/api/colaborators/<COLABORATOR_ID>/contracts
+Content-Type: application/json
+x-enable-rbac: false
+
+{
+  "contractIds": ["<CONTRACT_ID_1>", "<CONTRACT_ID_2>"]
+}
+
+### Add Colaborator to Contract
+# Replace <CONTRACT_ID> and <COLABORATOR_ID> with actual IDs
+POST http://localhost:3000/api/contracts/<CONTRACT_ID>/colaborators
+Content-Type: application/json
+x-enable-rbac: false
+
+{
+  "colaboratorId": "<COLABORATOR_ID>"
+}
+
+### Get Contract Colaborators
+# Replace <CONTRACT_ID> with actual ID
+GET http://localhost:3000/api/contracts/<CONTRACT_ID>/colaborators
+x-enable-rbac: false
+
+### Remove Colaborator from Contract
+# Replace <CONTRACT_ID> and <COLABORATOR_ID> with actual IDs
+DELETE http://localhost:3000/api/contracts/<CONTRACT_ID>/colaborators/<COLABORATOR_ID>
+x-enable-rbac: false

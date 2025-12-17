@@ -4,6 +4,7 @@ import { validateRequest } from '@shared/middleware/validation';
 import {
   createColaboratorSchema,
   updateColaboratorSchema,
+  updateColaboratorContractsSchema,
 } from '../dto/validation-schemas';
 
 export const createColaboratorRoutes = (colaboratorController: ColaboratorController): Router => {
@@ -32,6 +33,12 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
 
   // GET /api/colaborators/:id/groups - Get colaborator groups
   router.get('/:id/groups', colaboratorController.getColaboratorGroups);
+
+  // GET /api/colaborators/:id/contracts - Get colaborator contracts
+  router.get('/:id/contracts', colaboratorController.getColaboratorContracts);
+
+  // PUT /api/colaborators/:id/contracts - Update colaborator contracts
+  router.put('/:id/contracts', validateRequest(updateColaboratorContractsSchema), colaboratorController.updateColaboratorContracts);
 
   // PUT /api/colaborators/:id - Update colaborator
   router.put('/:id', validateRequest(updateColaboratorSchema), colaboratorController.updateColaborator);

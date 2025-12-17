@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { Contract, CreateContractProps, UpdateContractProps } from '@domains/contract/entities/contract.entity';
+import { Colaborator } from '@domains/colaborators/entities/colaborator.entity';
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { ContractEntity } from '../database/entities/contract.entity';
 import { AppDataSource } from '../database/typeorm.config';
@@ -100,6 +101,16 @@ export class TypeOrmContractRepository implements ContractRepository {
       where: { nombreColaborador: nombre, deletedAt: null },
       order: { createdAt: 'DESC' },
     });
+    return contractEntities.map(entity => this.toDomain(entity));
+  }
+
+  async findByColaboratorId(colaboratorId: string): Promise<Contract[]> {
+    const contractEntities = await this.repository.createQueryBuilder('contract')
+      .innerJoin('contract.colaborators', 'colaborator')
+      .where('colaborator.id = :colaboratorId', { colaboratorId })
+      .orderBy('contract.createdAt', 'DESC')
+      .getMany();
+
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
@@ -279,6 +290,48 @@ export class TypeOrmContractRepository implements ContractRepository {
     return subcontracts.map(entity => this.toDomain(entity));
   }
 
+  // Colaborator management methods
+  async addColaborator(contractId: string, colaboratorId: string): Promise<void> {
+    const contract = await this.repository.findOne({ where: { id: contractId } });
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    try {
+      await this.repository
+        .createQueryBuilder()
+        .relation(ContractEntity, 'colaborators')
+        .of(contractId)
+        .add(colaboratorId);
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+        throw new Error('This colaborator is already assigned to the contract');
+      }
+      throw error;
+    }
+  }
+
+  async removeColaborator(contractId: string, colaboratorId: string): Promise<void> {
+    await this.repository
+      .createQueryBuilder()
+      .relation(ContractEntity, 'colaborators')
+      .of(contractId)
+      .remove(colaboratorId);
+  }
+
+  async findColaborators(contractId: string): Promise<Colaborator[]> {
+    const contract = await this.repository.findOne({
+      where: { id: contractId },
+      relations: ['colaborators'],
+    });
+
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    return contract.colaborators?.map((entity: any) => Colaborator.fromPersistence(entity)) ?? [];
+  }
+
   private toDomain(entity: ContractEntity): Contract {
 
     return new Contract({
@@ -306,6 +359,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
+      colaborators: entity.colaborators?.map((c: any) => Colaborator.fromPersistence(c)) ?? [],
     });
   }
 

@@ -1,3 +1,4 @@
 # Gestion Documental
 
-./specs/general.md
+./specs/llms.md
+
