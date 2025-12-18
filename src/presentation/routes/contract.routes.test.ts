@@ -36,7 +36,7 @@ describe('ContractController', () => {
   const getNewId = () => `CN-TEST-${id++}`;
 
   describe('/api/contracts', () => {
-    const startDate = DateUtils.todayString();
+    const startDate = DateUtils.toString(new Date(Date.now() + 86400000)); // Tomorrow
     const endDate = futureDate(startDate);
 
     function futureDate(date: DateType): string {
@@ -104,6 +104,7 @@ describe('ContractController', () => {
         .set('x-enable-rbac', 'true')
         .set('Authorization', 'Bearer skip-token')
         .send({
+          startDate,
           endDate: newEndDate,
           descripcionServicio,
           dotacionPersonal,
