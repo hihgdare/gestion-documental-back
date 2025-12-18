@@ -27,7 +27,7 @@ export class TypeOrmColaboratorGroupRepository implements ColaboratorGroupReposi
   }
 
   async findById(id: number): Promise<ColaboratorGroup | null> {
-    const entity = await this.repository.findOne({ where: { id }, relations: ['colaborators'] });
+    const entity = await this.repository.findOne({ where: { id }, relations: ['colaborators', 'colaborators.contracts'] });
     return entity ? ColaboratorGroupEntity.toDomain(entity) : null;
   }
 
@@ -60,7 +60,10 @@ export class TypeOrmColaboratorGroupRepository implements ColaboratorGroupReposi
       throw new NotFoundError('Colaborator group not found');
     }
 
-    entity.name = props.name;
+    entity.name = props.name ?? entity.name;
+    if (props.contractId) {
+      entity.contractId = props.contractId;
+    }
     if (props.description !== undefined) {
       entity.description = props.description;
     }
@@ -68,9 +71,8 @@ export class TypeOrmColaboratorGroupRepository implements ColaboratorGroupReposi
     if (props.colaborators) {
       const colaboratorIds = props.colaborators.map(c => c.id);
       entity.colaborators = await this.colaboratorRepository.findBy({ id: In(colaboratorIds) });
-    } else {
-      entity.colaborators = [];
     }
+
 
     const savedEntity = await this.repository.save(entity);
     const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['colaborators'] });

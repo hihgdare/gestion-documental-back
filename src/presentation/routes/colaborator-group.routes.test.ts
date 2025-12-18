@@ -94,7 +94,28 @@ describe('ColaboratorGroupController', () => {
   });
 
   describe('/api/colaborator-groups', () => {
-    const groupDto = { name: 'test.group', description: 'A test colaborator group' };
+    let groupDto: any;
+    let contractId: string;
+
+    beforeEach(async () => {
+      const contractRepository = dependencyContainer.getContractRepository();
+      const contract = await contractRepository.save({
+        rutSociedad: '76.123.456-7',
+        nombreColaborador: 'Test Colaborator',
+        administradorContratoMandante: 'Admin Mandante',
+        administradorContratoEmpresa: 'Admin Empresa',
+        rutAdministradorContrato: '12.345.678-9',
+        contractNumber: 'CN-12345',
+        nombreMandante: 'Mandante Corp',
+        contractType: 'indefinido',
+        jornadaTrabajo: 'completa',
+        status: 'active',
+        startDate: new Date(),
+        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      } as any);
+      contractId = contract.id;
+      groupDto = { name: 'test.group', description: 'A test colaborator group', contractId };
+    });
 
     it('should create a new colaborator group and return 201', async () => {
       const expectedGroup = new ColaboratorGroup(groupDto);
@@ -104,6 +125,7 @@ describe('ColaboratorGroupController', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send(groupDto);
 
+
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Colaborator group created successfully');
@@ -111,6 +133,7 @@ describe('ColaboratorGroupController', () => {
       expect(response.body.data).toMatchObject({
         name: expectedGroup.name,
         description: expectedGroup.description,
+        contractId: expectedGroup.contractId,
       });
     });
 

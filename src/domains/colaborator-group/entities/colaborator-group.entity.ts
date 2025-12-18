@@ -4,19 +4,21 @@ import { EntityUtils } from "@shared/utils/common";
 
 export interface CreateColaboratorGroupProps {
   name: string;
+  contractId: string;
   description?: string;
   colaborators?: Colaborator[];
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface UpdateColaboratorGroupProps extends CreateColaboratorGroupProps {
+export interface UpdateColaboratorGroupProps extends Partial<CreateColaboratorGroupProps> {
   id: number;
 }
 
 export interface ColaboratorGroupJson {
   id: number;
   name: string;
+  contractId: string;
   description?: string;
   colaborators: ColaboratorJson[];
   createdAt?: Date;
@@ -26,6 +28,7 @@ export interface ColaboratorGroupJson {
 export class ColaboratorGroup {
   id: number;
   name: string;
+  contractId: string;
   description?: string;
   colaborators: Colaborator[];
   createdAt?: Date;
@@ -47,12 +50,16 @@ export class ColaboratorGroup {
     if (props.name.length > 255) {
       throw new ValidationError('Colaborator group name is too long', 'name');
     }
+    if (!props.contractId) {
+      throw new ValidationError('Contract ID is required', 'contractId');
+    }
   }
 
   toJSON(): ColaboratorGroupJson {
     return {
       id: this.id,
       name: this.name,
+      contractId: this.contractId,
       description: this.description,
       colaborators: this.colaborators?.map((colaborator) => colaborator.toJSON()) ?? [],
       createdAt: this.createdAt,

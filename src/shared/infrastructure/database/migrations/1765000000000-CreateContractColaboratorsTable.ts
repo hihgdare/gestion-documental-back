@@ -8,12 +8,14 @@ export class CreateContractColaboratorsTable1765000000000 implements MigrationIn
         columns: [
           {
             name: 'contract_id',
-            type: 'uuid',
+            type: 'varchar',
+            length: '36',
             isPrimary: true,
           },
           {
             name: 'colaborator_id',
-            type: 'uuid',
+            type: 'varchar',
+            length: '36',
             isPrimary: true,
           },
         ],

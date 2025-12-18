@@ -19,38 +19,45 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
   }
 
   async findById(id: string): Promise<Colaborator | null> {
-    const colaboratorEntity = await this.repository.findOne({ where: { id } });
+    const colaboratorEntity = await this.repository.findOne({
+      where: { id },
+      relations: ['contracts'],
+    });
     if (!colaboratorEntity) return null;
     return this.toDomain(colaboratorEntity);
   }
 
   async findAll(): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async save(colaborator: Colaborator): Promise<Colaborator> {
     const colaboratorEntity = this.toEntity(colaborator);
     const savedEntity = await this.repository.save(colaboratorEntity);
-    return this.toDomain(savedEntity);
+    // Reload to get relations
+    return (await this.findById(savedEntity.id!))!;
   }
 
   async update(colaborator: Colaborator): Promise<Colaborator> {
     const colaboratorEntity = this.toEntity(colaborator);
     await this.repository.update(colaborator.id, colaboratorEntity);
-    const updatedEntity = await this.repository.findOne({ where: { id: colaborator.id } });
-    return this.toDomain(updatedEntity!);
+    return (await this.findById(colaborator.id))!;
   }
 
   async delete(id: string): Promise<void> {
     await this.repository.delete(id);
   }
 
-  async findByNumeroDocumento(numeroDocumento: string): Promise<Colaborator | null> {
+  async findByNumeroDocumento(
+    numeroDocumento: string,
+  ): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
       where: { numeroDocumento },
+      relations: ['contracts'],
     });
     if (!colaboratorEntity) return null;
     return this.toDomain(colaboratorEntity);
@@ -59,6 +66,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
   async findByEmail(email: string): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
       where: { email: email.toLowerCase() },
+      relations: ['contracts'],
     });
     if (!colaboratorEntity) return null;
     return this.toDomain(colaboratorEntity);
@@ -67,106 +75,126 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
   async findByNombre(nombre: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { nombre },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByStatus(status: ColaboratorStatus): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { status },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByDocumentType(tipo: DocumentType): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { tipoDocumento: tipo },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByNacionalidad(nacionalidad: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { nacionalidad },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByPaisResidencia(pais: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { paisResidencia: pais },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByRegion(region: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { region },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByComuna(comuna: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { comuna },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByCargo(cargo: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { cargo },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findActiveColaborators(): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
       where: { status: ColaboratorStatus.ACTIVE },
+      relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async searchByName(searchTerm: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository
       .createQueryBuilder('colaborator')
-      .where('colaborator.nombre ILIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
-      .orWhere('colaborator.apellidoPaterno ILIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
-      .orWhere('colaborator.apellidoMaterno ILIKE :searchTerm', { searchTerm: `%${searchTerm}%` })
+      .leftJoinAndSelect('colaborator.contracts', 'contracts')
+      .where('colaborator.nombre ILIKE :searchTerm', {
+        searchTerm: `%${searchTerm}%`,
+      })
+      .orWhere('colaborator.apellidoPaterno ILIKE :searchTerm', {
+        searchTerm: `%${searchTerm}%`,
+      })
+      .orWhere('colaborator.apellidoMaterno ILIKE :searchTerm', {
+        searchTerm: `%${searchTerm}%`,
+      })
       .orderBy('colaborator.createdAt', 'DESC')
       .getMany();
 
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findIn(ids: string[]): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository
       .createQueryBuilder('colaborator')
+      .leftJoinAndSelect('colaborator.contracts', 'contracts')
       .whereInIds(ids)
       .getMany();
 
-    return colaboratorEntities.map(entity => this.toDomain(entity));
+    return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
   async findByIdWithGroups(id: string): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
       where: { id },
-      relations: ['groups'],
+      relations: ['groups', 'contracts'],
     });
     if (!colaboratorEntity) return null;
     return this.toDomain(colaboratorEntity);
   }
 
-  async updateContracts(colaboratorId: string, contractIds: string[]): Promise<void> {
+  async updateContracts(
+    colaboratorId: string,
+    contractIds: string[],
+  ): Promise<void> {
     const colaborator = await this.repository.findOne({
       where: { id: colaboratorId },
       relations: ['contracts'],
@@ -178,7 +206,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
     // We can use the repository to save the relation
     // Or we can use query builder to replace relations
-    colaborator.contracts = contractIds.map(id => ({ id } as ContractEntity));
+    colaborator.contracts = contractIds.map((id) => ({ id } as ContractEntity));
     await this.repository.save(colaborator);
   }
 
@@ -193,9 +221,10 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       nacionalidad: entity.nacionalidad,
       sexo: entity.sexo as Gender,
       estadoCivil: entity.estadoCivil as CivilStatus,
-      fechaNacimiento: entity.fechaNacimiento instanceof Date
-        ? entity.fechaNacimiento
-        : new Date(entity.fechaNacimiento),
+      fechaNacimiento:
+        entity.fechaNacimiento instanceof Date
+          ? entity.fechaNacimiento
+          : new Date(entity.fechaNacimiento),
       paisResidencia: entity.paisResidencia,
       region: entity.region,
       comuna: entity.comuna,
@@ -209,12 +238,15 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       profesion: entity.profesion,
       cargo: entity.cargo,
       status: entity.status as ColaboratorStatus,
-      createdAt: entity.createdAt instanceof Date
-        ? entity.createdAt
-        : new Date(entity.createdAt),
-      updatedAt: entity.updatedAt instanceof Date
-        ? entity.updatedAt
-        : new Date(entity.updatedAt),
+      createdAt:
+        entity.createdAt instanceof Date
+          ? entity.createdAt
+          : new Date(entity.createdAt),
+      updatedAt:
+        entity.updatedAt instanceof Date
+          ? entity.updatedAt
+          : new Date(entity.updatedAt),
+      contractIds: entity.contracts?.map((c) => c.id),
     };
     return Colaborator.fromPersistence(props);
   }

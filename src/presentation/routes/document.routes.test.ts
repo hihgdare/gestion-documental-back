@@ -274,11 +274,18 @@ describe('DocumentController with template/colaborator', () => {
       const c2 = await createColaborator();
       const c3 = await createColaborator();
 
+      // Create contract for group
+      const contractIdForGroup = await createContract();
+
       // Create group
       const groupRes = await supertest(app)
         .post('/api/colaborator-groups')
         .set('x-enable-rbac', 'false')
-        .send({ name: `group-${Date.now()}`, description: 'test group' });
+        .send({
+          name: `group-${Date.now()}`,
+          description: 'test group',
+          contractId: contractIdForGroup,
+        });
       expect(groupRes.status).toBe(201);
       const groupId = groupRes.body.data.id as number;
 

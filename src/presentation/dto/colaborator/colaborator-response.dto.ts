@@ -27,6 +27,7 @@ export interface ColaboratorResponseDto {
   cargo: string;
   status: ColaboratorStatus;
   isActive: boolean;
+  contractIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,7 @@ export const toColaboratorResponseDto = (colaborator: any): ColaboratorResponseD
     cargo: colaborator.cargo,
     status: colaborator.status,
     isActive: colaborator.isActive(),
+    contractIds: colaborator.contractIds,
     createdAt: colaborator.createdAt,
     updatedAt: colaborator.updatedAt,
   };
