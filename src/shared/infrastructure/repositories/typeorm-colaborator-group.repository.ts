@@ -27,7 +27,7 @@ export class TypeOrmColaboratorGroupRepository implements ColaboratorGroupReposi
   }
 
   async findById(id: number): Promise<ColaboratorGroup | null> {
-    const entity = await this.repository.findOne({ where: { id }, relations: ['colaborators'] });
+    const entity = await this.repository.findOne({ where: { id }, relations: ['colaborators', 'colaborators.contracts'] });
     return entity ? ColaboratorGroupEntity.toDomain(entity) : null;
   }
 

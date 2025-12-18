@@ -109,6 +109,7 @@ export class ColaboratorGroupEntity implements ColaboratorGroupProps {
       updatedAt: entity.updatedAt instanceof Date
         ? entity.updatedAt
         : new Date(entity.updatedAt),
+      contractIds: entity.contracts?.map(c => c.id),
     };
     return Colaborator.fromPersistence(props);
   }
