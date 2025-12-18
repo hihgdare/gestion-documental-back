@@ -1,4 +1,4 @@
-import { Repository, LessThanOrEqual, Not, In } from 'typeorm';
+import { Repository, LessThanOrEqual, In, IsNull } from 'typeorm';
 import { type DocumentRepository } from '@domains/document/repositories/document.repository';
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentEntity } from '../database/entities/document.entity';
@@ -24,7 +24,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findAll(): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { deletedAt: null },
+      where: { deletedAt: IsNull() },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -85,7 +85,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { contractId, deletedAt: null },
+      where: { contractId, deletedAt: IsNull() },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -94,7 +94,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByTemplateId(templateId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { templateId, deletedAt: null },
+      where: { templateId, deletedAt: IsNull() },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -120,7 +120,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository.find({
       where: {
         expirationDate: LessThanOrEqual(new Date()),
-        deletedAt: null,
+        deletedAt: IsNull(),
       },
       relations: ['contract', 'template', 'colaborators'],
       order: { expirationDate: 'ASC' },
@@ -151,16 +151,18 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   async existsByTemplateAndColaborator(templateId: string, colaboratorId: string, excludeId?: string): Promise<boolean> {
-    const where: any = { templateId, deletedAt: null };
-    if (excludeId) where.id = Not(excludeId);
-
-    const existing = await this.repository
+    const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id = :colaboratorId', { colaboratorId })
-      .getOne();
+      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+
+    if (excludeId) {
+      query.andWhere('document.id != :excludeId', { excludeId });
+    }
+
+    const existing = await query.getOne();
     return !!existing;
   }
 
@@ -168,17 +170,22 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     templateId: string,
     contractId: string,
     colaboratorId: string,
-    _excludeId?: string,
+    excludeId?: string,
   ): Promise<boolean> {
     // This method is deprecated - use query builder for N:M relation
-    const existing = await this.repository
+    const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id = :colaboratorId', { colaboratorId })
-      .getOne();
+      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+
+    if (excludeId) {
+      query.andWhere('document.id != :excludeId', { excludeId });
+    }
+
+    const existing = await query.getOne();
     return !!existing;
   }
 
