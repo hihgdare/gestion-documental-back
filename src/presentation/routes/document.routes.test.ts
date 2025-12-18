@@ -108,7 +108,7 @@ describe('DocumentController with template/colaborator', () => {
         .set('x-enable-rbac', 'false')
         .send({
           templateId,
-          colaboratorId,
+          colaboratorIds: [colaboratorId],
           name: 'Documento de Prueba',
           issuedDate: '2025-01-01',
           description: 'Desc',
@@ -121,7 +121,7 @@ describe('DocumentController with template/colaborator', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Document created successfully');
       expect(response.body.data.templateId).toBe(templateId);
-      expect(response.body.data.colaboratorId).toBe(colaboratorId);
+      expect(response.body.data.colaboratorIds).toContain(colaboratorId);
     });
 
     it('should list documents by template and by colaborator', async () => {
@@ -134,7 +134,7 @@ describe('DocumentController with template/colaborator', () => {
         .set('Authorization', 'Bearer skip-token')
         .send({
           templateId,
-          colaboratorId,
+          colaboratorIds: [colaboratorId],
           name: 'Documento A',
           issuedDate: '2025-01-01',
         });
@@ -161,7 +161,7 @@ describe('DocumentController with template/colaborator', () => {
       const createRes = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorId, name: 'Doc Edit', issuedDate: '2025-01-01' });
+        .send({ templateId, colaboratorIds: [colaboratorId], name: 'Doc Edit', issuedDate: '2025-01-01' });
       const id = createRes.body.data.id as string;
 
       const updateRes = await supertest(app)
@@ -185,13 +185,13 @@ describe('DocumentController with template/colaborator', () => {
       const first = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorId, name: 'Doc1', issuedDate: '2025-01-01' });
+        .send({ templateId, colaboratorIds: [colaboratorId], name: 'Doc1', issuedDate: '2025-01-01' });
       expect(first.status).toBe(201);
 
       const dup = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorId, name: 'Doc2', issuedDate: '2025-01-02' });
+        .send({ templateId, colaboratorIds: [colaboratorId], name: 'Doc2', issuedDate: '2025-01-02' });
       expect(dup.status).toBe(400);
       expect(dup.body.error.code).toBe('VALIDATION_ERROR');
     });
@@ -204,11 +204,11 @@ describe('DocumentController with template/colaborator', () => {
       await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorId, name: 'DocA', issuedDate: '2025-01-01' });
+        .send({ templateId, colaboratorIds: [colaboratorId], name: 'DocA', issuedDate: '2025-01-01' });
       const b = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId: otherTemplate, colaboratorId, name: 'DocB', issuedDate: '2025-01-01' });
+        .send({ templateId: otherTemplate, colaboratorIds: [colaboratorId], name: 'DocB', issuedDate: '2025-01-01' });
       const bId = b.body.data.id as string;
 
       const dupUpdate = await supertest(app)
@@ -254,14 +254,14 @@ describe('DocumentController with template/colaborator', () => {
       const first = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorId, contractId, name: 'Doc C1', issuedDate: '2025-01-01' });
+        .send({ templateId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C1', issuedDate: '2025-01-01' });
       expect(first.status).toBe(201);
 
       // Duplicate triple should fail
       const dup = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorId, contractId, name: 'Doc C2', issuedDate: '2025-01-02' });
+        .send({ templateId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C2', issuedDate: '2025-01-02' });
       expect(dup.status).toBe(400);
       expect(dup.body.error.code).toBe('VALIDATION_ERROR');
     });
