@@ -68,26 +68,24 @@ export class UpdateDocumentUseCase {
     const finalColaboratorIds = document.colaboratorIds;
 
     if (finalColaboratorIds && finalColaboratorIds.length > 0) {
-      for (const colabId of finalColaboratorIds) {
-        let exists = false;
-        if (finalContractId) {
-          exists = await this.documentRepository.existsByTemplateContractColaborator(
-            finalTemplateId,
-            finalContractId,
-            colabId,
-            document.id,
-          );
-        } else {
-          exists = await this.documentRepository.existsByTemplateAndColaborator(
-            finalTemplateId,
-            colabId,
-            document.id,
-          );
-        }
+      let exists = false;
+      if (finalContractId) {
+        exists = await this.documentRepository.existsByTemplateContractColaborator(
+          finalTemplateId,
+          finalContractId,
+          finalColaboratorIds,
+          document.id,
+        );
+      } else {
+        exists = await this.documentRepository.existsByTemplateAndColaborator(
+          finalTemplateId,
+          finalColaboratorIds,
+          document.id,
+        );
+      }
 
-        if (exists) {
-          throw new ValidationError(`Ya existe un documento de este tipo para el colaborador seleccionado${finalContractId ? ' en este contrato' : ''}.`);
-        }
+      if (exists) {
+        throw new ValidationError(`Ya existe un documento de este tipo para los colaboradores seleccionados${finalContractId ? ' en este contrato' : ''}.`);
       }
     }
 

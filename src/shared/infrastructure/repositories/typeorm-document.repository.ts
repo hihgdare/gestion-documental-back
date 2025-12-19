@@ -151,13 +151,15 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async existsByTemplateAndColaborator(templateId: string, colaboratorId: string, excludeId?: string): Promise<boolean> {
+  async existsByTemplateAndColaborator(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean> {
+    if (colaboratorIds.length === 0) return false;
+
     const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });
@@ -167,20 +169,21 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return !!existing;
   }
 
-  async existsByTemplateContractColaborators(
+  async existsByTemplateContractColaborator(
     templateId: string,
     contractId: string,
-    colaboratorId: string,
+    colaboratorIds: string[],
     excludeId?: string,
   ): Promise<boolean> {
-    // This method is deprecated - use query builder for N:M relation
+    if (colaboratorIds.length === 0) return false;
+
     const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });

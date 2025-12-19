@@ -11,6 +11,6 @@ export interface DocumentRepository {
   findByColaboratorIds(colaboratorIds: string[]): Promise<Document[]>;
   findExpiredDocuments(): Promise<Document[]>;
   findExpiringDocuments(days: number): Promise<Document[]>;
-  existsByTemplateAndColaborators(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
-  existsByTemplateContractColaborators(templateId: string, contractId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
+  existsByTemplateAndColaborator(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
+  existsByTemplateContractColaborator(templateId: string, contractId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
 }

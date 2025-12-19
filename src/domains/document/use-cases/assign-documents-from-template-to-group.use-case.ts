@@ -53,7 +53,7 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
     const skipped: string[] = [];
 
     for (const colaborator of group.colaborators) {
-      const exists = await this.documentRepository.existsByTemplateContractColaborators(
+      const exists = await this.documentRepository.existsByTemplateContractColaborator(
         request.templateId,
         request.contractId,
         [colaborator.id],
