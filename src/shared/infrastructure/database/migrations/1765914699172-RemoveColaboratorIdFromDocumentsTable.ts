@@ -5,7 +5,7 @@ export class RemoveColaboratorIdFromDocumentsTable1765914699172 implements Migra
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Drop the old unique index that included colaboratorId
     await queryRunner.query(
-      `ALTER TABLE \`documents\` DROP INDEX \`UQ_documents_template_contract_colaborator\``,
+      `ALTER TABLE \`documents\` DROP INDEX \`UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR\``,
     );
 
     // Drop the foreign key constraint for colaboratorId
@@ -42,8 +42,7 @@ export class RemoveColaboratorIdFromDocumentsTable1765914699172 implements Migra
 
     // Restore the old unique index
     await queryRunner.query(
-      `CREATE UNIQUE INDEX \`UQ_documents_template_contract_colaborator\` ON \`documents\` (\`template_id\`, \`contract_id\`, \`colaborator_id\`)`,
+      `CREATE UNIQUE INDEX \`UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR\` ON \`documents\` (\`template_id\`, \`contract_id\`, \`colaborator_id\`)`,
     );
   }
-
 }

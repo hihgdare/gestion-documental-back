@@ -3,6 +3,7 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
+import { ValidationError } from '@shared/domain/errors';
 
 export interface CreateDocumentRequest {
   templateId: string;
@@ -24,7 +25,30 @@ export class CreateDocumentUseCase {
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
-    // Create document
+    // Verificando que no haya documentos duplicados
+    if (request.colaboratorIds && request.colaboratorIds.length > 0) {
+      for (const colabId of request.colaboratorIds) {
+        let exists = false;
+        if (request.contractId) {
+          exists = await this.documentRepository.existsByTemplateContractColaborator(
+            request.templateId,
+            request.contractId,
+            colabId,
+          );
+        } else {
+          exists = await this.documentRepository.existsByTemplateAndColaborator(
+            request.templateId,
+            colabId,
+          );
+        }
+
+        if (exists) {
+          throw new ValidationError(`Ya existe un documento de este tipo para el colaborador seleccionado${request.contractId ? ' en este contrato' : ''}.`);
+        }
+      }
+    }
+
+    // Creando documento
     const documentProps: DocumentProps = {
       templateId: request.templateId,
       colaboratorIds: request.colaboratorIds,
@@ -39,10 +63,10 @@ export class CreateDocumentUseCase {
 
     const document = Document.create(documentProps);
 
-    // Save document
+    // Guardando documento
     const savedDocument = await this.documentRepository.save(document);
 
-    // Create history entry when user context is available
+    // Creando entrada de historial cuando el contexto del usuario está disponible
     if (request.createdBy && request.createdBy !== 'system') {
       const historyProps: DocumentHistoryProps = {
         documentId: savedDocument.id,

@@ -4,36 +4,65 @@ const path = require('path');
 const migrationsDir = path.join(__dirname, '..', '..', 'src', 'shared', 'infrastructure', 'database', 'migrations');
 const entitiesDir = path.join(__dirname, '..', '..', 'src', 'shared', 'infrastructure', 'database', 'entities');
 
-function extractColumnsFromMigration(content) {
-  const cols = [];
-  // Find start of columns array in the new Table definition
-  // We look for "columns: ["
-  const colStartRegex = /columns:\s*\[/g;
-  const match = colStartRegex.exec(content);
-  if (!match) return cols;
+function extractTableEffects(content) {
+  const tableEffects = {};
 
-  const start = match.index + match[0].length;
-  let depth = 1;
-  let i = start;
-
-  // Advance until we find the closing bracket for the columns array
-  while (i < content.length && depth > 0) {
-    if (content[i] === '[') depth++;
-    else if (content[i] === ']') depth--;
-    i++;
+  // Detect full Table definitions: new Table({ name: 'table', columns: [...] })
+  const fullRegex = /new\s+Table\(\s*\{\s*name:\s*['"]([a-z0-9_]+)['"]([\s\S]*?)\}\s*\)/g;
+  let fullMatch;
+  while ((fullMatch = fullRegex.exec(content))) {
+    const tableName = fullMatch[1];
+    const tableContent = fullMatch[2];
+    const colStart = tableContent.indexOf('columns:');
+    if (colStart !== -1) {
+      const colPart = tableContent.substring(colStart + 'columns:'.length).trim();
+      if (colPart.startsWith('[')) {
+        let depth = 1;
+        let i = 1; // after [
+        while (i < colPart.length && depth > 0) {
+          if (colPart[i] === '[') depth++;
+          else if (colPart[i] === ']') depth--;
+          i++;
+        }
+        if (depth === 0) {
+          const columnsSection = colPart.substring(1, i - 1);
+          const nameRegex = /name:\s*['"]([a-zA-Z0-9_]+)['"]/g;
+          const cols = [];
+          let m;
+          while ((m = nameRegex.exec(columnsSection))) {
+            cols.push(m[1]);
+          }
+          if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
+          tableEffects[tableName].full = cols;
+        }
+      }
+    }
   }
 
-  if (depth !== 0) return cols; // Malformed or incomplete
-
-  const columnsSection = content.substring(start, i - 1);
-
-  // Capture column names: name: 'foo' or name: "foo"
-  const nameRegex = /name:\s*['"]([a-zA-Z0-9_]+)['"]/g;
-  let m;
-  while ((m = nameRegex.exec(columnsSection))) {
-    cols.push(m[1]);
+  // Detect addColumn: addColumn('table', new TableColumn({ name: 'col', ... }))
+  const addColRegex = /addColumn\(\s*['"]([a-z0-9_]+)['"]([\s\S]*?)\)/g;
+  let addMatch;
+  while ((addMatch = addColRegex.exec(content))) {
+    const tableName = addMatch[1];
+    const colContent = addMatch[2];
+    const nameMatch = colContent.match(/name:\s*['"]([a-zA-Z0-9_]+)['"]/);
+    if (nameMatch) {
+      if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
+      tableEffects[tableName].adds.push(nameMatch[1]);
+    }
   }
-  return cols;
+
+  // Detect dropColumn: dropColumn('table', 'col')
+  const dropColRegex = /dropColumn\(\s*['"]([a-z0-9_]+)['"]\s*,\s*['"]([a-zA-Z0-9_]+)['"]/g;
+  let dropMatch;
+  while ((dropMatch = dropColRegex.exec(content))) {
+    const tableName = dropMatch[1];
+    const colName = dropMatch[2];
+    if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
+    tableEffects[tableName].drops.push(colName);
+  }
+
+  return tableEffects;
 }
 
 function extractColumnsFromEntity(content) {
@@ -78,12 +107,17 @@ function extractColumnsFromEntity(content) {
 const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.ts'));
 const entityFiles = fs.readdirSync(entitiesDir).filter(f => f.endsWith('.ts'));
 
+// Build a map tableName => [ { file, idx, effects } ] where effects = { full, adds, drops }
 const migrationsMap = {};
-for (const mf of migrationFiles) {
+for (let idx = 0; idx < migrationFiles.length; idx++) {
+  const mf = migrationFiles[idx];
   const content = fs.readFileSync(path.join(migrationsDir, mf), 'utf8');
-  const tableMatch = content.match(/name:\s*'([a-z0-9_]+)'/i);
-  const tableName = tableMatch ? tableMatch[1] : mf;
-  migrationsMap[tableName] = { file: mf, cols: extractColumnsFromMigration(content) };
+
+  const tableEffects = extractTableEffects(content);
+  for (const [table, effects] of Object.entries(tableEffects)) {
+    if (!migrationsMap[table]) migrationsMap[table] = [];
+    migrationsMap[table].push({ file: mf, idx, effects });
+  }
 }
 
 const entitiesMap = {};
@@ -97,22 +131,53 @@ for (const ef of entityFiles) {
 
 const report = [];
 for (const [table, ent] of Object.entries(entitiesMap)) {
-  const mig = migrationsMap[table];
-  if (!mig) {
-    report.push({ table, issue: 'no_migration', entityColumns: ent.cols, migrationColumns: [] });
+  const migs = migrationsMap[table];
+  if (!migs || migs.length === 0) {
+    report.push({ table, issue: 'no_migration', entityColumns: ent.cols, migrationColumns: [], migrationFiles: [] });
     continue;
   }
-  const missingInMig = ent.cols.filter(c => !mig.cols.includes(c));
-  const extraInMig = mig.cols.filter(c => !ent.cols.includes(c));
+
+  // Sort by filename order (assumed chronological) using the original index to preserve FS order
+  const sorted = migs.slice().sort((a, b) => a.idx - b.idx);
+
+  // Combine effects: start with empty set, apply each migration in order
+  let current = new Set();
+  for (const m of sorted) {
+    const e = m.effects;
+    if (e.full && Array.isArray(e.full)) {
+      current = new Set(e.full);
+    } else {
+      // apply drops first
+      for (const d of e.drops || []) current.delete(d);
+      for (const a of e.adds || []) current.add(a);
+    }
+  }
+  const migCols = Array.from(current);
+
+  const missingInMig = ent.cols.filter(c => !migCols.includes(c));
+  const extraInMig = migCols.filter(c => !ent.cols.includes(c));
   if (missingInMig.length || extraInMig.length) {
-    report.push({ table, issue: 'mismatch', missingInMigration: missingInMig, extraInMigration: extraInMig, migrationFile: mig.file, entityFile: ent.file });
+    report.push({ table, issue: 'mismatch', missingInMigration: missingInMig, extraInMigration: extraInMig, migrationFiles: sorted.map(s => s.file), entityFile: ent.file });
   }
 }
 
 // also report migrations without entities
-for (const [table, mig] of Object.entries(migrationsMap)) {
+// also report migrations without entities (if none of the migration entries for that table were matched by entities)
+for (const [table, migArr] of Object.entries(migrationsMap)) {
   if (!entitiesMap[table]) {
-    report.push({ table, issue: 'no_entity', migrationColumns: mig.cols, migrationFile: mig.file });
+    // combine migrations for reporting similar to above
+    const sorted = migArr.slice().sort((a, b) => a.idx - b.idx);
+    let current = new Set();
+    for (const m of sorted) {
+      const e = m.effects;
+      if (e.full && Array.isArray(e.full)) {
+        current = new Set(e.full);
+      } else {
+        for (const d of e.drops || []) current.delete(d);
+        for (const a of e.adds || []) current.add(a);
+      }
+    }
+    report.push({ table, issue: 'no_entity', migrationColumns: Array.from(current), migrationFiles: sorted.map(s => s.file) });
   }
 }
 

@@ -302,11 +302,13 @@ export const updateReviewerSchema = Joi.object({
 
 export const createColaboratorGroupSchema = Joi.object({
   name: Joi.string().min(2).max(255).required(),
+  contractId: Joi.string().uuid().required(),
   description: Joi.string().max(1000).optional(),
 });
 
 export const updateColaboratorGroupSchema = Joi.object({
   name: Joi.string().min(2).max(255).optional(),
+  contractId: Joi.string().uuid().optional(),
   description: Joi.string().max(1000).optional(),
 }).min(1);
 

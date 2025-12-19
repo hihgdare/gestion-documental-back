@@ -3,7 +3,7 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { Document } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface UpdateDocumentRequest {
   templateId?: string;
@@ -62,13 +62,42 @@ export class UpdateDocumentUseCase {
       document.updateContractId(request.contractId);
     }
 
+    // Verificar que no haya documentos duplicados
+    const finalTemplateId = document.templateId;
+    const finalContractId = document.contractId;
+    const finalColaboratorIds = document.colaboratorIds;
+
+    if (finalColaboratorIds && finalColaboratorIds.length > 0) {
+      for (const colabId of finalColaboratorIds) {
+        let exists = false;
+        if (finalContractId) {
+          exists = await this.documentRepository.existsByTemplateContractColaborator(
+            finalTemplateId,
+            finalContractId,
+            colabId,
+            document.id,
+          );
+        } else {
+          exists = await this.documentRepository.existsByTemplateAndColaborator(
+            finalTemplateId,
+            colabId,
+            document.id,
+          );
+        }
+
+        if (exists) {
+          throw new ValidationError(`Ya existe un documento de este tipo para el colaborador seleccionado${finalContractId ? ' en este contrato' : ''}.`);
+        }
+      }
+    }
+
     // Al editar un documento, siempre vuelve a estado borrador
     document.setToDraft();
 
-    // Update document
+    // Actualizar documento
     const updatedDocument = await this.documentRepository.update(document);
 
-    // Create history entry
+    // Crear entrada de historial
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
       templateId: updatedDocument.templateId,
@@ -84,11 +113,7 @@ export class UpdateDocumentUseCase {
       updatedBy: request.updatedBy || 'system',
     };
 
-    try {
-      await this.documentHistoryRepository.save(historyProps);
-    } catch (_err) {
-      // ignore history persistence errors to not block document update
-    }
+    await this.documentHistoryRepository.save(historyProps).catch(() => {});
 
     return updatedDocument;
   }

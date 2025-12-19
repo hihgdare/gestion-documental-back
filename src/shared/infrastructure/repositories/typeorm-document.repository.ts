@@ -1,4 +1,4 @@
-import { Repository, LessThanOrEqual, In } from 'typeorm';
+import { Repository, LessThanOrEqual, In, IsNull } from 'typeorm';
 import { type DocumentRepository } from '@domains/document/repositories/document.repository';
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentEntity } from '../database/entities/document.entity';
@@ -23,16 +23,11 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   async findAll(): Promise<Document[]> {
-    const documentEntities = await this.repository
-      .createQueryBuilder('document')
-      .leftJoinAndSelect('document.contract', 'contract')
-      .leftJoinAndSelect('document.template', 'template')
-      .leftJoinAndSelect('template.documentType', 'documentType')
-      .leftJoinAndSelect('template.documentSubtype', 'documentSubtype')
-      .leftJoinAndSelect('document.colaborators', 'colaborators')
-      .where('document.deletedAt IS NULL')
-      .orderBy('document.createdAt', 'DESC')
-      .getMany();
+    const documentEntities = await this.repository.find({
+      where: { deletedAt: IsNull() },
+      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      order: { createdAt: 'DESC' },
+    });
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
@@ -90,7 +85,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { contractId, deletedAt: undefined },
+      where: { contractId, deletedAt: IsNull() },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -99,7 +94,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByTemplateId(templateId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { templateId, deletedAt: undefined },
+      where: { templateId, deletedAt: IsNull() },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
@@ -126,7 +121,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository.find({
       where: {
         expirationDate: LessThanOrEqual(new Date()),
-        deletedAt: undefined,
+        deletedAt: IsNull(),
       },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { expirationDate: 'ASC' },
@@ -156,17 +151,16 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async existsByTemplateAndColaborators(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean> {
-    if (colaboratorIds.length === 0) return false;
-    let query = this.repository
+  async existsByTemplateAndColaborator(templateId: string, colaboratorId: string, excludeId?: string): Promise<boolean> {
+    const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
+      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
 
     if (excludeId) {
-      query = query.andWhere('document.id != :excludeId', { excludeId });
+      query.andWhere('document.id != :excludeId', { excludeId });
     }
 
     const existing = await query.getOne();
@@ -176,18 +170,23 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async existsByTemplateContractColaborators(
     templateId: string,
     contractId: string,
-    colaboratorIds: string[],
-    _excludeId?: string,
+    colaboratorId: string,
+    excludeId?: string,
   ): Promise<boolean> {
-    if (colaboratorIds.length === 0) return false;
-    const existing = await this.repository
+    // This method is deprecated - use query builder for N:M relation
+    const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds })
-      .getOne();
+      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+
+    if (excludeId) {
+      query.andWhere('document.id != :excludeId', { excludeId });
+    }
+
+    const existing = await query.getOne();
     return !!existing;
   }
 

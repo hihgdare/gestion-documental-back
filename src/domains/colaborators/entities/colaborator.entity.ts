@@ -34,6 +34,7 @@ export interface ColaboratorProps {
   status?: ColaboratorStatus;
   createdAt?: Date;
   updatedAt?: Date;
+  contractIds?: string[];
 }
 
 export interface ColaboratorJson {
@@ -63,6 +64,7 @@ export interface ColaboratorJson {
   cargo: string;
   status: ColaboratorStatus;
   isActive: boolean;
+  contractIds?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -94,6 +96,7 @@ export class Colaborator extends BaseEntity {
     private _status: ColaboratorStatus,
     public createdAt: Date,
     public updatedAt: Date,
+    public contractIds?: string[],
   ) {
     super();
   }
@@ -133,6 +136,7 @@ export class Colaborator extends BaseEntity {
       status,
       props.createdAt || new Date(),
       props.updatedAt || new Date(),
+      props.contractIds,
     );
   }
 
@@ -165,6 +169,7 @@ export class Colaborator extends BaseEntity {
       status,
       props.createdAt! instanceof Date ? props.createdAt! : new Date(props.createdAt!),
       props.updatedAt! instanceof Date ? props.updatedAt! : new Date(props.updatedAt!),
+      props.contractIds,
     );
   }
 
@@ -456,6 +461,7 @@ export class Colaborator extends BaseEntity {
       cargo: this._cargo,
       status: this._status,
       isActive: this.isActive(),
+      contractIds: this.contractIds,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
