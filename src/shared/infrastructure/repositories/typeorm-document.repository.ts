@@ -101,7 +101,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async findByColaboratorId(colaboratorId: string): Promise<Document[]> {
+  async findByColaboratorIds(colaboratorIds: string[]): Promise<Document[]> {
+    if (colaboratorIds.length === 0) return [];
     const documentEntities = await this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
@@ -109,7 +110,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('document.template', 'template')
       .leftJoinAndSelect('template.documentType', 'documentType')
       .leftJoinAndSelect('template.documentSubtype', 'documentSubtype')
-      .where('colaborators.id = :colaboratorId', { colaboratorId })
+      .where('colaborators.id IN (:...colaboratorIds)', { colaboratorIds })
       .andWhere('document.deletedAt IS NULL')
       .orderBy('document.createdAt', 'DESC')
       .getMany();
@@ -122,7 +123,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         expirationDate: LessThanOrEqual(new Date()),
         deletedAt: IsNull(),
       },
-      relations: ['contract', 'template', 'colaborators'],
+      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { expirationDate: 'ASC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -150,13 +151,15 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async existsByTemplateAndColaborator(templateId: string, colaboratorId: string, excludeId?: string): Promise<boolean> {
+  async existsByTemplateAndColaborator(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean> {
+    if (colaboratorIds.length === 0) return false;
+
     const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });
@@ -169,17 +172,18 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async existsByTemplateContractColaborator(
     templateId: string,
     contractId: string,
-    colaboratorId: string,
+    colaboratorIds: string[],
     excludeId?: string,
   ): Promise<boolean> {
-    // This method is deprecated - use query builder for N:M relation
+    if (colaboratorIds.length === 0) return false;
+
     const query = this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.template_id = :templateId', { templateId })
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id = :colaboratorId', { colaboratorId });
+      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });

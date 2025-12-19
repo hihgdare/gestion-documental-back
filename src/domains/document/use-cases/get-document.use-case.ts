@@ -42,7 +42,7 @@ export class GetDocumentsByColaboratorIdUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
   public async execute(colaboratorId: string): Promise<Document[]> {
-    return await this.documentRepository.findByColaboratorId(colaboratorId);
+    return await this.documentRepository.findByColaboratorIds([colaboratorId]);
   }
 }
 

@@ -27,24 +27,22 @@ export class CreateDocumentUseCase {
   public async execute(request: CreateDocumentRequest): Promise<Document> {
     // Verificando que no haya documentos duplicados
     if (request.colaboratorIds && request.colaboratorIds.length > 0) {
-      for (const colabId of request.colaboratorIds) {
-        let exists = false;
-        if (request.contractId) {
-          exists = await this.documentRepository.existsByTemplateContractColaborator(
-            request.templateId,
-            request.contractId,
-            colabId,
-          );
-        } else {
-          exists = await this.documentRepository.existsByTemplateAndColaborator(
-            request.templateId,
-            colabId,
-          );
-        }
+      let exists = false;
+      if (request.contractId) {
+        exists = await this.documentRepository.existsByTemplateContractColaborator(
+          request.templateId,
+          request.contractId,
+          request.colaboratorIds,
+        );
+      } else {
+        exists = await this.documentRepository.existsByTemplateAndColaborator(
+          request.templateId,
+          request.colaboratorIds,
+        );
+      }
 
-        if (exists) {
-          throw new ValidationError(`Ya existe un documento de este tipo para el colaborador seleccionado${request.contractId ? ' en este contrato' : ''}.`);
-        }
+      if (exists) {
+        throw new ValidationError(`Ya existe un documento de este tipo para los colaboradores seleccionados${request.contractId ? ' en este contrato' : ''}.`);
       }
     }
 

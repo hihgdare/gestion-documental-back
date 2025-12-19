@@ -216,10 +216,6 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public isDeleted(): boolean {
-    return this.deletedAt !== null;
-  }
-
   public isExpired(): boolean {
     if (!this.expirationDate) return false;
     return DateUtils.isAfter(new Date(), this.expirationDate);
@@ -277,18 +273,22 @@ export class Document {
       id: this.id,
       templateId: this.templateId,
       colaboratorIds: this.colaboratorIds,
+      templateName: this.templateName,
+      documentTypeName: this.documentTypeName,
+      documentSubtypeName: this.documentSubtypeName,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate, true),
       expirationDate: DateUtils.toString(this.expirationDate, true),
       contractId: this.contractId,
+      contractNumber: this.contractNumber,
+      contractProjectName: this.contractProjectName,
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,
       createdBy: this.createdBy,
       comment: this.comment,
-      deletedAt: DateTimeUtils.toString(this.deletedAt),
+      deletedAt: DateTimeUtils.toString(this.deletedAt, true),
       deletedBy: this.deletedBy,
-      isDeleted: this.isDeleted(),
       isExpired: this.isExpired(),
       daysUntilExpiration: this.daysUntilExpiration(),
       createdAt: DateTimeUtils.toString(this.createdAt),

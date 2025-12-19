@@ -56,7 +56,7 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
       const exists = await this.documentRepository.existsByTemplateContractColaborator(
         request.templateId,
         request.contractId,
-        colaborator.id,
+        [colaborator.id],
       );
       if (exists) {
         skipped.push(colaborator.id);
