@@ -20,3 +20,5 @@ interface ObjectConstructor {
 type RecordKey = string | number | symbol;
 
 type Overlap<A extends object, B extends object> = Omit<A, keyof B> & B;
+
+type UUID = `${string}-${string}-${string}-${string}-${string}`;

@@ -81,8 +81,12 @@ export class DocumentController {
   });
 
   getAllDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { includeContractReviewers, includeDocumentTypes } = req.query;
-    const documents = await this.getAllDocumentsUseCase.execute();
+    const { includeContractReviewers, includeDocumentTypes, filter } = req.query;
+
+    // Extraer contractId del objeto filter (ej: filter[contractId]=uuid)
+    const contractId = (filter as any)?.contractId;
+
+    const documents = await this.getAllDocumentsUseCase.execute({ contractId });
 
     const response: any = {
       success: true,

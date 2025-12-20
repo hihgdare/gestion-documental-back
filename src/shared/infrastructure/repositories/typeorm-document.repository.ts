@@ -13,7 +13,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     this.repository = AppDataSource.getRepository(DocumentEntity);
   }
 
-  async findById(id: string): Promise<Document | null> {
+  async findById(id: UUID): Promise<Document | null> {
     const documentEntity = await this.repository.findOne({
       where: { id },
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
@@ -22,9 +22,14 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return this.toDomain(documentEntity);
   }
 
-  async findAll(): Promise<Document[]> {
+  async findAll(filters?: { contractId?: UUID }): Promise<Document[]> {
+    const where: any = { deletedAt: IsNull() };
+    if (filters?.contractId) {
+      where.contractId = filters.contractId;
+    }
+
     const documentEntities = await this.repository.find({
-      where: { deletedAt: IsNull() },
+      where,
       relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
