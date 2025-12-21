@@ -86,6 +86,7 @@ import {
 import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
 import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
 import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+import { GetParentContractsUseCase } from '@domains/contract/use-cases/get-parent-contracts.use-case';
 import { AssignReviewerToContractUseCase } from '@domains/contract/use-cases/assign-reviewer-to-contract.use-case';
 import { RemoveReviewerFromContractUseCase } from '@domains/contract/use-cases/remove-reviewer-from-contract.use-case';
 import { GetContractReviewersUseCase } from '@domains/contract/use-cases/get-contract-reviewers.use-case';
@@ -232,6 +233,7 @@ export class DependencyContainer {
   private addSubcontractUseCase!: AddSubcontractUseCase;
   private removeSubcontractUseCase!: RemoveSubcontractUseCase;
   private getSubcontractsUseCase!: GetSubcontractsUseCase;
+  private getParentContractsUseCase!: GetParentContractsUseCase;
   private assignReviewerToContractUseCase!: AssignReviewerToContractUseCase;
   private removeReviewerFromContractUseCase!: RemoveReviewerFromContractUseCase;
   private getContractReviewersUseCase!: GetContractReviewersUseCase;
@@ -391,6 +393,7 @@ export class DependencyContainer {
     this.addSubcontractUseCase = new AddSubcontractUseCase(this.contractRepository);
     this.removeSubcontractUseCase = new RemoveSubcontractUseCase(this.contractRepository);
     this.getSubcontractsUseCase = new GetSubcontractsUseCase(this.contractRepository);
+    this.getParentContractsUseCase = new GetParentContractsUseCase(this.contractRepository);
     this.assignReviewerToContractUseCase = new AssignReviewerToContractUseCase(
       this.contractReviewerRepository,
       this.contractRepository,
@@ -499,6 +502,7 @@ export class DependencyContainer {
       this.addColaboratorToContractUseCase,
       this.removeColaboratorFromContractUseCase,
       this.getContractColaboratorsUseCase,
+      this.getParentContractsUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(

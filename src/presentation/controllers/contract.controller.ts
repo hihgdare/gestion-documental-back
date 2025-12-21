@@ -30,6 +30,7 @@ import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/
 import { AddSubcontractUseCase } from '@domains/contract/use-cases/add-subcontract.use-case';
 import { RemoveSubcontractUseCase } from '@domains/contract/use-cases/remove-subcontract.use-case';
 import { GetSubcontractsUseCase } from '@domains/contract/use-cases/get-subcontracts.use-case';
+import { GetParentContractsUseCase } from '@domains/contract/use-cases/get-parent-contracts.use-case';
 import { AssignReviewerToContractUseCase } from '@domains/contract/use-cases/assign-reviewer-to-contract.use-case';
 import { RemoveReviewerFromContractUseCase } from '@domains/contract/use-cases/remove-reviewer-from-contract.use-case';
 import { GetContractReviewersUseCase } from '@domains/contract/use-cases/get-contract-reviewers.use-case';
@@ -75,6 +76,7 @@ export class ContractController {
     private readonly addColaboratorToContractUseCase: AddColaboratorToContractUseCase,
     private readonly removeColaboratorFromContractUseCase: RemoveColaboratorFromContractUseCase,
     private readonly getContractColaboratorsUseCase: GetContractColaboratorsUseCase,
+    private readonly getParentContractsUseCase: GetParentContractsUseCase,
   ) { }
 
 
@@ -329,6 +331,17 @@ export class ContractController {
       success: true,
       data: subcontracts.map((contract: Contract) => this.toResponseDto(contract)),
       count: subcontracts.length,
+    });
+  });
+
+  public getParentContracts = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const parents = await this.getParentContractsUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      data: parents.map((contract: Contract) => this.toResponseDto(contract)),
+      count: parents.length,
     });
   });
 
