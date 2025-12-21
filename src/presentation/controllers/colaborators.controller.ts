@@ -46,7 +46,16 @@ export class ColaboratorController {
   });
 
   public getAllColaborators = asyncHandler(async (req: Request, res: Response) => {
-    const colaborators = await this.getColaboratorUseCase.getAll();
+    const { filter } = req.query;
+    const filters: any = {};
+    if (filter && typeof filter === 'object') {
+      const contractId = (filter as any).contractId;
+      if (contractId && contractId !== 'undefined' && contractId !== 'null' && contractId.trim() !== '') {
+        filters.contractId = contractId;
+      }
+    }
+
+    const colaborators = await this.getColaboratorUseCase.getAll(Object.keys(filters).length > 0 ? filters : undefined);
     res.status(200).json({
       success: true,
       data: colaborators.map((colaborator: any) => toColaboratorResponseDto(colaborator)),

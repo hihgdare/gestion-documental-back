@@ -27,11 +27,17 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     return this.toDomain(colaboratorEntity);
   }
 
-  async findAll(): Promise<Colaborator[]> {
-    const colaboratorEntities = await this.repository.find({
-      relations: ['contracts'],
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(filters?: { contractId?: string }): Promise<Colaborator[]> {
+    const query = this.repository
+      .createQueryBuilder('colaborator')
+      .leftJoinAndSelect('colaborator.contracts', 'contracts')
+      .orderBy('colaborator.createdAt', 'DESC');
+
+    if (filters?.contractId && filters.contractId !== 'undefined' && filters.contractId !== 'null' && filters.contractId.trim() !== '') {
+      query.andWhere('contracts.id = :contractId', { contractId: filters.contractId });
+    }
+
+    const colaboratorEntities = await query.getMany();
     return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
@@ -278,6 +284,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       status: colaborator.status,
       createdAt: colaborator.createdAt,
       updatedAt: colaborator.updatedAt,
+      contracts: colaborator.contractIds?.map((id) => ({ id } as ContractEntity)),
     };
   }
 }
