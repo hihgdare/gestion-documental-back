@@ -11,6 +11,10 @@ export const createDocumentRoutes = (
   contractReviewerMiddleware: RequestHandler,
 ): Router => {
   const router = Router();
+
+  // Rutas públicas
+  router.get('/dashboard/metrics', controller.getDashboardMetrics);
+
   router.use(auth);
 
   // POST routes
@@ -18,7 +22,6 @@ export const createDocumentRoutes = (
   router.post('/assign-template-to-group', authorize('document:create'), validateRequest(assignDocumentsFromTemplateToGroupSchema, true), controller.assignDocumentsFromTemplateToGroup);
 
   // GET routes - specific routes before parameterized routes
-  router.get('/dashboard/metrics', authorize('document:read'), controller.getDashboardMetrics);
   router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);
   router.get('/expiring/:days', authorize('document:read'), controller.getExpiringDocuments);
   router.get('/by-contract/:contractId', authorize('document:read'), controller.getDocumentsByContractId);
