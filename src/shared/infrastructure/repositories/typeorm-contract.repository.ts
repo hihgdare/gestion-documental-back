@@ -290,6 +290,29 @@ export class TypeOrmContractRepository implements ContractRepository {
     return subcontracts.map(entity => this.toDomain(entity));
   }
 
+  async findParentContracts(contractId: string): Promise<Contract[]> {
+    // Verify contract exists
+    const contract = await this.repository.findOne({ where: { id: contractId, deletedAt: IsNull() } });
+    if (!contract) {
+      throw new NotFoundError('Contract not found');
+    }
+
+    // Find all parent contracts using a query builder with join
+    const parents = await this.repository
+      .createQueryBuilder('contract')
+      .innerJoin(
+        'contract_subcontracts',
+        'cs',
+        'cs.contract_id = contract.id',
+      )
+      .where('cs.subcontract_id = :contractId', { contractId })
+      .andWhere('contract.deleted_at IS NULL')
+      .orderBy('contract.createdAt', 'DESC')
+      .getMany();
+
+    return parents.map(entity => this.toDomain(entity));
+  }
+
   // Colaborator management methods
   async addColaborator(contractId: string, colaboratorId: string): Promise<void> {
     const contract = await this.repository.findOne({ where: { id: contractId } });

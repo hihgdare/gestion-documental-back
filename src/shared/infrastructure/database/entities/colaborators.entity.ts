@@ -107,6 +107,11 @@ export class ColaboratorEntity {
   groups!: ColaboratorGroupEntity[];
 
   @ManyToMany(() => ContractEntity, (contract) => contract.colaborators)
+  @JoinTable({
+    name: 'contract_colaborators',
+    joinColumn: { name: 'colaborator_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'contract_id', referencedColumnName: 'id' },
+  })
   contracts!: ContractEntity[];
 
   @ManyToMany(() => DocumentEntity)

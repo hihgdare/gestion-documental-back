@@ -7,7 +7,7 @@ import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/t
 import { DocumentType as DocTypeDomain } from '@domains/document-type/entities/document-type.entity';
 import { DocumentSubtype } from '@domains/document-subtype/entities/document-subtype.entity';
 import { DocumentTemplate } from '@domains/document-template/entities/document-template.entity';
-import { Colaborator } from '@domains/colaborators/entities/colaborator.entity';
+import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
 import { DocumentType as ColabDocType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 
@@ -59,6 +59,59 @@ export async function runSampleSeeds(): Promise<void> {
       documentSubtypeId: subtypes[i % subtypes.length],
     });
     await templateRepo.save(template);
+  }
+
+  /* Create Contracts */
+  const today = new Date();
+  const contractsData = [
+    {
+      rutSociedad: '12.345.678-5',
+      nombreColaborador: 'Empresa X',
+      administradorContratoMandante: 'Admin Mandante',
+      administradorContratoEmpresa: 'Admin Empresa',
+      rutAdministradorContrato: '23.456.789-6',
+      contractNumber: `CN-DEV-${Date.now()}-1`,
+      nombreMandante: 'Mandante SA',
+      startDate: today.toISOString().slice(0, 10),
+      endDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      contractType: ContractType.CONSULTORIA,
+      jornadaTrabajo: JornadaTrabajo.COMPLETA,
+    },
+    {
+      rutSociedad: '98.765.432-1',
+      nombreColaborador: 'Empresa Y',
+      administradorContratoMandante: 'Admin Mandante',
+      administradorContratoEmpresa: 'Admin Empresa',
+      rutAdministradorContrato: '65.432.109-8',
+      contractNumber: `CN-DEV-${Date.now()}-2`,
+      nombreMandante: 'Mandante SPA',
+      startDate: today.toISOString().slice(0, 10),
+      endDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      contractType: ContractType.HONORARIOS,
+      jornadaTrabajo: JornadaTrabajo.PARCIAL,
+    },
+    {
+      rutSociedad: '77.777.777-7',
+      nombreColaborador: 'Empresa Z',
+      administradorContratoMandante: 'Admin Mandante',
+      administradorContratoEmpresa: 'Admin Empresa',
+      rutAdministradorContrato: '11.111.111-1',
+      contractNumber: `CN-DEV-${Date.now()}-3`,
+      nombreMandante: 'Mandante Ltda',
+      startDate: today.toISOString().slice(0, 10),
+      endDate: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      contractType: ContractType.OBRA_FAENA,
+      jornadaTrabajo: JornadaTrabajo.TURNO,
+    },
+  ];
+
+  const contractIds: string[] = [];
+  for (const c of contractsData) {
+    let contract = await contractRepo.findByContractNumber(c.contractNumber);
+    if (!contract) {
+      contract = await contractRepo.save(c as any);
+    }
+    contractIds.push(contract.id);
   }
 
   const colaboradoresData = [
@@ -209,70 +262,21 @@ export async function runSampleSeeds(): Promise<void> {
       profesion: 'Project Manager',
       cargo: 'PM',
     },
-  ];
+  ] satisfies ColaboratorProps[];
 
   const colaboratorIds: string[] = [];
-  for (const c of colaboradoresData) {
+  for (let i = 0; i < colaboradoresData.length; i++) {
+    const c = colaboradoresData[i];
     const exists = await colaboratorRepo.findByEmail(c.email);
     if (exists) {
       colaboratorIds.push(exists.id);
       continue;
     }
-    const saved = await colaboratorRepo.save(Colaborator.create(c));
+    const saved = await colaboratorRepo.save(Colaborator.create({
+      ...c,
+      contractIds: [contractIds[i % contractIds.length]],
+    }));
     colaboratorIds.push(saved.id);
-  }
-
-  /* Create Contracts */
-  const today = new Date();
-  const contractsData = [
-    {
-      rutSociedad: '12.345.678-5',
-      nombreColaborador: 'Empresa X',
-      administradorContratoMandante: 'Admin Mandante',
-      administradorContratoEmpresa: 'Admin Empresa',
-      rutAdministradorContrato: '23.456.789-6',
-      contractNumber: `CN-DEV-${Date.now()}-1`,
-      nombreMandante: 'Mandante SA',
-      startDate: today.toISOString().slice(0, 10),
-      endDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      contractType: ContractType.CONSULTORIA,
-      jornadaTrabajo: JornadaTrabajo.COMPLETA,
-    },
-    {
-      rutSociedad: '98.765.432-1',
-      nombreColaborador: 'Empresa Y',
-      administradorContratoMandante: 'Admin Mandante',
-      administradorContratoEmpresa: 'Admin Empresa',
-      rutAdministradorContrato: '65.432.109-8',
-      contractNumber: `CN-DEV-${Date.now()}-2`,
-      nombreMandante: 'Mandante SPA',
-      startDate: today.toISOString().slice(0, 10),
-      endDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      contractType: ContractType.HONORARIOS,
-      jornadaTrabajo: JornadaTrabajo.PARCIAL,
-    },
-    {
-      rutSociedad: '77.777.777-7',
-      nombreColaborador: 'Empresa Z',
-      administradorContratoMandante: 'Admin Mandante',
-      administradorContratoEmpresa: 'Admin Empresa',
-      rutAdministradorContrato: '11.111.111-1',
-      contractNumber: `CN-DEV-${Date.now()}-3`,
-      nombreMandante: 'Mandante Ltda',
-      startDate: today.toISOString().slice(0, 10),
-      endDate: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      contractType: ContractType.OBRA_FAENA,
-      jornadaTrabajo: JornadaTrabajo.TURNO,
-    },
-  ];
-
-  const contractIds: string[] = [];
-  for (const c of contractsData) {
-    let contract = await contractRepo.findByContractNumber(c.contractNumber);
-    if (!contract) {
-      contract = await contractRepo.save(c as any);
-    }
-    contractIds.push(contract.id);
   }
 
   /* Create Groups */

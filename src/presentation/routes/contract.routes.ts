@@ -75,6 +75,9 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // GET /api/contracts/:id/subcontracts - Get all subcontracts of a contract
   router.get('/:id/subcontracts', authorize('contract:read'), contractController.getSubcontracts);
 
+  // GET /api/contracts/:id/parents - Get all parent contracts of a contract
+  router.get('/:id/parents', authorize('contract:read'), contractController.getParentContracts);
+
   // Reviewer management routes
   // POST /api/contracts/:id/reviewers - Assign a reviewer to a contract
   router.post('/:id/reviewers', authorize('contract:assign:reviewer'), validateRequest(assignReviewerSchema, true), contractController.assignReviewer);

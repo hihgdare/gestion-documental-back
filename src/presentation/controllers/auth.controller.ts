@@ -86,7 +86,8 @@ export class AuthController {
 
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      res.clearCookie('token', this.getCookieOptions());
+      const { maxAge: _maxAge, ...clearOptions } = this.getCookieOptions();
+      res.clearCookie('token', clearOptions);
 
       res.status(200).json({
         success: true,

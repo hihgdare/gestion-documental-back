@@ -17,8 +17,8 @@ export class GetDocumentByIdUseCase {
 export class GetAllDocumentsUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  public async execute(): Promise<Document[]> {
-    return await this.documentRepository.findAll();
+  public async execute(filters?: { contractId?: string }): Promise<Document[]> {
+    return await this.documentRepository.findAll(filters);
   }
 }
 

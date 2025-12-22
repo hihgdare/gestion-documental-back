@@ -9,7 +9,6 @@ import {
   JoinColumn,
   DeleteDateColumn,
   ManyToMany,
-  JoinTable,
 } from 'typeorm';
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
@@ -113,11 +112,6 @@ export class ContractEntity {
   manager?: UserEntity;
 
   @ManyToMany(() => ColaboratorEntity, (colaborator) => colaborator.contracts)
-  @JoinTable({
-    name: 'contract_colaborators',
-    joinColumn: { name: 'contract_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'colaborator_id', referencedColumnName: 'id' },
-  })
   colaborators?: ColaboratorEntity[];
 }
 

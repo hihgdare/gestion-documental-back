@@ -25,6 +25,7 @@ export interface ContractRepository {
   addSubcontract(contractId: string, subcontractId: string): Promise<void>;
   removeSubcontract(contractId: string, subcontractId: string): Promise<void>;
   findSubcontracts(contractId: string): Promise<Contract[]>;
+  findParentContracts(contractId: string): Promise<Contract[]>;
   // Colaborator management
   addColaborator(contractId: string, colaboratorId: string): Promise<void>;
   removeColaborator(contractId: string, colaboratorId: string): Promise<void>;
