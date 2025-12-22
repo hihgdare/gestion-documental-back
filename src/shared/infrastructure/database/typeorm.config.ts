@@ -35,7 +35,7 @@ export function initializeDataSource(): DataSource {
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'gestion_documental',
-      synchronize: mode !== 'production',
+      synchronize: mode !== 'production' && process.env.DB_SYNCHRONIZE !== 'false',
       logging: mode !== 'production' && process.env.SHOW_DB_QUERY === 'true',
       charset: 'utf8mb4',
       timezone: 'local',
