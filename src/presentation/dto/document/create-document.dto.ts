@@ -1,5 +1,6 @@
 export interface CreateDocumentDto {
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   colaboratorIds: string[];
   name: string;
   issuedDate?: string; // ISO date string

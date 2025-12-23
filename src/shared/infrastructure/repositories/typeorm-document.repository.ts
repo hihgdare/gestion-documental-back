@@ -13,16 +13,16 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     this.repository = AppDataSource.getRepository(DocumentEntity);
   }
 
-  async findById(id: UUID): Promise<Document | null> {
+  async findById(id: string): Promise<Document | null> {
     const documentEntity = await this.repository.findOne({
       where: { id },
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
     });
     if (!documentEntity) return null;
     return this.toDomain(documentEntity);
   }
 
-  async findAll(filters?: { contractId?: UUID }): Promise<Document[]> {
+  async findAll(filters?: { contractId?: string }): Promise<Document[]> {
     const where: any = { deletedAt: IsNull() };
     if (filters?.contractId) {
       where.contractId = filters.contractId;
@@ -30,7 +30,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
     const documentEntities = await this.repository.find({
       where,
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -38,7 +38,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async save(document: Document): Promise<Document> {
     const documentEntity = this.toEntity(document);
-    const savedEntity = await this.repository.save(documentEntity);
+    const savedEntity = await this.repository.save(documentEntity as any);
 
     // Manejar la relación N:M con colaboradores
     if (document.colaboratorIds && document.colaboratorIds.length > 0) {
@@ -50,12 +50,12 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       await this.repository.save(savedEntity);
     }
 
-    return this.toDomain(savedEntity);
+    return this.findById(savedEntity.id) as Promise<Document>;
   }
 
   async update(document: Document): Promise<Document> {
     const documentEntity = this.toEntity(document);
-    await this.repository.update(document.id, documentEntity);
+    await this.repository.update(document.id, documentEntity as any);
 
     // Manejar la relación N:M con colaboradores
     if (document.colaboratorIds && document.colaboratorIds.length > 0) {
@@ -79,7 +79,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
     const updatedEntity = await this.repository.findOne({
       where: { id: document.id },
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
     });
     return this.toDomain(updatedEntity!);
   }
@@ -91,16 +91,16 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
       where: { contractId, deletedAt: IsNull() },
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async findByTemplateId(templateId: string): Promise<Document[]> {
+  async findByTypeAndSubtypeId(typeId: string, subtypeId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { templateId, deletedAt: IsNull() },
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      where: { documentTypeId: typeId, documentSubtypeId: subtypeId, deletedAt: IsNull() },
+      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
       order: { createdAt: 'DESC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -112,9 +112,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .leftJoinAndSelect('document.contract', 'contract')
-      .leftJoinAndSelect('document.template', 'template')
-      .leftJoinAndSelect('template.documentType', 'documentType')
-      .leftJoinAndSelect('template.documentSubtype', 'documentSubtype')
+      .leftJoinAndSelect('document.documentType', 'documentType')
+      .leftJoinAndSelect('document.documentSubtype', 'documentSubtype')
       .where('colaborators.id IN (:...colaboratorIds)', { colaboratorIds })
       .andWhere('document.deletedAt IS NULL')
       .orderBy('document.createdAt', 'DESC')
@@ -128,7 +127,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         expirationDate: LessThanOrEqual(new Date()),
         deletedAt: IsNull(),
       },
-      relations: ['contract', 'template', 'template.documentType', 'template.documentSubtype', 'colaborators'],
+      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
       order: { expirationDate: 'ASC' },
     });
     return documentEntities.map(entity => this.toDomain(entity));
@@ -142,9 +141,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.contract', 'contract')
-      .leftJoinAndSelect('document.template', 'template')
-      .leftJoinAndSelect('template.documentType', 'documentType')
-      .leftJoinAndSelect('template.documentSubtype', 'documentSubtype')
+      .leftJoinAndSelect('document.documentType', 'documentType')
+      .leftJoinAndSelect('document.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .where('document.expiration_date IS NOT NULL')
       .andWhere('document.expiration_date > :today', { today })
@@ -156,13 +154,14 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async existsByTemplateAndColaborator(templateId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean> {
+  async existsByTypeSubtypeAndColaborator(typeId: string, subtypeId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean> {
     if (colaboratorIds.length === 0) return false;
 
     const query = this.repository
       .createQueryBuilder('document')
-      .leftJoinAndSelect('document.colaborators', 'colaborators')
-      .where('document.template_id = :templateId', { templateId })
+      .leftJoin('document.colaborators', 'colaborators')
+      .where('document.documentTypeId = :typeId', { typeId })
+      .andWhere('document.documentSubtypeId = :subtypeId', { subtypeId })
       .andWhere('document.deleted_at IS NULL')
       .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
 
@@ -174,8 +173,9 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return !!existing;
   }
 
-  async existsByTemplateContractColaborator(
-    templateId: string,
+  async existsByTypeSubtypeContractColaborator(
+    typeId: string,
+    subtypeId: string,
     contractId: string,
     colaboratorIds: string[],
     excludeId?: string,
@@ -184,8 +184,9 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
     const query = this.repository
       .createQueryBuilder('document')
-      .leftJoinAndSelect('document.colaborators', 'colaborators')
-      .where('document.template_id = :templateId', { templateId })
+      .leftJoin('document.colaborators', 'colaborators')
+      .where('document.documentTypeId = :typeId', { typeId })
+      .andWhere('document.documentSubtypeId = :subtypeId', { subtypeId })
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.deleted_at IS NULL')
       .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
@@ -202,11 +203,11 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const colaboratorIds = entity.colaborators ? entity.colaborators.map(c => c.id) : [];
     const props: DocumentProps = {
       id: entity.id,
-      templateId: entity.templateId,
+      documentTypeId: entity.documentTypeId,
+      documentSubtypeId: entity.documentSubtypeId,
       colaboratorIds: colaboratorIds.length > 0 ? colaboratorIds : [],
-      templateName: entity.template?.name,
-      documentTypeName: entity.template?.documentType?.name,
-      documentSubtypeName: entity.template?.documentSubtype?.name,
+      documentTypeName: entity.documentType?.name,
+      documentSubtypeName: entity.documentSubtype?.name,
       name: entity.name,
       issuedDate: entity.issuedDate,
       expirationDate: entity.expirationDate,
@@ -227,7 +228,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   private toEntity(document: Document): Partial<DocumentEntity> {
     return {
       id: document.id,
-      templateId: document.templateId,
+      documentTypeId: document.documentTypeId,
+      documentSubtypeId: document.documentSubtypeId,
       name: document.name,
       issuedDate: document.issuedDate ? DateUtils.toLocalDate(document.issuedDate)! : undefined,
       expirationDate: document.expirationDate ? DateUtils.toLocalDate(document.expirationDate) : undefined,

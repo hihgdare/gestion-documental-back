@@ -6,7 +6,8 @@ import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface UpdateDocumentRequest {
-  templateId?: string;
+  documentTypeId?: string;
+  documentSubtypeId?: string;
   colaboratorIds?: string[];
   name?: string;
   issuedDate?: Date;
@@ -35,8 +36,12 @@ export class UpdateDocumentUseCase {
       document.updateName(request.name);
     }
 
-    if (request.templateId !== undefined) {
-      document.updateDocumentTypeId(request.templateId);
+    if (request.documentTypeId !== undefined) {
+      document.updateDocumentTypeId(request.documentTypeId);
+    }
+
+    if (request.documentSubtypeId !== undefined) {
+      document.updateDocumentSubtypeId(request.documentSubtypeId);
     }
 
     if (request.colaboratorIds !== undefined) {
@@ -63,22 +68,25 @@ export class UpdateDocumentUseCase {
     }
 
     // Verificar que no haya documentos duplicados
-    const finalTemplateId = document.templateId;
+    const finalDocumentTypeId = document.documentTypeId;
+    const finalDocumentSubtypeId = document.documentSubtypeId;
     const finalContractId = document.contractId;
     const finalColaboratorIds = document.colaboratorIds;
 
     if (finalColaboratorIds && finalColaboratorIds.length > 0) {
       let exists = false;
       if (finalContractId) {
-        exists = await this.documentRepository.existsByTemplateContractColaborator(
-          finalTemplateId,
+        exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
+          finalDocumentTypeId,
+          finalDocumentSubtypeId,
           finalContractId,
           finalColaboratorIds,
           document.id,
         );
       } else {
-        exists = await this.documentRepository.existsByTemplateAndColaborator(
-          finalTemplateId,
+        exists = await this.documentRepository.existsByTypeSubtypeAndColaborator(
+          finalDocumentTypeId,
+          finalDocumentSubtypeId,
           finalColaboratorIds,
           document.id,
         );
@@ -98,7 +106,8 @@ export class UpdateDocumentUseCase {
     // Crear entrada de historial
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
-      templateId: updatedDocument.templateId,
+      documentTypeId: updatedDocument.documentTypeId,
+      documentSubtypeId: updatedDocument.documentSubtypeId,
       name: updatedDocument.name,
       issuedDate: updatedDocument.issuedDate,
       expirationDate: updatedDocument.expirationDate,

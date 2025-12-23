@@ -4,12 +4,12 @@ import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { ColaboratorGroupRepository } from '@domains/colaborator-group/repositories/colaborator-group.repository';
-import { DocumentTemplateRepository } from '@domains/document-template/repositories/document-template.repository';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { ValidationError } from '@shared/domain/errors';
 
-export interface AssignDocumentsFromTemplateToGroupRequest {
-  templateId: string;
+export interface AssignDocumentsFromTypeSubtypeToGroupRequest {
+  documentTypeId: string;
+  documentSubtypeId: string;
   contractId: string;
   groupId: number;
   issuedDate?: Date;
@@ -24,21 +24,15 @@ export interface AssignDocumentsFromTemplateToGroupResult {
   skipped: string[];
 }
 
-export class AssignDocumentsFromTemplateToGroupUseCase {
+export class AssignDocumentsFromTypeSubtypeToGroupUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly colaboratorGroupRepository: ColaboratorGroupRepository,
-    private readonly documentTemplateRepository: DocumentTemplateRepository,
     private readonly contractRepository: ContractRepository,
   ) {}
 
-  public async execute(request: AssignDocumentsFromTemplateToGroupRequest): Promise<AssignDocumentsFromTemplateToGroupResult> {
-    const template = await this.documentTemplateRepository.findById(request.templateId);
-    if (!template) {
-      throw new ValidationError('Plantilla de documento no encontrada');
-    }
-
+  public async execute(request: AssignDocumentsFromTypeSubtypeToGroupRequest): Promise<AssignDocumentsFromTemplateToGroupResult> {
     const contract = await this.contractRepository.findById(request.contractId);
     if (!contract) {
       throw new ValidationError('Contrato no encontrado');
@@ -53,8 +47,9 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
     const skipped: string[] = [];
 
     for (const colaborator of group.colaborators) {
-      const exists = await this.documentRepository.existsByTemplateContractColaborator(
-        request.templateId,
+      const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
+        request.documentTypeId,
+        request.documentSubtypeId,
         request.contractId,
         [colaborator.id],
       );
@@ -64,9 +59,10 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
       }
 
       const props: DocumentProps = {
-        templateId: request.templateId,
+        documentTypeId: request.documentTypeId,
+        documentSubtypeId: request.documentSubtypeId,
         colaboratorIds: [colaborator.id],
-        name: request.name?.trim() || template.name,
+        name: request.name?.trim() || `${request.documentTypeId} ${request.documentSubtypeId}`,
         issuedDate: request.issuedDate,
         expirationDate: request.expirationDate,
         contractId: request.contractId,
@@ -79,8 +75,8 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
       if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
-          templateId: saved.templateId,
-
+          documentTypeId: saved.documentTypeId,
+          documentSubtypeId: saved.documentSubtypeId,
           name: saved.name,
           issuedDate: saved.issuedDate,
           expirationDate: saved.expirationDate || undefined,

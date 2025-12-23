@@ -6,9 +6,9 @@ import { DocumentStatus } from '../value-objects/document-enums';
 
 export interface DocumentProps {
   id?: string;
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   colaboratorIds?: string[];
-  templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
@@ -30,9 +30,9 @@ export interface DocumentProps {
 
 export class Document {
   id: string;
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   colaboratorIds: string[];
-  templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
@@ -76,8 +76,12 @@ export class Document {
   }
 
   private static validateRequired(props: DocumentProps): void {
-    if (!props.templateId || props.templateId.trim().length === 0) {
-      throw new ValidationError('El ID del template de documento es requerido');
+    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
+      throw new ValidationError('El ID del tipo de documento es requerido');
+    }
+
+    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
+      throw new ValidationError('El ID del subtipo de documento es requerido');
     }
 
     // Los colaboradores son opcionales en la creación, se pueden asignar después
@@ -163,7 +167,7 @@ export class Document {
       throw new ValidationError('El ID del tipo de documento es requerido');
     }
 
-    this.templateId = documentTypeId;
+    this.documentTypeId = documentTypeId;
     this.updatedAt = new Date();
   }
 
@@ -172,6 +176,7 @@ export class Document {
       throw new ValidationError('El ID del subtipo de documento es requerido');
     }
 
+    this.documentSubtypeId = documentSubtypeId;
     this.updatedAt = new Date();
   }
 
@@ -271,9 +276,9 @@ export class Document {
   public toJSON() {
     return {
       id: this.id,
-      templateId: this.templateId,
+      documentTypeId: this.documentTypeId,
+      documentSubtypeId: this.documentSubtypeId,
       colaboratorIds: this.colaboratorIds,
-      templateName: this.templateName,
       documentTypeName: this.documentTypeName,
       documentSubtypeName: this.documentSubtypeName,
       name: this.name,

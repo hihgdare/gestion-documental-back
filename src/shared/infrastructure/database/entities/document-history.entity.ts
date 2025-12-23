@@ -8,7 +8,8 @@ import {
   Index,
 } from 'typeorm';
 import { DocumentEntity } from './document.entity';
-import { DocumentTemplateEntity } from './document-template.entity';
+import { DocumentTypeEntity } from './document-type.entity';
+import { DocumentSubtypeEntity } from './document-subtype.entity';
 import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
@@ -28,12 +29,19 @@ export class DocumentHistoryEntity {
   @JoinColumn({ name: 'document_id' })
   document!: DocumentEntity;
 
-  @Column({ name: 'template_id', type: 'varchar', length: 36 })
-  templateId!: string;
+  @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
+  documentTypeId!: string;
 
-  @ManyToOne(() => DocumentTemplateEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'template_id' })
-  template!: DocumentTemplateEntity;
+  @ManyToOne(() => DocumentTypeEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'document_type_id' })
+  documentType!: DocumentTypeEntity;
+
+  @Column({ name: 'document_subtype_id', type: 'varchar', length: 36 })
+  documentSubtypeId!: string;
+
+  @ManyToOne(() => DocumentSubtypeEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'document_subtype_id' })
+  documentSubtype!: DocumentSubtypeEntity;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;
