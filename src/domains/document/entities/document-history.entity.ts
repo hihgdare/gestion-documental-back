@@ -7,7 +7,8 @@ import { DocumentStatus, DocumentAction } from '../value-objects/document-enums'
 export interface DocumentHistoryProps {
   id?: string;
   documentId: string;
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   name: string;
   issuedDate?: Date | null;
   expirationDate?: Date | null;
@@ -26,7 +27,8 @@ export interface DocumentHistoryProps {
 export class DocumentHistory {
   id: string;
   documentId: string;
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   name: string;
   issuedDate: Date | null;
   expirationDate: Date | null;
@@ -65,8 +67,12 @@ export class DocumentHistory {
       throw new ValidationError('El ID del documento es requerido');
     }
 
-    if (!props.templateId || props.templateId.trim().length === 0) {
-      throw new ValidationError('El ID del template de documento es requerido');
+    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
+      throw new ValidationError('El ID del tipo de documento es requerido');
+    }
+
+    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
+      throw new ValidationError('El ID del subtipo de documento es requerido');
     }
 
     if (!props.name || props.name.trim().length === 0) {
@@ -113,7 +119,8 @@ export class DocumentHistory {
     return {
       id: this.id,
       documentId: this.documentId,
-      templateId: this.templateId,
+      documentTypeId: this.documentTypeId,
+      documentSubtypeId: this.documentSubtypeId,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate),

@@ -162,7 +162,8 @@ export const getDocumentSubtypeByIdSchema = Joi.object({
 });
 
 export const createDocumentSchema = Joi.object({
-  templateId: Joi.string().uuid().required(),
+  documentTypeId: Joi.string().uuid().required(),
+  documentSubtypeId: Joi.string().uuid().required(),
   colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).required(),
   issuedDate: Joi.date()
@@ -184,7 +185,8 @@ export const createDocumentSchema = Joi.object({
 }).unknown(true);
 
 export const updateDocumentSchema = Joi.object({
-  templateId: Joi.string().uuid().optional(),
+  documentTypeId: Joi.string().uuid().optional(),
+  documentSubtypeId: Joi.string().uuid().optional(),
   colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).optional(),
   issuedDate: Joi.date()
@@ -223,8 +225,9 @@ export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
 });
 
-export const assignDocumentsFromTemplateToGroupSchema = Joi.object({
-  templateId: Joi.string().uuid().required(),
+export const assignDocumentsFromTypeSubtypeToGroupSchema = Joi.object({
+  documentTypeId: Joi.string().uuid().required(),
+  documentSubtypeId: Joi.string().uuid().required(),
   contractId: Joi.string().uuid().required(),
   groupId: Joi.number().integer().required(),
   issuedDate: Joi.date().optional(),

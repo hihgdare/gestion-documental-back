@@ -47,7 +47,7 @@ import {
   GetDocumentByIdUseCase,
   GetAllDocumentsUseCase,
   GetDocumentsByContractIdUseCase,
-  GetDocumentsByTemplateIdUseCase,
+  GetDocumentsByTypeAndSubtypeIdUseCase,
   GetDocumentsByColaboratorIdUseCase,
   GetExpiredDocumentsUseCase,
   GetExpiringDocumentsUseCase,
@@ -141,7 +141,7 @@ import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permiss
 import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
-import { AssignDocumentsFromTemplateToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
+import { AssignDocumentsFromTypeSubtypeToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
 
 export class DependencyContainer {
   // Repositories
@@ -198,7 +198,7 @@ export class DependencyContainer {
   private getDocumentByIdUseCase!: GetDocumentByIdUseCase;
   private getAllDocumentsUseCase!: GetAllDocumentsUseCase;
   private getDocumentsByContractIdUseCase!: GetDocumentsByContractIdUseCase;
-  private getDocumentsByTemplateIdUseCase!: GetDocumentsByTemplateIdUseCase;
+  private getDocumentsByTypeAndSubtypeIdUseCase!: GetDocumentsByTypeAndSubtypeIdUseCase;
   private getDocumentsByColaboratorIdUseCase!: GetDocumentsByColaboratorIdUseCase;
   private getExpiredDocumentsUseCase!: GetExpiredDocumentsUseCase;
   private getExpiringDocumentsUseCase!: GetExpiringDocumentsUseCase;
@@ -210,7 +210,7 @@ export class DependencyContainer {
   private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
   private getDashboardMetricsUseCase!: GetDashboardMetricsUseCase;
-  private assignDocumentsFromTemplateToGroupUseCase!: AssignDocumentsFromTemplateToGroupUseCase;
+  private assignDocumentsFromTypeSubtypeToGroupUseCase!: AssignDocumentsFromTypeSubtypeToGroupUseCase;
 
   // Use Cases - Contract
   private createContractUseCase!: CreateContractUseCase;
@@ -352,7 +352,7 @@ export class DependencyContainer {
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
-    this.getDocumentsByTemplateIdUseCase = new GetDocumentsByTemplateIdUseCase(this.documentRepository);
+    this.getDocumentsByTypeAndSubtypeIdUseCase = new GetDocumentsByTypeAndSubtypeIdUseCase(this.documentRepository);
     this.getDocumentsByColaboratorIdUseCase = new GetDocumentsByColaboratorIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
@@ -364,11 +364,10 @@ export class DependencyContainer {
     this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
     this.getDashboardMetricsUseCase = new GetDashboardMetricsUseCase(this.documentRepository);
-    this.assignDocumentsFromTemplateToGroupUseCase = new AssignDocumentsFromTemplateToGroupUseCase(
+    this.assignDocumentsFromTypeSubtypeToGroupUseCase = new AssignDocumentsFromTypeSubtypeToGroupUseCase(
       this.documentRepository,
       this.documentHistoryRepository,
       this.colaboratorGroupRepository,
-      this.documentTemplateRepository,
       this.contractRepository,
     );
 
@@ -537,7 +536,7 @@ export class DependencyContainer {
       this.getDocumentByIdUseCase,
       this.getAllDocumentsUseCase,
       this.getDocumentsByContractIdUseCase,
-      this.getDocumentsByTemplateIdUseCase,
+      this.getDocumentsByTypeAndSubtypeIdUseCase,
       this.getDocumentsByColaboratorIdUseCase,
       this.getExpiredDocumentsUseCase,
       this.getExpiringDocumentsUseCase,
@@ -549,7 +548,7 @@ export class DependencyContainer {
       this.rejectDocumentWithCommentsUseCase,
       this.contractReviewerRepository,
       this.getAllDocumentTypesWithSubtypesUseCase,
-      this.assignDocumentsFromTemplateToGroupUseCase,
+      this.assignDocumentsFromTypeSubtypeToGroupUseCase,
       this.getDashboardMetricsUseCase,
     );
 

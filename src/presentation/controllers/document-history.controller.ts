@@ -6,7 +6,8 @@ import { asyncHandler } from '@shared/middleware/validation';
 interface DocumentHistoryResponseDto {
   id: string;
   documentId: string;
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   name: string;
   issuedDate: string | null;
   expirationDate: string | null;
@@ -52,7 +53,8 @@ export class DocumentHistoryController {
     return {
       id: history.id,
       documentId: history.documentId,
-      templateId: history.templateId,
+      documentTypeId: history.documentTypeId,
+      documentSubtypeId: history.documentSubtypeId,
       name: history.name,
       issuedDate: history.issuedDate ? history.issuedDate.toISOString().split('T')[0] : null,
       expirationDate: history.expirationDate ? history.expirationDate.toISOString().split('T')[0] : null,

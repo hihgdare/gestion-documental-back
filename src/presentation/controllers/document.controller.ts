@@ -4,7 +4,7 @@ import {
   GetDocumentByIdUseCase,
   GetAllDocumentsUseCase,
   GetDocumentsByContractIdUseCase,
-  GetDocumentsByTemplateIdUseCase,
+  GetDocumentsByTypeAndSubtypeIdUseCase,
   GetDocumentsByColaboratorIdUseCase,
   GetExpiredDocumentsUseCase,
   GetExpiringDocumentsUseCase,
@@ -23,7 +23,7 @@ import { ContractReviewerRepository } from '@domains/contract/repositories/contr
 import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
-import { AssignDocumentsFromTemplateToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
+import { AssignDocumentsFromTypeSubtypeToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
 import { GetDashboardMetricsUseCase } from '../../domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 
@@ -33,7 +33,7 @@ export class DocumentController {
     private getDocumentByIdUseCase: GetDocumentByIdUseCase,
     private getAllDocumentsUseCase: GetAllDocumentsUseCase,
     private getDocumentsByContractIdUseCase: GetDocumentsByContractIdUseCase,
-    private getDocumentsByTemplateIdUseCase: GetDocumentsByTemplateIdUseCase,
+    private getDocumentsByTypeAndSubtypeIdUseCase: GetDocumentsByTypeAndSubtypeIdUseCase,
     private getDocumentsByColaboratorIdUseCase: GetDocumentsByColaboratorIdUseCase,
     private getExpiredDocumentsUseCase: GetExpiredDocumentsUseCase,
     private getExpiringDocumentsUseCase: GetExpiringDocumentsUseCase,
@@ -45,7 +45,7 @@ export class DocumentController {
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
     private contractReviewerRepository: ContractReviewerRepository,
     private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
-    private assignDocumentsFromTemplateToGroupUseCase: AssignDocumentsFromTemplateToGroupUseCase,
+    private assignDocumentsFromTypeSubtypeToGroupUseCase: AssignDocumentsFromTypeSubtypeToGroupUseCase,
     private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
   ) {}
 
@@ -53,7 +53,8 @@ export class DocumentController {
     const dto: CreateDocumentDto = req.body;
 
     const document = await this.createDocumentUseCase.execute({
-      templateId: dto.templateId,
+      documentTypeId: dto.documentTypeId,
+      documentSubtypeId: dto.documentSubtypeId,
       colaboratorIds: dto.colaboratorIds,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
@@ -137,9 +138,9 @@ export class DocumentController {
     });
   });
 
-  getDocumentsByTemplateId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { templateId } = req.params;
-    const documents = await this.getDocumentsByTemplateIdUseCase.execute(templateId);
+  getDocumentsByTypeAndSubtypeId = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { typeId, subtypeId } = req.params;
+    const documents = await this.getDocumentsByTypeAndSubtypeIdUseCase.execute(typeId, subtypeId);
     res.status(200).json({
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
@@ -176,10 +177,11 @@ export class DocumentController {
     });
   });
 
-  assignDocumentsFromTemplateToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { templateId, contractId, groupId, issuedDate, expirationDate, name, comment } = req.body;
-    const result = await this.assignDocumentsFromTemplateToGroupUseCase.execute({
-      templateId,
+  assignDocumentsFromTypeSubtypeToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentTypeId, documentSubtypeId, contractId, groupId, issuedDate, expirationDate, name, comment } = req.body;
+    const result = await this.assignDocumentsFromTypeSubtypeToGroupUseCase.execute({
+      documentTypeId,
+      documentSubtypeId,
       contractId,
       groupId: Number(groupId),
       issuedDate: issuedDate ? new Date(issuedDate) : undefined,
@@ -206,7 +208,8 @@ export class DocumentController {
     const dto: UpdateDocumentDto = req.body;
 
     const document = await this.updateDocumentUseCase.execute(id, {
-      templateId: dto.templateId,
+      documentTypeId: dto.documentTypeId,
+      documentSubtypeId: dto.documentSubtypeId,
       colaboratorIds: dto.colaboratorIds,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
@@ -304,9 +307,9 @@ export class DocumentController {
     const json = document.toJSON();
     return {
       id: json.id,
-      templateId: json.templateId,
+      documentTypeId: json.documentTypeId,
+      documentSubtypeId: json.documentSubtypeId,
       colaboratorIds: json.colaboratorIds || [],
-      templateName: document.templateName,
       documentTypeName: document.documentTypeName,
       documentSubtypeName: document.documentSubtypeName,
       name: json.name,
