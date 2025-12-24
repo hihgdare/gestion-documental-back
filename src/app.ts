@@ -40,7 +40,10 @@ export class App {
     // Initialize dependencies
     await this.dependencyContainer.initialize();
 
-    await runInitialSeedsIfEmpty();
+    // Run initial seeds only if not in production
+    if (process.env.NODE_ENV !== 'production') {
+      await runInitialSeedsIfEmpty();
+    }
 
     // Setup middleware
     this.setupMiddleware();
