@@ -13,6 +13,7 @@ const adminSections = [
   'colaborator',
   'contract',
   'document',
+  'document-type',
   'permission',
   'role',
   'user',
