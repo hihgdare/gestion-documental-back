@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner, TableColumn, TableForeignKey, TableIndex, Table } from "typeorm";
 
-export class RemoveDocumentTemplatesFromDocuments1766443616572 implements MigrationInterface {
+export class RemoveDocumentTemplates1766443616572 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Add document_type_id and document_subtype_id columns to documents
@@ -21,46 +21,46 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
     // 2. Add document_type_id and document_subtype_id columns to documents_history
     const historyTable = await queryRunner.getTable('documents_history');
     if (historyTable) {
-        await queryRunner.addColumn('documents_history', new TableColumn({
+      await queryRunner.addColumn('documents_history', new TableColumn({
         name: 'document_type_id',
         type: 'varchar',
         length: '36',
         isNullable: true,
-        }));
+      }));
 
-        await queryRunner.addColumn('documents_history', new TableColumn({
+      await queryRunner.addColumn('documents_history', new TableColumn({
         name: 'document_subtype_id',
         type: 'varchar',
         length: '36',
         isNullable: true,
-        }));
+      }));
     }
 
     // 3. Update documents with type and subtype from templates
     await queryRunner.query(`
-            UPDATE documents d
-            SET document_type_id = dt.document_type_id,
-                document_subtype_id = dt.document_subtype_id
-            FROM document_templates dt
-            WHERE d.template_id = dt.id
-        `);
+      UPDATE documents d
+      SET document_type_id = dt.document_type_id,
+        document_subtype_id = dt.document_subtype_id
+      FROM document_templates dt
+      WHERE d.template_id = dt.id
+    `);
 
     // 4. Update documents_history with type and subtype from templates
     if (historyTable) {
-        await queryRunner.query(`
-                UPDATE documents_history dh
-                SET document_type_id = dt.document_type_id,
-                    document_subtype_id = dt.document_subtype_id
-                FROM document_templates dt
-                WHERE dh.template_id = dt.id
-            `);
+      await queryRunner.query(`
+        UPDATE documents_history dh
+        SET document_type_id = dt.document_type_id,
+          document_subtype_id = dt.document_subtype_id
+        FROM document_templates dt
+        WHERE dh.template_id = dt.id
+      `);
     }
 
     // Make columns not nullable now if needed, but for history maybe leave nullable if some records didn't have template?
     // For documents, it was NOT NULL in original migration plan, so let's enforce it for documents where possible.
     // However, if there are documents without template_id (if it was nullable), this might fail.
     // Assuming template_id was NOT NULL in documents (it was in CreateDocumentsTable).
-    
+
     // 5. Drop foreign key for template_id in documents
     const table = await queryRunner.getTable('documents');
     if (table) {
@@ -68,13 +68,13 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
       if (fkTemplate) {
         await queryRunner.dropForeignKey('documents', fkTemplate);
       }
-      
+
       // Drop index on template_id
       const idxTemplate = table.indices.find(i => i.columnNames.includes('template_id'));
       if (idxTemplate) {
         await queryRunner.dropIndex('documents', idxTemplate);
       }
-      
+
       // Drop unique constraint
       const uqTemplate = table.indices.find(i => i.name === 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR');
       if (uqTemplate) {
@@ -95,7 +95,7 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
 
     // 8. Drop template_id column from documents_history
     if (historyTable) {
-        await queryRunner.dropColumn('documents_history', 'template_id');
+      await queryRunner.dropColumn('documents_history', 'template_id');
     }
 
     // 9. Create new indices for documents
@@ -124,21 +124,21 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
 
     // 11. Add foreign keys for type and subtype in documents_history (optional, but good for integrity)
     if (historyTable) {
-        await queryRunner.createForeignKey('documents_history', new TableForeignKey({
-            name: 'FK_DOCUMENTS_HISTORY_DOCUMENT_TYPE',
-            columnNames: ['document_type_id'],
-            referencedTableName: 'document_types',
-            referencedColumnNames: ['id'],
-            onDelete: 'RESTRICT',
-        }));
+      await queryRunner.createForeignKey('documents_history', new TableForeignKey({
+        name: 'FK_DOCUMENTS_HISTORY_DOCUMENT_TYPE',
+        columnNames: ['document_type_id'],
+        referencedTableName: 'document_types',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }));
 
-        await queryRunner.createForeignKey('documents_history', new TableForeignKey({
-            name: 'FK_DOCUMENTS_HISTORY_DOCUMENT_SUBTYPE',
-            columnNames: ['document_subtype_id'],
-            referencedTableName: 'document_subtypes',
-            referencedColumnNames: ['id'],
-            onDelete: 'RESTRICT',
-        }));
+      await queryRunner.createForeignKey('documents_history', new TableForeignKey({
+        name: 'FK_DOCUMENTS_HISTORY_DOCUMENT_SUBTYPE',
+        columnNames: ['document_subtype_id'],
+        referencedTableName: 'document_subtypes',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }));
     }
 
     // 12. Drop document_templates table
@@ -165,20 +165,20 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
 
     // Add FKs to document_templates
     await queryRunner.createForeignKey('document_templates', new TableForeignKey({
-        name: 'FK_DOCUMENT_TEMPLATES_DOCUMENT_TYPE',
-        columnNames: ['document_type_id'],
-        referencedTableName: 'document_types',
-        referencedColumnNames: ['id'],
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
+      name: 'FK_DOCUMENT_TEMPLATES_DOCUMENT_TYPE',
+      columnNames: ['document_type_id'],
+      referencedTableName: 'document_types',
+      referencedColumnNames: ['id'],
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE',
     }));
     await queryRunner.createForeignKey('document_templates', new TableForeignKey({
-        name: 'FK_DOCUMENT_TEMPLATES_DOCUMENT_SUBTYPE',
-        columnNames: ['document_subtype_id'],
-        referencedTableName: 'document_subtypes',
-        referencedColumnNames: ['id'],
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
+      name: 'FK_DOCUMENT_TEMPLATES_DOCUMENT_SUBTYPE',
+      columnNames: ['document_subtype_id'],
+      referencedTableName: 'document_subtypes',
+      referencedColumnNames: ['id'],
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE',
     }));
 
     // 2. Drop new FKs from documents
@@ -193,10 +193,10 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
     // Drop new FKs from documents_history
     const historyTable = await queryRunner.getTable('documents_history');
     if (historyTable) {
-        const fkType = historyTable.foreignKeys.find(fk => fk.columnNames.includes('document_type_id'));
-        if (fkType) await queryRunner.dropForeignKey('documents_history', fkType);
-        const fkSubtype = historyTable.foreignKeys.find(fk => fk.columnNames.includes('document_subtype_id'));
-        if (fkSubtype) await queryRunner.dropForeignKey('documents_history', fkSubtype);
+      const fkType = historyTable.foreignKeys.find(fk => fk.columnNames.includes('document_type_id'));
+      if (fkType) await queryRunner.dropForeignKey('documents_history', fkType);
+      const fkSubtype = historyTable.foreignKeys.find(fk => fk.columnNames.includes('document_subtype_id'));
+      if (fkSubtype) await queryRunner.dropForeignKey('documents_history', fkSubtype);
     }
 
     // 3. Drop new index from documents
@@ -214,12 +214,12 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
 
     // Add template_id column back to documents_history
     if (historyTable) {
-        await queryRunner.addColumn('documents_history', new TableColumn({
-            name: 'template_id',
-            type: 'varchar',
-            length: '36',
-            isNullable: true,
-        }));
+      await queryRunner.addColumn('documents_history', new TableColumn({
+        name: 'template_id',
+        type: 'varchar',
+        length: '36',
+        isNullable: true,
+      }));
     }
 
     // 5. Restore templates data (Create templates for unique type-subtype combinations)
@@ -249,7 +249,7 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
             WHERE d.document_type_id = dt.document_type_id
                 AND d.document_subtype_id = dt.document_subtype_id
         `);
-    
+
     // Update documents_history with template_id
     await queryRunner.query(`
             UPDATE documents_history dh
@@ -263,8 +263,8 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
     await queryRunner.dropColumn('documents', 'document_type_id');
     await queryRunner.dropColumn('documents', 'document_subtype_id');
     if (historyTable) {
-        await queryRunner.dropColumn('documents_history', 'document_type_id');
-        await queryRunner.dropColumn('documents_history', 'document_subtype_id');
+      await queryRunner.dropColumn('documents_history', 'document_type_id');
+      await queryRunner.dropColumn('documents_history', 'document_subtype_id');
     }
 
     // 8. Add foreign key for template_id in documents
@@ -278,13 +278,13 @@ export class RemoveDocumentTemplatesFromDocuments1766443616572 implements Migrat
 
     // Add foreign key for template_id in documents_history
     if (historyTable) {
-        await queryRunner.createForeignKey('documents_history', new TableForeignKey({
-            name: 'FK_DOCUMENTS_HISTORY_TEMPLATE',
-            columnNames: ['template_id'],
-            referencedTableName: 'document_templates',
-            referencedColumnNames: ['id'],
-            onDelete: 'RESTRICT',
-        }));
+      await queryRunner.createForeignKey('documents_history', new TableForeignKey({
+        name: 'FK_DOCUMENTS_HISTORY_TEMPLATE',
+        columnNames: ['template_id'],
+        referencedTableName: 'document_templates',
+        referencedColumnNames: ['id'],
+        onDelete: 'RESTRICT',
+      }));
     }
 
     // 9. Add indices
