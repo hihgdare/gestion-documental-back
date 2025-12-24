@@ -23,8 +23,8 @@ import { ContractReviewerRepository } from '@domains/contract/repositories/contr
 import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
-import { AssignDocumentsFromTypeSubtypeToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
-import { GetDashboardMetricsUseCase } from '../../domains/document/use-cases/get-dashboard-metrics.use-case';
+import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
+import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 
 export class DocumentController {
@@ -45,9 +45,53 @@ export class DocumentController {
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
     private contractReviewerRepository: ContractReviewerRepository,
     private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
-    private assignDocumentsFromTypeSubtypeToGroupUseCase: AssignDocumentsFromTypeSubtypeToGroupUseCase,
     private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
+    private assignDocumentsToGroupUseCase?: AssignDocumentsToGroupUseCase,
   ) {}
+
+  assignDocumentsToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const {
+      documentTypeId,
+      documentSubtypeId,
+      contractId,
+      groupId,
+      issuedDate,
+      expirationDate,
+      name,
+      comment,
+    } = req.body;
+
+    // Lazy import to avoid circular deps in constructor if use-case not injected earlier
+    // but prefer to access via dependency injection container in wiring; here assume it's available via (any) this
+    const useCase: any = (this as any).assignDocumentsToGroupUseCase;
+    if (!useCase) {
+      res.status(500).json({ success: false, message: 'Use case not configured' });
+      return;
+    }
+
+    const result = await useCase.execute({
+      documentTypeId,
+      documentSubtypeId,
+      contractId,
+      groupId,
+      issuedDate: issuedDate ? new Date(issuedDate) : undefined,
+      expirationDate: expirationDate ? new Date(expirationDate) : undefined,
+      name,
+      comment,
+      createdBy: req.user?.id,
+    });
+
+    const createdDtos = result.created.map((d: Document) => this.toResponseDto(d));
+    res.status(201).json({
+      success: true,
+      data: {
+        createdCount: createdDtos.length,
+        skippedCount: result.skipped.length,
+        created: createdDtos,
+        skipped: result.skipped,
+      },
+    });
+  });
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const dto: CreateDocumentDto = req.body;
@@ -177,31 +221,7 @@ export class DocumentController {
     });
   });
 
-  assignDocumentsFromTypeSubtypeToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { documentTypeId, documentSubtypeId, contractId, groupId, issuedDate, expirationDate, name, comment } = req.body;
-    const result = await this.assignDocumentsFromTypeSubtypeToGroupUseCase.execute({
-      documentTypeId,
-      documentSubtypeId,
-      contractId,
-      groupId: Number(groupId),
-      issuedDate: issuedDate ? new Date(issuedDate) : undefined,
-      expirationDate: expirationDate ? new Date(expirationDate) : undefined,
-      name,
-      createdBy: req.user?.id,
-      comment,
-    });
 
-    res.status(201).json({
-      success: true,
-      data: {
-        created: result.created.map(d => this.toResponseDto(d)),
-        skipped: result.skipped,
-        createdCount: result.created.length,
-        skippedCount: result.skipped.length,
-      },
-      message: 'Asignación masiva completada',
-    });
-  });
 
   updateDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;

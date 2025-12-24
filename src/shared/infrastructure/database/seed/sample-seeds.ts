@@ -1,12 +1,10 @@
 import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositories/typeorm-document-type.repository';
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
-import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
 import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
 import { TypeOrmColaboratorGroupRepository } from '@shared/infrastructure/repositories/typeorm-colaborator-group.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 import { DocumentType as DocTypeDomain } from '@domains/document-type/entities/document-type.entity';
 import { DocumentSubtype } from '@domains/document-subtype/entities/document-subtype.entity';
-import { DocumentTemplate } from '@domains/document-template/entities/document-template.entity';
 import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
 import { DocumentType as ColabDocType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
@@ -16,7 +14,6 @@ export async function runSampleSeeds(): Promise<void> {
 
   const typeRepo = new TypeOrmDocumentTypeRepository();
   const subtypeRepo = new TypeOrmDocumentSubtypeRepository();
-  const templateRepo = new TypeOrmDocumentTemplateRepository();
   const colaboratorRepo = new TypeOrmColaboratorRepository();
   const groupRepo = new TypeOrmColaboratorGroupRepository();
   const contractRepo = new TypeOrmContractRepository();
@@ -45,20 +42,6 @@ export async function runSampleSeeds(): Promise<void> {
     }
     const saved = await subtypeRepo.save(DocumentSubtype.create({ name, documentTypeId: typeId }));
     subtypes.push(saved.id);
-  }
-
-  const templateNames = ['Plantilla Ficha', 'Plantilla Acuerdo', 'Plantilla Procedimiento'];
-  for (let i = 0; i < templateNames.length; i++) {
-    const name = templateNames[i];
-    const exists = await templateRepo.findByName(name);
-    if (exists) continue;
-    const template = DocumentTemplate.create({
-      name,
-      description: null,
-      documentTypeId: types[i % types.length],
-      documentSubtypeId: subtypes[i % subtypes.length],
-    });
-    await templateRepo.save(template);
   }
 
   /* Create Contracts */

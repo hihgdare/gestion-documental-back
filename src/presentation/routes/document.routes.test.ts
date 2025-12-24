@@ -319,7 +319,7 @@ describe('DocumentController with type/subtype/colaborator', () => {
 
       // First bulk assignment
       const bulk1 = await supertest(app)
-        .post('/api/documents/assign-type-subtype-to-group')
+        .post('/api/documents/assign-to-group')
         .set('x-enable-rbac', 'false')
         .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, groupId, name: 'Doc Bulk' });
       expect(bulk1.status).toBe(201);
@@ -335,7 +335,7 @@ describe('DocumentController with type/subtype/colaborator', () => {
 
       // Second bulk assignment should skip all
       const bulk2 = await supertest(app)
-        .post('/api/documents/assign-type-subtype-to-group')
+        .post('/api/documents/assign-to-group')
         .set('x-enable-rbac', 'false')
         .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, groupId, name: 'Doc Bulk 2' });
       expect(bulk2.status).toBe(201);
