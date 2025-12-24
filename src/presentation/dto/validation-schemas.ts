@@ -207,33 +207,8 @@ export const updateDocumentSchema = Joi.object({
   documentUrl: Joi.string().optional().allow(null, ''),
 }).min(1).unknown(true); // Permitir campos desconocidos
 
-export const createDocumentTemplateSchema = Joi.object({
-  name: Joi.string().min(2).max(255).required(),
-  description: Joi.string().max(2000).optional().allow(null, ''),
-  documentTypeId: Joi.string().uuid().required(),
-  documentSubtypeId: Joi.string().uuid().required(),
-});
-
-export const updateDocumentTemplateSchema = Joi.object({
-  name: Joi.string().min(2).max(255).optional(),
-  description: Joi.string().max(2000).optional().allow(null, ''),
-  documentTypeId: Joi.string().uuid().optional(),
-  documentSubtypeId: Joi.string().uuid().optional(),
-}).min(1);
-
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
-});
-
-export const assignDocumentsFromTypeSubtypeToGroupSchema = Joi.object({
-  documentTypeId: Joi.string().uuid().required(),
-  documentSubtypeId: Joi.string().uuid().required(),
-  contractId: Joi.string().uuid().required(),
-  groupId: Joi.number().integer().required(),
-  issuedDate: Joi.date().optional(),
-  expirationDate: Joi.date().optional().allow(null),
-  name: Joi.string().min(2).max(255).optional(),
-  comment: Joi.string().max(1000).optional().allow('', null),
 });
 
 export const createPermissionSchema = Joi.object({

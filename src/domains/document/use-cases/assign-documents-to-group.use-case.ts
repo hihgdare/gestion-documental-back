@@ -7,7 +7,7 @@ import { ColaboratorGroupRepository } from '@domains/colaborator-group/repositor
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { ValidationError } from '@shared/domain/errors';
 
-export interface AssignDocumentsFromTypeSubtypeToGroupRequest {
+export interface AssignDocumentsToGroupRequest {
   documentTypeId: string;
   documentSubtypeId: string;
   contractId: string;
@@ -19,12 +19,12 @@ export interface AssignDocumentsFromTypeSubtypeToGroupRequest {
   comment?: string;
 }
 
-export interface AssignDocumentsFromTemplateToGroupResult {
+export interface AssignDocumentsToGroupResult {
   created: Document[];
   skipped: string[];
 }
 
-export class AssignDocumentsFromTypeSubtypeToGroupUseCase {
+export class AssignDocumentsToGroupUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
@@ -32,7 +32,7 @@ export class AssignDocumentsFromTypeSubtypeToGroupUseCase {
     private readonly contractRepository: ContractRepository,
   ) {}
 
-  public async execute(request: AssignDocumentsFromTypeSubtypeToGroupRequest): Promise<AssignDocumentsFromTemplateToGroupResult> {
+  public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
     const contract = await this.contractRepository.findById(request.contractId);
     if (!contract) {
       throw new ValidationError('Contrato no encontrado');

@@ -7,9 +7,24 @@ import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-p
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 
-const adminSections = ['contract', 'permission', 'role', 'user', 'document', 'colaborator', 'colaborator-group'];
-const adminActions = ['create', 'read', 'update', 'delete'];
-const otherPermissions = ['role:assign:permission', 'user:assign:role', 'document:review', 'contract:assign:reviewer', 'colaborator-group:assign:colaborator'];
+const crudActions = ['create', 'read', 'update', 'delete'];
+const adminSections = [
+  'colaborator-group',
+  'colaborator',
+  'contract',
+  'document',
+  'permission',
+  'role',
+  'user',
+];
+const otherPermissions = [
+  'colaborator-group:assign:colaborator',
+  'colaborator-group:assign:document',
+  'contract:assign:reviewer',
+  'document:review',
+  'role:assign:permission',
+  'user:assign:role',
+];
 
 export async function runInitialSeedsIfEmpty(): Promise<void> {
   const email = process.env.SEEDER_ADMIN_EMAIL;
@@ -45,7 +60,7 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
     await assignRoleToUserUseCase.execute({ userId: existingUser.id, roleIds: [adminRole.id] });
   }
 
-  const basePermissionNames = adminSections.flatMap(m => adminActions.map(a => `${m}:${a}`));
+  const basePermissionNames = adminSections.flatMap(m => crudActions.map(a => `${m}:${a}`));
   const permissionNames = [...basePermissionNames, ...otherPermissions];
 
   const currentPermissions = await permissionRepository.findAll();

@@ -5,7 +5,7 @@ import { ColaboratorController } from '@presentation/controllers/colaborators.co
 import { DocumentTypeController } from '@presentation/controllers/document-type.controller';
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
 import { DocumentController } from '@presentation/controllers/document.controller';
-import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
+
 import { PermissionController } from '@presentation/controllers/permission.controller';
 import { RoleController } from '@presentation/controllers/role.controller';
 import { ColaboratorGroupController } from '@presentation/controllers/colaborator-group.controller';
@@ -36,10 +36,7 @@ import {
 } from '@domains/document-subtype/use-cases/get-document-subtype.use-case';
 import { UpdateDocumentSubtypeUseCase, DeleteDocumentSubtypeUseCase } from '@domains/document-subtype/use-cases/update-document-subtype.use-case';
 
-// DocumentTemplate domain
-import { CreateDocumentTemplateUseCase } from '@domains/document-template/use-cases/create-document-template.use-case';
-import { GetDocumentTemplateByIdUseCase, GetAllDocumentTemplatesUseCase } from '@domains/document-template/use-cases/get-document-template.use-case';
-import { UpdateDocumentTemplateUseCase, DeleteDocumentTemplateUseCase } from '@domains/document-template/use-cases/update-document-template.use-case';
+
 
 // Document domain
 import { CreateDocumentUseCase } from '@domains/document/use-cases/create-document.use-case';
@@ -131,7 +128,7 @@ import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositori
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 import { TypeOrmDocumentHistoryRepository } from '@shared/infrastructure/repositories/typeorm-document-history.repository';
-import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
+
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { TypeOrmContractReviewerRepository } from '@shared/infrastructure/repositories/typeorm-contract-reviewer.repository';
@@ -141,7 +138,8 @@ import { GetPermissionsToRoleUseCase } from '@domains/role/use-cases/get-permiss
 import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
-import { AssignDocumentsFromTypeSubtypeToGroupUseCase } from '@domains/document/use-cases/assign-documents-from-template-to-group.use-case';
+import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
+
 
 export class DependencyContainer {
   // Repositories
@@ -150,7 +148,7 @@ export class DependencyContainer {
   private contractRepository!: TypeOrmContractRepository;
   private documentTypeRepository!: TypeOrmDocumentTypeRepository;
   private documentSubtypeRepository!: TypeOrmDocumentSubtypeRepository;
-  private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
+
   private documentRepository!: TypeOrmDocumentRepository;
   private documentHistoryRepository!: TypeOrmDocumentHistoryRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
@@ -186,12 +184,7 @@ export class DependencyContainer {
   private updateDocumentSubtypeUseCase!: UpdateDocumentSubtypeUseCase;
   private deleteDocumentSubtypeUseCase!: DeleteDocumentSubtypeUseCase;
 
-  // Use Cases - DocumentTemplate
-  private createDocumentTemplateUseCase!: CreateDocumentTemplateUseCase;
-  private getDocumentTemplateByIdUseCase!: GetDocumentTemplateByIdUseCase;
-  private getAllDocumentTemplatesUseCase!: GetAllDocumentTemplatesUseCase;
-  private updateDocumentTemplateUseCase!: UpdateDocumentTemplateUseCase;
-  private deleteDocumentTemplateUseCase!: DeleteDocumentTemplateUseCase;
+
 
   // Use Cases - Document
   private createDocumentUseCase!: CreateDocumentUseCase;
@@ -210,7 +203,8 @@ export class DependencyContainer {
   private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
   private getDashboardMetricsUseCase!: GetDashboardMetricsUseCase;
-  private assignDocumentsFromTypeSubtypeToGroupUseCase!: AssignDocumentsFromTypeSubtypeToGroupUseCase;
+  private assignDocumentsToGroupUseCase!: AssignDocumentsToGroupUseCase;
+
 
   // Use Cases - Contract
   private createContractUseCase!: CreateContractUseCase;
@@ -283,7 +277,7 @@ export class DependencyContainer {
   private documentSubtypeController!: DocumentSubtypeController;
   private documentController!: DocumentController;
   private documentHistoryController!: DocumentHistoryController;
-  private documentTemplateController!: any;
+
   private permissionController!: PermissionController;
   private roleController!: RoleController;
   private colaboratorGroupController!: ColaboratorGroupController;
@@ -298,7 +292,7 @@ export class DependencyContainer {
     this.colaboratorRepository = new TypeOrmColaboratorRepository();
     this.documentTypeRepository = new TypeOrmDocumentTypeRepository();
     this.documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
-    this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
+
     this.documentRepository = new TypeOrmDocumentRepository();
     this.documentHistoryRepository = new TypeOrmDocumentHistoryRepository();
     this.permissionRepository = new TypeOrmPermissionRepository();
@@ -340,12 +334,7 @@ export class DependencyContainer {
     this.updateDocumentSubtypeUseCase = new UpdateDocumentSubtypeUseCase(this.documentSubtypeRepository);
     this.deleteDocumentSubtypeUseCase = new DeleteDocumentSubtypeUseCase(this.documentSubtypeRepository);
 
-    // DocumentTemplate use cases
-    this.createDocumentTemplateUseCase = new CreateDocumentTemplateUseCase(this.documentTemplateRepository);
-    this.getDocumentTemplateByIdUseCase = new GetDocumentTemplateByIdUseCase(this.documentTemplateRepository);
-    this.getAllDocumentTemplatesUseCase = new GetAllDocumentTemplatesUseCase(this.documentTemplateRepository);
-    this.updateDocumentTemplateUseCase = new UpdateDocumentTemplateUseCase(this.documentTemplateRepository);
-    this.deleteDocumentTemplateUseCase = new DeleteDocumentTemplateUseCase(this.documentTemplateRepository);
+
 
     // Initialize Document use cases
     this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
@@ -364,12 +353,13 @@ export class DependencyContainer {
     this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
     this.getDashboardMetricsUseCase = new GetDashboardMetricsUseCase(this.documentRepository);
-    this.assignDocumentsFromTypeSubtypeToGroupUseCase = new AssignDocumentsFromTypeSubtypeToGroupUseCase(
+    this.assignDocumentsToGroupUseCase = new AssignDocumentsToGroupUseCase(
       this.documentRepository,
       this.documentHistoryRepository,
       this.colaboratorGroupRepository,
       this.contractRepository,
     );
+
 
     // Initialize Contract use cases
     this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
@@ -523,14 +513,6 @@ export class DependencyContainer {
       this.deleteDocumentSubtypeUseCase,
     );
 
-    this.documentTemplateController = new DocumentTemplateController(
-      this.createDocumentTemplateUseCase,
-      this.getDocumentTemplateByIdUseCase,
-      this.getAllDocumentTemplatesUseCase,
-      this.updateDocumentTemplateUseCase,
-      this.deleteDocumentTemplateUseCase,
-    );
-
     this.documentController = new DocumentController(
       this.createDocumentUseCase,
       this.getDocumentByIdUseCase,
@@ -548,8 +530,8 @@ export class DependencyContainer {
       this.rejectDocumentWithCommentsUseCase,
       this.contractReviewerRepository,
       this.getAllDocumentTypesWithSubtypesUseCase,
-      this.assignDocumentsFromTypeSubtypeToGroupUseCase,
       this.getDashboardMetricsUseCase,
+      this.assignDocumentsToGroupUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(
@@ -624,10 +606,6 @@ export class DependencyContainer {
     return this.documentSubtypeController;
   }
 
-  public getDocumentTemplateController(): DocumentTemplateController {
-    return this.documentTemplateController;
-  }
-
   public getDocumentController(): DocumentController {
     return this.documentController;
   }
@@ -677,9 +655,7 @@ export class DependencyContainer {
     return this.documentSubtypeRepository;
   }
 
-  public getDocumentTemplateRepository(): TypeOrmDocumentTemplateRepository {
-    return this.documentTemplateRepository;
-  }
+
 
   public getDocumentRepository(): TypeOrmDocumentRepository {
     return this.documentRepository;
