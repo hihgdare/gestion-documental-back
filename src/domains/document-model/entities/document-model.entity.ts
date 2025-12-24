@@ -1,0 +1,118 @@
+import { EntityUtils } from '@shared/utils/common';
+import { ValidationError } from '@shared/domain/errors';
+
+export interface DocumentModelProps {
+  id?: string;
+  familyId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
+}
+
+export class DocumentModel {
+  id: string;
+  familyId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
+  requiredForContract: boolean;
+  requiredForColaborator: boolean;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+
+  constructor(props: DocumentModelProps) {
+    DocumentModel.validateRequired(props);
+
+    EntityUtils.assign(this as DocumentModel, props, {
+      id: 'uuid',
+      requiredForContract: (value?: boolean) => value ?? false,
+      requiredForColaborator: (value?: boolean) => value ?? false,
+      createdAt: 'date',
+      updatedAt: 'date',
+      deletedAt: 'dateNullable',
+    });
+  }
+
+  public static create(props: DocumentModelProps): DocumentModel {
+    return new DocumentModel(props);
+  }
+
+  private static validateRequired(props: DocumentModelProps): void {
+    if (!props.familyId || props.familyId.trim().length === 0) {
+      throw new ValidationError('El ID de la familia es requerido');
+    }
+
+    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
+      throw new ValidationError('El ID del tipo de documento es requerido');
+    }
+
+    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
+      throw new ValidationError('El ID del subtipo de documento es requerido');
+    }
+  }
+
+  public update(props: {
+    documentTypeId?: string;
+    documentSubtypeId?: string;
+    requiredForContract?: boolean;
+    requiredForColaborator?: boolean;
+  }): void {
+    if (props.documentTypeId !== undefined) {
+      if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
+        throw new ValidationError('El ID del tipo de documento es requerido');
+      }
+      this.documentTypeId = props.documentTypeId;
+    }
+
+    if (props.documentSubtypeId !== undefined) {
+      if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
+        throw new ValidationError('El ID del subtipo de documento es requerido');
+      }
+      this.documentSubtypeId = props.documentSubtypeId;
+    }
+
+    if (props.requiredForContract !== undefined) {
+      this.requiredForContract = props.requiredForContract;
+    }
+
+    if (props.requiredForColaborator !== undefined) {
+      this.requiredForColaborator = props.requiredForColaborator;
+    }
+
+    this.updatedAt = new Date();
+  }
+
+  public softDelete(): void {
+    this.deletedAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  public restore(): void {
+    this.deletedAt = null;
+    this.updatedAt = new Date();
+  }
+
+  public toJSON() {
+    return {
+      id: this.id,
+      familyId: this.familyId,
+      documentTypeId: this.documentTypeId,
+      documentSubtypeId: this.documentSubtypeId,
+      requiredForContract: this.requiredForContract,
+      requiredForColaborator: this.requiredForColaborator,
+      documentTypeName: this.documentTypeName,
+      documentSubtypeName: this.documentSubtypeName,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
+    };
+  }
+}

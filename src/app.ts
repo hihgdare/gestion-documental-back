@@ -19,6 +19,8 @@ import { createDocumentHistoryRoutes } from '@presentation/routes/document-histo
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createColaboratorGroupRoutes } from '@presentation/routes/colaborator-group.routes';
+import { createFamilyRoutes } from '@presentation/routes/family.routes';
+import { createDocumentModelRoutes } from '@presentation/routes/document-model.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
 import { DependencyContainer } from './dependency-container';
@@ -123,6 +125,8 @@ export class App {
           permissions: '/api/permissions',
           roles: '/api/roles',
           colaboratorGroups: '/api/colaborator-groups',
+          families: '/api/families',
+          documentModels: '/api/document-models',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -142,6 +146,8 @@ export class App {
     const documentController = this.dependencyContainer.getDocumentController();
     const documentHistoryController = this.dependencyContainer.getDocumentHistoryController();
     const permissionController = this.dependencyContainer.getPermissionController();
+    const familyController = this.dependencyContainer.getFamilyController();
+    const documentModelController = this.dependencyContainer.getDocumentModelController();
     const roleController = this.dependencyContainer.getRoleController();
     const colaboratorGroupController = this.dependencyContainer.getColaboratorGroupController();
     const authController = this.dependencyContainer.getAuthController();
@@ -168,6 +174,8 @@ export class App {
     this.app.use('/api/documents', createDocumentRoutes(documentController, contractReviewerMiddleware));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
+    this.app.use('/api/families', createFamilyRoutes(familyController));
+    this.app.use('/api/document-models', createDocumentModelRoutes(documentModelController));
     this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));
     this.app.use('/api/files', createFileRoutes(fileController));
 
