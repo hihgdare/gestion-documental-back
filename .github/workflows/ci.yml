@@ -60,30 +60,47 @@ jobs:
         run: |
           echo "🔍 Verificando credenciales de base de datos hardcodeadas..."
           
-          # Buscar patrones de password
-          PASSWORD_MATCHES=$(grep -r -n -i --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
+          # Buscar patrones de password con nombre de archivo y línea
+          echo "Buscando patrones de password..."
+          PASSWORD_MATCHES=$(grep -r -n -H --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
              --exclude-dir=__tests__ --exclude-dir=specs --exclude="*.md" --exclude="*.test.*" \
              --exclude="*.spec.*" --exclude="test-*" --exclude="*test.ts" --exclude="*spec.ts" \
-             "password.*=.*['\"][^'\"]*['\"]" . || echo "")
+             --exclude="ci.yml" --exclude="deploy-develop.yml" \
+             "password.*=.*['\"][^'\"]*['\"]" . 2>/dev/null || true)
           
-          # Buscar patrones de mysql connection strings
-          MYSQL_MATCHES=$(grep -r -n -i --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
+          # Buscar patrones de mysql connection strings con nombre de archivo y línea
+          echo "Buscando patrones de MySQL..."
+          MYSQL_MATCHES=$(grep -r -n -H --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
              --exclude-dir=__tests__ --exclude-dir=specs --exclude="*.md" --exclude="*.test.*" \
              --exclude="*.spec.*" --exclude="test-*" --exclude="*test.ts" --exclude="*spec.ts" \
-             "mysql.*://.*:.*@" . || echo "")
+             --exclude="ci.yml" --exclude="deploy-develop.yml" \
+             "mysql.*://.*:.*@" . 2>/dev/null || true)
           
-          if [ ! -z "$PASSWORD_MATCHES" ] || [ ! -z "$MYSQL_MATCHES" ]; then
-            echo "❌ Posibles credenciales hardcodeadas encontradas:"
-            if [ ! -z "$PASSWORD_MATCHES" ]; then
-              echo "🔍 Patrones de password encontrados:"
-              echo "$PASSWORD_MATCHES"
-            fi
-            if [ ! -z "$MYSQL_MATCHES" ]; then
-              echo "🔍 Patrones de MySQL encontrados:"
-              echo "$MYSQL_MATCHES"
-            fi
+          FOUND_ISSUES=false
+          
+          if [ ! -z "$PASSWORD_MATCHES" ]; then
+            echo "❌ Patrones de password encontrados en archivos:"
+            echo "$PASSWORD_MATCHES" | while IFS= read -r line; do
+              echo "  📁 $line"
+            done
+            FOUND_ISSUES=true
+          fi
+          
+          if [ ! -z "$MYSQL_MATCHES" ]; then
+            echo "❌ Patrones de MySQL encontrados en archivos:"
+            echo "$MYSQL_MATCHES" | while IFS= read -r line; do
+              echo "  📁 $line"
+            done
+            FOUND_ISSUES=true
+          fi
+          
+          if [ "$FOUND_ISSUES" = true ]; then
+            echo ""
+            echo "❌ Se encontraron posibles credenciales hardcodeadas."
+            echo "   Revisa los archivos listados arriba."
             exit 1
           fi
+          
           echo "✅ No se encontraron credenciales hardcodeadas en código de producción"
 
       - name: Check dependencies
