@@ -41,7 +41,7 @@ jobs:
 
   # Job de deploy REAL - solo después del merge exitoso
   deploy:
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true && github.event.action == 'closed'
     runs-on: ubuntu-latest
     name: 🚀 Deploy Backend to AWS EC2
     environment: ec2-develop
