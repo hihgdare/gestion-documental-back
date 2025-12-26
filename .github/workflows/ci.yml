@@ -59,15 +59,29 @@ jobs:
       - name: Check for database credentials in code
         run: |
           echo "🔍 Verificando credenciales de base de datos hardcodeadas..."
-          if grep -r -i --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
+          
+          # Buscar patrones de password
+          PASSWORD_MATCHES=$(grep -r -n -i --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
              --exclude-dir=__tests__ --exclude-dir=specs --exclude="*.md" --exclude="*.test.*" \
              --exclude="*.spec.*" --exclude="test-*" --exclude="*test.ts" --exclude="*spec.ts" \
-             "password.*=.*['\"][^'\"]*['\"]" . || \
-             grep -r -i --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
+             "password.*=.*['\"][^'\"]*['\"]" . || echo "")
+          
+          # Buscar patrones de mysql connection strings
+          MYSQL_MATCHES=$(grep -r -n -i --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=test --exclude-dir=tests \
              --exclude-dir=__tests__ --exclude-dir=specs --exclude="*.md" --exclude="*.test.*" \
              --exclude="*.spec.*" --exclude="test-*" --exclude="*test.ts" --exclude="*spec.ts" \
-             "mysql.*://.*:.*@" .; then
-            echo "❌ Posibles credenciales hardcodeadas encontradas (excluyendo archivos de test)"
+             "mysql.*://.*:.*@" . || echo "")
+          
+          if [ ! -z "$PASSWORD_MATCHES" ] || [ ! -z "$MYSQL_MATCHES" ]; then
+            echo "❌ Posibles credenciales hardcodeadas encontradas:"
+            if [ ! -z "$PASSWORD_MATCHES" ]; then
+              echo "🔍 Patrones de password encontrados:"
+              echo "$PASSWORD_MATCHES"
+            fi
+            if [ ! -z "$MYSQL_MATCHES" ]; then
+              echo "🔍 Patrones de MySQL encontrados:"
+              echo "$MYSQL_MATCHES"
+            fi
             exit 1
           fi
           echo "✅ No se encontraron credenciales hardcodeadas en código de producción"
