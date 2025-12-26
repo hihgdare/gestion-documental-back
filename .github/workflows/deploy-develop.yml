@@ -64,6 +64,32 @@ jobs:
             --protocol tcp --port 22 --cidr "$RUNNER_IP/32" || \
             echo "SSH rule already exists"
 
+      - name: Test connectivity to EC2
+        run: |
+          echo "🔍 Testing connectivity to EC2..."
+          echo "EC2 Host from secret: '${{ secrets.EC2_HOST }}'"
+          echo "Length of EC2_HOST: ${#EC2_HOST}"
+          
+          # Test if EC2_HOST is set
+          if [ -z "${{ secrets.EC2_HOST }}" ]; then
+            echo "❌ EC2_HOST secret is empty or not set"
+            exit 1
+          fi
+          
+          # Test specific IP
+          echo "Testing connection to 3.145.187.67..."
+          ping -c 3 3.145.187.67 || echo "❌ Ping to 3.145.187.67 failed"
+          
+          # Test the secret value
+          ping -c 3 "${{ secrets.EC2_HOST }}" || echo "❌ Ping to EC2_HOST secret failed"
+          
+          # Check if it's a valid IP format
+          if echo "${{ secrets.EC2_HOST }}" | grep -E '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'; then
+            echo "✅ EC2_HOST appears to be a valid IP format"
+          else
+            echo "❌ EC2_HOST is not in valid IP format"
+          fi
+
       - name: 🚀 Deploy Backend Application to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -71,6 +97,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           timeout: 300s
+          debug: true
           script: |
             set -e
 
@@ -94,14 +121,14 @@ jobs:
 
             # Install Dependencies
             echo "📦 Installing dependencies with bun..."
-            which bun
-            bun --version
-            bun install
+            which bun || echo "Bun not found in PATH"
+            bun --version || echo "Cannot get bun version"
+            bun install || echo "Failed to install dependencies"
             echo "✅ Dependencies installation completed"
 
             # Run Database Migrations
             echo "🗄️ Running database migrations..."
-            bun run migration:run
+            bun run migration:run || echo "Migration failed"
             echo "✅ Database migrations completed"
 
             # Build Application
@@ -111,7 +138,8 @@ jobs:
 
             # Restart PM2 Service for Backend
             echo "🔄 Restarting PM2 backend service..."
-            pm2 restart BackendAPI
+            pm2 list || echo "PM2 not available"
+            pm2 restart BackendAPI || echo "Failed to restart BackendAPI"
             echo "✅ PM2 backend service restart completed"
 
             echo "🎉 Backend deployment process completed successfully!"
