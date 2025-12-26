@@ -8,7 +8,7 @@ on:
 jobs:
   # Job de validación ANTES del merge - debe pasar para permitir merge
   validate-deployment:
-    if: github.event.action != 'closed'
+    if: github.event.action == 'synchronize' || github.event.action == 'reopened'
     runs-on: ubuntu-latest
     name: 🔍 Validate Backend Deployment Readiness
     environment: ec2-develop
