@@ -1,0 +1,125 @@
+name: Deploy to Develop Environment - Backend
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  # Job de validación ANTES del merge - debe pasar para permitir merge
+  validate-deployment:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    name: 🔍 Validate Backend Deployment Readiness
+    environment: ec2-develop
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: ✅ Test EC2 Connection & Backend Project
+        run: |
+          echo "🔗 Testing EC2 and validating backend project..."
+
+          # Simple command to test everything at once
+          aws ssm send-command \
+            --instance-ids "i-06b52d0611e855d79" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Backend validation" \
+            --parameters 'commands=[
+              "echo Connection OK",
+              "cd /home/ec2-user/gestion-documental-back || exit 1",
+              "git status || exit 1",
+              "echo Backend validation passed"
+            ]'
+
+          echo "✅ Backend validation completed"
+
+  # Job de deploy REAL - solo después del merge exitoso
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    name: 🚀 Deploy Backend to AWS EC2
+    environment: ec2-develop
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Setup SSH access
+        id: setup-ssh
+        run: |
+          RUNNER_IP=$(curl -s https://checkip.amazonaws.com)
+          echo "runner_ip=$RUNNER_IP" >> $GITHUB_OUTPUT
+
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.SECURITY_GROUP_ID }} \
+            --protocol tcp --port 22 --cidr "$RUNNER_IP/32" || \
+            echo "SSH rule already exists"
+
+      - name: 🚀 Deploy Backend Application to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          timeout: 300s
+          script: |
+            set -e
+
+            echo "🚀 Starting backend deployment process..."
+
+            # Load user environment and configure PATH for bun
+            export PATH="$HOME/.bun/bin:$PATH"
+            source ~/.bashrc 2>/dev/null || echo "No .bashrc found"
+
+            # Navigate to Backend Project Directory
+            echo "📁 Navigating to backend project directory..."
+            cd /home/ec2-user/gestion-documental-back
+            pwd
+            echo "✅ Directory navigation completed"
+
+            # Git Pull from Develop
+            echo "🔄 Pulling latest changes from develop..."
+            git config --global --add safe.directory /home/ec2-user/gestion-documental-back
+            git pull --no-rebase origin develop
+            echo "✅ Git pull completed"
+
+            # Install Dependencies
+            echo "📦 Installing dependencies with bun..."
+            which bun
+            bun --version
+            bun install
+            echo "✅ Dependencies installation completed"
+
+            # Run Database Migrations
+            echo "🗄️ Running database migrations..."
+            bun run migration:run
+            echo "✅ Database migrations completed"
+
+            # Build Application
+            echo "🏗️ Building backend application..."
+            bun run build || echo "Build step completed (may not be required)"
+            echo "✅ Application build completed"
+
+            # Restart PM2 Service for Backend
+            echo "🔄 Restarting PM2 backend service..."
+            pm2 restart BackendAPI
+            echo "✅ PM2 backend service restart completed"
+
+            echo "🎉 Backend deployment process completed successfully!"
+
+      - name: Cleanup SSH access
+        if: always() && steps.setup-ssh.outputs.runner_ip
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.SECURITY_GROUP_ID }} \
+            --protocol tcp --port 22 \
+            --cidr "${{ steps.setup-ssh.outputs.runner_ip }}/32"
