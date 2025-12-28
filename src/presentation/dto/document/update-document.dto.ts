@@ -9,4 +9,6 @@ export interface UpdateDocumentDto {
   description?: string;
   documentUrl?: string;
   comment?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
 }

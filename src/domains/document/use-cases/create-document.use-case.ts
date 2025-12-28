@@ -15,6 +15,8 @@ export interface CreateDocumentRequest {
   contractId?: string;
   description?: string;
   documentUrl?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
   createdBy?: string;
   comment?: string;
 }
@@ -60,6 +62,8 @@ export class CreateDocumentUseCase {
       contractId: request.contractId,
       description: request.description,
       documentUrl: request.documentUrl,
+      requiredForContract: request.requiredForContract,
+      requiredForColaborator: request.requiredForColaborator,
       createdBy: request.createdBy,
     };
 

@@ -20,6 +20,8 @@ export interface DocumentProps {
   description?: string;
   documentUrl?: string;
   status?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
   createdBy?: string;
   comment?: string | null;
   deletedAt?: Date | null;
@@ -44,6 +46,8 @@ export class Document {
   description?: string;
   documentUrl?: string;
   status: DocumentStatus;
+  requiredForContract: boolean;
+  requiredForColaborator: boolean;
   createdBy: string | null;
   comment: string | null;
   deletedAt: Date | null;
@@ -61,6 +65,8 @@ export class Document {
       expirationDate: 'dateNullable',
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
+      requiredForContract: (required?: boolean) => required ?? false,
+      requiredForColaborator: (required?: boolean) => required ?? false,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
       deletedAt: 'dateNullable',
@@ -209,6 +215,16 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public updateRequiredForContract(required: boolean): void {
+    this.requiredForContract = required;
+    this.updatedAt = new Date();
+  }
+
+  public updateRequiredForColaborator(required: boolean): void {
+    this.requiredForColaborator = required;
+    this.updatedAt = new Date();
+  }
+
   public softDelete(deletedBy: string): void {
     this.deletedAt = new Date();
     this.deletedBy = deletedBy;
@@ -290,6 +306,8 @@ export class Document {
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,
+      requiredForContract: this.requiredForContract,
+      requiredForColaborator: this.requiredForColaborator,
       createdBy: this.createdBy,
       comment: this.comment,
       deletedAt: DateTimeUtils.toString(this.deletedAt, true),

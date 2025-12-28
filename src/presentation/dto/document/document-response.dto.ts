@@ -14,6 +14,8 @@ export interface DocumentResponseDto {
   description?: string;
   documentUrl?: string;
   status: string;
+  requiredForContract: boolean;
+  requiredForColaborator: boolean;
   comment?: string | null;
   isExpired: boolean;
   daysUntilExpiration: number | null;

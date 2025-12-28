@@ -15,6 +15,8 @@ export interface UpdateDocumentRequest {
   contractId?: string;
   description?: string;
   documentUrl?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
   updatedBy?: string;
   comment?: string;
 }
@@ -65,6 +67,14 @@ export class UpdateDocumentUseCase {
 
     if (request.contractId !== undefined) {
       document.updateContractId(request.contractId);
+    }
+
+    if (request.requiredForContract !== undefined) {
+      document.updateRequiredForContract(request.requiredForContract);
+    }
+
+    if (request.requiredForColaborator !== undefined) {
+      document.updateRequiredForColaborator(request.requiredForColaborator);
     }
 
     // Verificar que no haya documentos duplicados

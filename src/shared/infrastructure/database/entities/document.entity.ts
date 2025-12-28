@@ -71,6 +71,12 @@ export class DocumentEntity {
   @Column({ type: 'varchar', length: 50, default: 'draft' })
   status!: string;
 
+  @Column({ name: 'required_for_contract', type: 'boolean', default: false })
+  requiredForContract!: boolean;
+
+  @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
+  requiredForColaborator!: boolean;
+
   @Column({ name: 'created_by', type: 'varchar', length: 36, nullable: true })
   createdBy?: string;
 
