@@ -271,28 +271,6 @@ describe('DocumentController with type/subtype/colaborator', () => {
       const c2 = await createColaborator();
       const c3 = await createColaborator();
 
-      // Create contract for group
-      const contractIdForGroup = await createContract();
-
-      // Create group
-      const groupRes = await supertest(app)
-        .post('/api/colaborator-groups')
-        .set('x-enable-rbac', 'false')
-        .send({
-          name: `group-${Date.now()}`,
-          description: 'test group',
-          contractId: contractIdForGroup,
-        });
-      expect(groupRes.status).toBe(201);
-      const groupId = groupRes.body.data.id as number;
-
-      // Assign colaborators to group
-      const assignRes = await supertest(app)
-        .post(`/api/colaborator-groups/${groupId}/colaborators`)
-        .set('x-enable-rbac', 'false')
-        .send({ colaboratorIds: [c1, c2, c3] });
-      expect(assignRes.status).toBe(200);
-
       // Create contract
       const now = new Date();
       const startDate = now.toISOString().slice(0, 10);
@@ -321,7 +299,7 @@ describe('DocumentController with type/subtype/colaborator', () => {
       const bulk1 = await supertest(app)
         .post('/api/documents/assign-to-group')
         .set('x-enable-rbac', 'false')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, groupId, name: 'Doc Bulk' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk' });
       expect(bulk1.status).toBe(201);
       expect(bulk1.body.success).toBe(true);
       expect(bulk1.body.data.createdCount).toBe(3);
@@ -337,7 +315,7 @@ describe('DocumentController with type/subtype/colaborator', () => {
       const bulk2 = await supertest(app)
         .post('/api/documents/assign-to-group')
         .set('x-enable-rbac', 'false')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, groupId, name: 'Doc Bulk 2' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk 2' });
       expect(bulk2.status).toBe(201);
       expect(bulk2.body.success).toBe(true);
       expect(bulk2.body.data.createdCount).toBe(0);

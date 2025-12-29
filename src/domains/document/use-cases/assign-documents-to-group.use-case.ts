@@ -3,7 +3,6 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
-import { ColaboratorGroupRepository } from '@domains/colaborator-group/repositories/colaborator-group.repository';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { ValidationError } from '@shared/domain/errors';
 
@@ -11,7 +10,7 @@ export interface AssignDocumentsToGroupRequest {
   documentTypeId: string;
   documentSubtypeId: string;
   contractId: string;
-  groupId: number;
+  colaboratorIds: string[];
   issuedDate?: Date;
   expirationDate?: Date;
   name?: string;
@@ -28,7 +27,6 @@ export class AssignDocumentsToGroupUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
-    private readonly colaboratorGroupRepository: ColaboratorGroupRepository,
     private readonly contractRepository: ContractRepository,
   ) {}
 
@@ -38,30 +36,29 @@ export class AssignDocumentsToGroupUseCase {
       throw new ValidationError('Contrato no encontrado');
     }
 
-    const group = await this.colaboratorGroupRepository.findById(request.groupId);
-    if (!group) {
-      throw new ValidationError('Grupo de colaboradores no encontrado');
+    if (!request.colaboratorIds || request.colaboratorIds.length === 0) {
+      throw new ValidationError('Debe proporcionar al menos un colaborador');
     }
 
     const created: Document[] = [];
     const skipped: string[] = [];
 
-    for (const colaborator of group.colaborators) {
+    for (const colaboratorId of request.colaboratorIds) {
       const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
         request.documentTypeId,
         request.documentSubtypeId,
         request.contractId,
-        [colaborator.id],
+        [colaboratorId],
       );
       if (exists) {
-        skipped.push(colaborator.id);
+        skipped.push(colaboratorId);
         continue;
       }
 
       const props: DocumentProps = {
         documentTypeId: request.documentTypeId,
         documentSubtypeId: request.documentSubtypeId,
-        colaboratorIds: [colaborator.id],
+        colaboratorIds: [colaboratorId],
         name: request.name?.trim() || `${request.documentTypeId} ${request.documentSubtypeId}`,
         issuedDate: request.issuedDate,
         expirationDate: request.expirationDate,

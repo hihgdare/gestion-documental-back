@@ -394,7 +394,6 @@ export class DependencyContainer {
     this.assignDocumentsToGroupUseCase = new AssignDocumentsToGroupUseCase(
       this.documentRepository,
       this.documentHistoryRepository,
-      this.colaboratorGroupRepository,
       this.contractRepository,
     );
 
