@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { CreateFamilyUseCase } from '@domains/family/use-cases/create-family.use-case';
 import { GetFamilyByIdUseCase, GetAllFamiliesUseCase } from '@domains/family/use-cases/get-family.use-case';
 import { UpdateFamilyUseCase, DeleteFamilyUseCase } from '@domains/family/use-cases/update-family.use-case';
+import { AssignDocumentsFromFamilyUseCase } from '@domains/family/use-cases/assign-documents-from-family.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
 
 export class FamilyController {
@@ -11,6 +12,7 @@ export class FamilyController {
     private readonly getAllFamiliesUseCase: GetAllFamiliesUseCase,
     private readonly updateFamilyUseCase: UpdateFamilyUseCase,
     private readonly deleteFamilyUseCase: DeleteFamilyUseCase,
+    private readonly assignDocumentsFromFamilyUseCase: AssignDocumentsFromFamilyUseCase,
   ) {}
 
   public createFamily = asyncHandler(async (req: Request, res: Response) => {
@@ -56,6 +58,30 @@ export class FamilyController {
     res.status(200).json({
       success: true,
       message: 'Familia eliminada exitosamente',
+    });
+  });
+
+  public assignDocumentsFromFamily = asyncHandler(async (req: Request, res: Response) => {
+    const { familyId, contractId, colaboratorIds, comment } = req.body;
+    const createdBy = (req as any).user?.id || 'system';
+
+    const result = await this.assignDocumentsFromFamilyUseCase.execute({
+      familyId,
+      contractId,
+      colaboratorIds,
+      createdBy,
+      comment,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        created: result.created.map(doc => doc.toJSON()),
+        skipped: result.skipped,
+        createdCount: result.created.length,
+        skippedCount: result.skipped.length,
+      },
+      message: 'Documentos asignados exitosamente',
     });
   });
 }

@@ -16,6 +16,8 @@ export interface AssignDocumentsToGroupRequest {
   name?: string;
   createdBy?: string;
   comment?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
 }
 
 export interface AssignDocumentsToGroupResult {
@@ -64,6 +66,8 @@ export class AssignDocumentsToGroupUseCase {
         expirationDate: request.expirationDate,
         contractId: request.contractId,
         createdBy: request.createdBy,
+        requiredForContract: request.requiredForContract,
+        requiredForColaborator: request.requiredForColaborator,
       };
       const doc = Document.create(props);
       const saved = await this.documentRepository.save(doc);

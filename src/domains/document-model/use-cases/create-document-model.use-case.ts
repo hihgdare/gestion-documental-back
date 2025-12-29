@@ -1,7 +1,7 @@
 import { IDocumentModelRepository } from '../repositories/document-model.repository.interface';
 import { DocumentModel, DocumentModelProps } from '../entities/document-model.entity';
 import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface CreateDocumentModelRequest {
   familyId: string;
@@ -22,6 +22,18 @@ export class CreateDocumentModelUseCase {
     const family = await this.familyRepository.findById(request.familyId);
     if (!family) {
       throw new NotFoundError('Familia no encontrada');
+    }
+
+    // Check if a model with the same family, type and subtype already exists
+    const existing = await this.documentModelRepository.findByFamilyTypeSubtype(
+      request.familyId,
+      request.documentTypeId,
+      request.documentSubtypeId,
+    );
+    if (existing) {
+      throw new ValidationError(
+        'Ya existe un modelo de documento con esta combinación de familia, tipo y subtipo',
+      );
     }
 
     // Create document model

@@ -59,6 +59,8 @@ export class DocumentController {
       expirationDate,
       name,
       comment,
+      requiredForContract,
+      requiredForColaborator,
     } = req.body;
 
     // Lazy import to avoid circular deps in constructor if use-case not injected earlier
@@ -78,6 +80,8 @@ export class DocumentController {
       expirationDate: expirationDate ? new Date(expirationDate) : undefined,
       name,
       comment,
+      requiredForContract,
+      requiredForColaborator,
       createdBy: req.user?.id,
     });
 

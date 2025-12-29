@@ -27,5 +27,8 @@ export const createFamilyRoutes = (familyController: FamilyController): Router =
   // DELETE /api/families/:id - Delete family
   router.delete('/:id', authorize('family:delete'), familyController.deleteFamily);
 
+  // POST /api/families/assign-documents - Assign documents from family models to colaborators
+  router.post('/assign-documents', authorize('document:create'), familyController.assignDocumentsFromFamily);
+
   return router;
 };

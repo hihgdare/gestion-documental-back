@@ -39,6 +39,24 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
     return entities.map(entity => this.toDomain(entity));
   }
 
+  async findByFamilyTypeSubtype(
+    familyId: string,
+    documentTypeId: string,
+    documentSubtypeId: string,
+  ): Promise<DocumentModel | null> {
+    const entity = await this.repository.findOne({
+      where: {
+        familyId,
+        documentTypeId,
+        documentSubtypeId,
+        deletedAt: IsNull(),
+      },
+      relations: ['documentType', 'documentSubtype'],
+    });
+    if (!entity) return null;
+    return this.toDomain(entity);
+  }
+
   async create(documentModel: DocumentModel): Promise<DocumentModel> {
     const entity = this.toEntity(documentModel);
     const savedEntity = await this.repository.save(entity);
