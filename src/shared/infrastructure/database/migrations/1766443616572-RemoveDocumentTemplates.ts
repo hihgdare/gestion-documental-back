@@ -39,20 +39,18 @@ export class RemoveDocumentTemplates1766443616572 implements MigrationInterface 
     // 3. Update documents with type and subtype from templates
     await queryRunner.query(`
       UPDATE documents d
-      SET document_type_id = dt.document_type_id,
-        document_subtype_id = dt.document_subtype_id
-      FROM document_templates dt
-      WHERE d.template_id = dt.id
+      INNER JOIN document_templates dt ON d.template_id = dt.id
+      SET d.document_type_id = dt.document_type_id,
+          d.document_subtype_id = dt.document_subtype_id
     `);
 
     // 4. Update documents_history with type and subtype from templates
     if (historyTable) {
       await queryRunner.query(`
         UPDATE documents_history dh
-        SET document_type_id = dt.document_type_id,
-          document_subtype_id = dt.document_subtype_id
-        FROM document_templates dt
-        WHERE dh.template_id = dt.id
+        INNER JOIN document_templates dt ON dh.template_id = dt.id
+        SET dh.document_type_id = dt.document_type_id,
+            dh.document_subtype_id = dt.document_subtype_id
       `);
     }
 
@@ -141,7 +139,18 @@ export class RemoveDocumentTemplates1766443616572 implements MigrationInterface 
       }));
     }
 
-    // 12. Drop document_templates table
+    // 12. Drop FK from contract_templates to document_templates before dropping the table
+    const contractTemplatesTable = await queryRunner.getTable('contract_templates');
+    if (contractTemplatesTable) {
+      const fkContractTemplate = contractTemplatesTable.foreignKeys.find(
+        fk => fk.columnNames.includes('document_template_id'),
+      );
+      if (fkContractTemplate) {
+        await queryRunner.dropForeignKey('contract_templates', fkContractTemplate);
+      }
+    }
+
+    // 13. Drop document_templates table
     await queryRunner.dropTable('document_templates', true);
   }
 
@@ -226,8 +235,8 @@ export class RemoveDocumentTemplates1766443616572 implements MigrationInterface 
     await queryRunner.query(`
             INSERT INTO document_templates (id, name, document_type_id, document_subtype_id, created_at, updated_at)
             SELECT
-                gen_random_uuid() as id,
-                CONCAT(dt.name, '_', dst.name, '_', NOW()::text) as name,
+                UUID() as id,
+                CONCAT(dt.name, '_', dst.name, '_', NOW()) as name,
                 d.document_type_id,
                 d.document_subtype_id,
                 NOW() as created_at,
@@ -244,19 +253,19 @@ export class RemoveDocumentTemplates1766443616572 implements MigrationInterface 
     // 6. Update documents with template_id
     await queryRunner.query(`
             UPDATE documents d
-            SET template_id = dt.id
-            FROM document_templates dt
-            WHERE d.document_type_id = dt.document_type_id
+            INNER JOIN document_templates dt
+                ON d.document_type_id = dt.document_type_id
                 AND d.document_subtype_id = dt.document_subtype_id
+            SET d.template_id = dt.id
         `);
 
     // Update documents_history with template_id
     await queryRunner.query(`
             UPDATE documents_history dh
-            SET template_id = dt.id
-            FROM document_templates dt
-            WHERE dh.document_type_id = dt.document_type_id
+            INNER JOIN document_templates dt
+                ON dh.document_type_id = dt.document_type_id
                 AND dh.document_subtype_id = dt.document_subtype_id
+            SET dh.template_id = dt.id
         `);
 
     // 7. Drop columns type/subtype
@@ -293,10 +302,14 @@ export class RemoveDocumentTemplates1766443616572 implements MigrationInterface 
       columnNames: ['template_id'],
     }));
 
-    await queryRunner.createIndex('documents', new TableIndex({
-      name: 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR',
-      columnNames: ['template_id', 'contract_id', 'colaborator_id'],
-      isUnique: true,
+    // 10. Restore FK from contract_templates to document_templates
+    await queryRunner.createForeignKey('contract_templates', new TableForeignKey({
+      name: 'FK_CONTRACT_TEMPLATES_DOCUMENT_TEMPLATE',
+      columnNames: ['document_template_id'],
+      referencedTableName: 'document_templates',
+      referencedColumnNames: ['id'],
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE',
     }));
   }
 

@@ -115,9 +115,17 @@ export class CreateDocumentModelsTable1766619800000 implements MigrationInterfac
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropForeignKey('document_models', 'FK_DOCUMENT_MODELS_SUBTYPE');
-    await queryRunner.dropForeignKey('document_models', 'FK_DOCUMENT_MODELS_TYPE');
-    await queryRunner.dropForeignKey('document_models', 'FK_DOCUMENT_MODELS_FAMILY');
+    const table = await queryRunner.getTable('document_models');
+    if (table) {
+      const fkSubtype = table.foreignKeys.find(fk => fk.name === 'FK_DOCUMENT_MODELS_SUBTYPE');
+      if (fkSubtype) await queryRunner.dropForeignKey('document_models', fkSubtype);
+
+      const fkType = table.foreignKeys.find(fk => fk.name === 'FK_DOCUMENT_MODELS_TYPE');
+      if (fkType) await queryRunner.dropForeignKey('document_models', fkType);
+
+      const fkFamily = table.foreignKeys.find(fk => fk.name === 'FK_DOCUMENT_MODELS_FAMILY');
+      if (fkFamily) await queryRunner.dropForeignKey('document_models', fkFamily);
+    }
     await queryRunner.dropTable('document_models');
   }
 }

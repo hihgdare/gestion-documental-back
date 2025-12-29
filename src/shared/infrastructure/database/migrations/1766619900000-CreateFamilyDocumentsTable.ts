@@ -65,8 +65,14 @@ export class CreateFamilyDocumentsTable1766619900000 implements MigrationInterfa
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropForeignKey('family_documents', 'FK_FAMILY_DOCUMENTS_MODEL');
-    await queryRunner.dropForeignKey('family_documents', 'FK_FAMILY_DOCUMENTS_FAMILY');
+    const table = await queryRunner.getTable('family_documents');
+    if (table) {
+      const fkModel = table.foreignKeys.find(fk => fk.name === 'FK_FAMILY_DOCUMENTS_MODEL');
+      if (fkModel) await queryRunner.dropForeignKey('family_documents', fkModel);
+
+      const fkFamily = table.foreignKeys.find(fk => fk.name === 'FK_FAMILY_DOCUMENTS_FAMILY');
+      if (fkFamily) await queryRunner.dropForeignKey('family_documents', fkFamily);
+    }
     await queryRunner.dropTable('family_documents');
   }
 }

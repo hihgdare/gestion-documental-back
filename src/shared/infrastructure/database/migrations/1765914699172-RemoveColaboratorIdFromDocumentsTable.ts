@@ -25,10 +25,13 @@ export class RemoveColaboratorIdFromDocumentsTable1765914699172 implements Migra
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop the new unique index
-    await queryRunner.query(
-      `ALTER TABLE \`documents\` DROP INDEX \`UQ_documents_template_contract\``,
-    );
+    // Drop the new unique index (check if exists first)
+    const table = await queryRunner.getTable('documents');
+    if (table && table.indices.find(i => i.name === 'UQ_documents_template_contract')) {
+      await queryRunner.query(
+        `ALTER TABLE \`documents\` DROP INDEX \`UQ_documents_template_contract\``,
+      );
+    }
 
     // Add back the colaboratorId column
     await queryRunner.query(
