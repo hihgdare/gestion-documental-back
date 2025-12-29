@@ -1,8 +1,8 @@
 export interface DocumentResponseDto {
   id: string;
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   colaboratorIds: string[];
-  templateName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;
@@ -14,6 +14,8 @@ export interface DocumentResponseDto {
   description?: string;
   documentUrl?: string;
   status: string;
+  requiredForContract: boolean;
+  requiredForColaborator: boolean;
   comment?: string | null;
   isExpired: boolean;
   daysUntilExpiration: number | null;

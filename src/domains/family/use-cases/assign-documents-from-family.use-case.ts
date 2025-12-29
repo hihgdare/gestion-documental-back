@@ -1,0 +1,119 @@
+import { DocumentRepository } from '@domains/document/repositories/document.repository';
+import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
+import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
+import { ContractRepository } from '@domains/contract/repositories/contract.repository';
+import { IFamilyRepository } from '../repositories/family.repository.interface';
+import { Document, DocumentProps } from '@domains/document/entities/document.entity';
+import { DocumentHistoryProps } from '@domains/document/entities/document-history.entity';
+import { DocumentAction } from '@domains/document/value-objects/document-enums';
+import { ValidationError } from '@shared/domain/errors';
+
+export interface AssignDocumentsFromFamilyRequest {
+  familyId: string;
+  contractId: string;
+  colaboratorIds: string[];
+  createdBy?: string;
+  comment?: string;
+}
+
+export interface AssignDocumentsFromFamilyResult {
+  created: Document[];
+  skipped: string[];
+}
+
+export class AssignDocumentsFromFamilyUseCase {
+  constructor(
+    private readonly familyRepository: IFamilyRepository,
+    private readonly documentModelRepository: IDocumentModelRepository,
+    private readonly documentRepository: DocumentRepository,
+    private readonly documentHistoryRepository: DocumentHistoryRepository,
+    private readonly contractRepository: ContractRepository,
+  ) {}
+
+  public async execute(request: AssignDocumentsFromFamilyRequest): Promise<AssignDocumentsFromFamilyResult> {
+    // Validar que exista la familia
+    const family = await this.familyRepository.findById(request.familyId);
+    if (!family) {
+      throw new ValidationError('Familia no encontrada');
+    }
+
+    // Validar que exista el contrato
+    const contract = await this.contractRepository.findById(request.contractId);
+    if (!contract) {
+      throw new ValidationError('Contrato no encontrado');
+    }
+
+    // Validar colaboradores
+    if (!request.colaboratorIds || request.colaboratorIds.length === 0) {
+      throw new ValidationError('Debe proporcionar al menos un colaborador');
+    }
+
+    // Obtener todos los modelos de documento de la familia
+    const models = await this.documentModelRepository.findByFamilyId(request.familyId);
+    if (models.length === 0) {
+      throw new ValidationError('La familia no tiene modelos de documento asociados');
+    }
+
+    const created: Document[] = [];
+    const skipped: string[] = [];
+
+    // Para cada colaborador, crear un documento por cada modelo
+    for (const colaboratorId of request.colaboratorIds) {
+      for (const model of models) {
+        // Verificar si ya existe un documento con esta combinación
+        const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
+          model.documentTypeId,
+          model.documentSubtypeId,
+          request.contractId,
+          [colaboratorId],
+        );
+
+        if (exists) {
+          skipped.push(`${colaboratorId}-${model.id}`);
+          continue;
+        }
+
+        // Crear el documento
+        const typeName = model.documentTypeName || model.documentTypeId;
+        const subtypeName = model.documentSubtypeName || model.documentSubtypeId;
+
+        const props: DocumentProps = {
+          documentTypeId: model.documentTypeId,
+          documentSubtypeId: model.documentSubtypeId,
+          colaboratorIds: [colaboratorId],
+          name: `${typeName} - ${subtypeName}`,
+          contractId: request.contractId,
+          createdBy: request.createdBy,
+          requiredForContract: model.requiredForContract,
+          requiredForColaborator: model.requiredForColaborator,
+        };
+
+        const doc = Document.create(props);
+        const saved = await this.documentRepository.save(doc);
+        created.push(saved);
+
+        // Crear historial si es necesario
+        if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
+          const history: DocumentHistoryProps = {
+            documentId: saved.id,
+            documentTypeId: saved.documentTypeId,
+            documentSubtypeId: saved.documentSubtypeId,
+            name: saved.name,
+            issuedDate: saved.issuedDate,
+            expirationDate: saved.expirationDate || undefined,
+            contractId: saved.contractId || undefined,
+            description: saved.description,
+            documentUrl: saved.documentUrl,
+            status: saved.status,
+            comment: request.comment || null,
+            action: DocumentAction.CREATED,
+            updatedBy: request.createdBy,
+          };
+          await this.documentHistoryRepository.save(history);
+        }
+      }
+    }
+
+    return { created, skipped };
+  }
+}

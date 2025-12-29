@@ -3,74 +3,71 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
-import { ColaboratorGroupRepository } from '@domains/colaborator-group/repositories/colaborator-group.repository';
-import { DocumentTemplateRepository } from '@domains/document-template/repositories/document-template.repository';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { ValidationError } from '@shared/domain/errors';
 
-export interface AssignDocumentsFromTemplateToGroupRequest {
-  templateId: string;
+export interface AssignDocumentsToGroupRequest {
+  documentTypeId: string;
+  documentSubtypeId: string;
   contractId: string;
-  groupId: number;
+  colaboratorIds: string[];
   issuedDate?: Date;
   expirationDate?: Date;
   name?: string;
   createdBy?: string;
   comment?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
 }
 
-export interface AssignDocumentsFromTemplateToGroupResult {
+export interface AssignDocumentsToGroupResult {
   created: Document[];
   skipped: string[];
 }
 
-export class AssignDocumentsFromTemplateToGroupUseCase {
+export class AssignDocumentsToGroupUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
-    private readonly colaboratorGroupRepository: ColaboratorGroupRepository,
-    private readonly documentTemplateRepository: DocumentTemplateRepository,
     private readonly contractRepository: ContractRepository,
   ) {}
 
-  public async execute(request: AssignDocumentsFromTemplateToGroupRequest): Promise<AssignDocumentsFromTemplateToGroupResult> {
-    const template = await this.documentTemplateRepository.findById(request.templateId);
-    if (!template) {
-      throw new ValidationError('Plantilla de documento no encontrada');
-    }
-
+  public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
     const contract = await this.contractRepository.findById(request.contractId);
     if (!contract) {
       throw new ValidationError('Contrato no encontrado');
     }
 
-    const group = await this.colaboratorGroupRepository.findById(request.groupId);
-    if (!group) {
-      throw new ValidationError('Grupo de colaboradores no encontrado');
+    if (!request.colaboratorIds || request.colaboratorIds.length === 0) {
+      throw new ValidationError('Debe proporcionar al menos un colaborador');
     }
 
     const created: Document[] = [];
     const skipped: string[] = [];
 
-    for (const colaborator of group.colaborators) {
-      const exists = await this.documentRepository.existsByTemplateContractColaborator(
-        request.templateId,
+    for (const colaboratorId of request.colaboratorIds) {
+      const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
+        request.documentTypeId,
+        request.documentSubtypeId,
         request.contractId,
-        [colaborator.id],
+        [colaboratorId],
       );
       if (exists) {
-        skipped.push(colaborator.id);
+        skipped.push(colaboratorId);
         continue;
       }
 
       const props: DocumentProps = {
-        templateId: request.templateId,
-        colaboratorIds: [colaborator.id],
-        name: request.name?.trim() || template.name,
+        documentTypeId: request.documentTypeId,
+        documentSubtypeId: request.documentSubtypeId,
+        colaboratorIds: [colaboratorId],
+        name: request.name?.trim() || `${request.documentTypeId} ${request.documentSubtypeId}`,
         issuedDate: request.issuedDate,
         expirationDate: request.expirationDate,
         contractId: request.contractId,
         createdBy: request.createdBy,
+        requiredForContract: request.requiredForContract,
+        requiredForColaborator: request.requiredForColaborator,
       };
       const doc = Document.create(props);
       const saved = await this.documentRepository.save(doc);
@@ -79,8 +76,8 @@ export class AssignDocumentsFromTemplateToGroupUseCase {
       if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
-          templateId: saved.templateId,
-
+          documentTypeId: saved.documentTypeId,
+          documentSubtypeId: saved.documentSubtypeId,
           name: saved.name,
           issuedDate: saved.issuedDate,
           expirationDate: saved.expirationDate || undefined,

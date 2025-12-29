@@ -1,0 +1,46 @@
+### Family Routes
+
+# Variables
+@baseUrl = http://localhost:4000
+@token = {{login.response.body.data.token}}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Create Family
+POST {{baseUrl}}/api/families
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Familia de Prueba"
+}
+
+### Get All Families
+GET {{baseUrl}}/api/families
+Authorization: Bearer {{token}}
+
+### Get Family by ID
+@familyId = {{createFamily.response.body.data.id}}
+GET {{baseUrl}}/api/families/{{familyId}}
+Authorization: Bearer {{token}}
+
+### Update Family
+PUT {{baseUrl}}/api/families/{{familyId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Familia Actualizada"
+}
+
+### Delete Family
+DELETE {{baseUrl}}/api/families/{{familyId}}
+Authorization: Bearer {{token}}

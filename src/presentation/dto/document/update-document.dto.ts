@@ -1,5 +1,6 @@
 export interface UpdateDocumentDto {
-  templateId?: string;
+  documentTypeId?: string;
+  documentSubtypeId?: string;
   colaboratorIds?: string[];
   name?: string;
   issuedDate?: string; // ISO date string
@@ -8,4 +9,6 @@ export interface UpdateDocumentDto {
   description?: string;
   documentUrl?: string;
   comment?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
 }

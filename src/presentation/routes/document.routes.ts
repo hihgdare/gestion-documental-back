@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { DocumentController } from '../controllers/document.controller';
 import { validateRequest } from '@shared/middleware/validation';
-import { createDocumentSchema, updateDocumentSchema, assignDocumentsFromTemplateToGroupSchema } from '../dto/validation-schemas';
+import { createDocumentSchema, updateDocumentSchema } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
 import { RequestHandler } from 'express';
@@ -19,13 +19,13 @@ export const createDocumentRoutes = (
 
   // POST routes
   router.post('/', authorize('document:create'), validateRequest(createDocumentSchema, true), controller.createDocument);
-  router.post('/assign-template-to-group', authorize('document:create'), validateRequest(assignDocumentsFromTemplateToGroupSchema, true), controller.assignDocumentsFromTemplateToGroup);
+  router.post('/assign-to-group', authorize('document:create'), controller.assignDocumentsToGroup);
 
   // GET routes - specific routes before parameterized routes
   router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);
   router.get('/expiring/:days', authorize('document:read'), controller.getExpiringDocuments);
   router.get('/by-contract/:contractId', authorize('document:read'), controller.getDocumentsByContractId);
-  router.get('/by-template/:templateId', authorize('document:read'), controller.getDocumentsByTemplateId);
+  router.get('/by-type-subtype/:typeId/:subtypeId', authorize('document:read'), controller.getDocumentsByTypeAndSubtypeId);
   router.get('/by-colaborator/:colaboratorId', authorize('document:read'), controller.getDocumentsByColaboratorId);
   router.get('/', authorize('document:read'), controller.getAllDocuments);
   router.get('/:id', authorize('document:read'), controller.getDocumentById);

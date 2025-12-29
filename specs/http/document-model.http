@@ -1,0 +1,56 @@
+### Document Model Routes
+
+# Variables
+@baseUrl = http://localhost:4000
+@token = {{login.response.body.data.token}}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123"
+}
+
+### Create Document Model
+POST {{baseUrl}}/api/document-models
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "familyId": "family-id-here",
+  "documentTypeId": "document-type-id-here",
+  "documentSubtypeId": "document-subtype-id-here",
+  "requiredForContract": true,
+  "requiredForColaborator": false
+}
+
+### Get All Document Models
+GET {{baseUrl}}/api/document-models
+Authorization: Bearer {{token}}
+
+### Get Document Models by Family ID
+@familyId = family-id-here
+GET {{baseUrl}}/api/document-models/family/{{familyId}}
+Authorization: Bearer {{token}}
+
+### Get Document Model by ID
+@modelId = model-id-here
+GET {{baseUrl}}/api/document-models/{{modelId}}
+Authorization: Bearer {{token}}
+
+### Update Document Model
+PUT {{baseUrl}}/api/document-models/{{modelId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "requiredForContract": false,
+  "requiredForColaborator": true
+}
+
+### Delete Document Model
+DELETE {{baseUrl}}/api/document-models/{{modelId}}
+Authorization: Bearer {{token}}

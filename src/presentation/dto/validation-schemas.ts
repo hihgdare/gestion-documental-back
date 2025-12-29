@@ -162,7 +162,8 @@ export const getDocumentSubtypeByIdSchema = Joi.object({
 });
 
 export const createDocumentSchema = Joi.object({
-  templateId: Joi.string().uuid().required(),
+  documentTypeId: Joi.string().uuid().required(),
+  documentSubtypeId: Joi.string().uuid().required(),
   colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).required(),
   issuedDate: Joi.date()
@@ -181,10 +182,13 @@ export const createDocumentSchema = Joi.object({
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow('', null),
   documentUrl: Joi.string().optional().allow('', null),
+  requiredForContract: Joi.boolean().optional().default(false),
+  requiredForColaborator: Joi.boolean().optional().default(false),
 }).unknown(true);
 
 export const updateDocumentSchema = Joi.object({
-  templateId: Joi.string().uuid().optional(),
+  documentTypeId: Joi.string().uuid().optional(),
+  documentSubtypeId: Joi.string().uuid().optional(),
   colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).optional(),
   issuedDate: Joi.date()
@@ -203,34 +207,12 @@ export const updateDocumentSchema = Joi.object({
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow(null, ''),
   documentUrl: Joi.string().optional().allow(null, ''),
+  requiredForContract: Joi.boolean().optional(),
+  requiredForColaborator: Joi.boolean().optional(),
 }).min(1).unknown(true); // Permitir campos desconocidos
-
-export const createDocumentTemplateSchema = Joi.object({
-  name: Joi.string().min(2).max(255).required(),
-  description: Joi.string().max(2000).optional().allow(null, ''),
-  documentTypeId: Joi.string().uuid().required(),
-  documentSubtypeId: Joi.string().uuid().required(),
-});
-
-export const updateDocumentTemplateSchema = Joi.object({
-  name: Joi.string().min(2).max(255).optional(),
-  description: Joi.string().max(2000).optional().allow(null, ''),
-  documentTypeId: Joi.string().uuid().optional(),
-  documentSubtypeId: Joi.string().uuid().optional(),
-}).min(1);
 
 export const getDocumentByIdSchema = Joi.object({
   id: Joi.string().uuid().required(),
-});
-
-export const assignDocumentsFromTemplateToGroupSchema = Joi.object({
-  templateId: Joi.string().uuid().required(),
-  contractId: Joi.string().uuid().required(),
-  groupId: Joi.number().integer().required(),
-  issuedDate: Joi.date().optional(),
-  expirationDate: Joi.date().optional().allow(null),
-  name: Joi.string().min(2).max(255).optional(),
-  comment: Joi.string().max(1000).optional().allow('', null),
 });
 
 export const createPermissionSchema = Joi.object({
@@ -315,3 +297,26 @@ export const updateColaboratorGroupSchema = Joi.object({
 export const assignColaboratorsToGroupSchema = Joi.object({
   colaboratorIds: Joi.array().items(Joi.string().uuid()).required(),
 });
+
+export const createFamilySchema = Joi.object({
+  name: Joi.string().min(2).max(100).required(),
+});
+
+export const updateFamilySchema = Joi.object({
+  name: Joi.string().min(2).max(100).optional(),
+}).min(1);
+
+export const createDocumentModelSchema = Joi.object({
+  familyId: Joi.string().uuid().required(),
+  documentTypeId: Joi.string().uuid().required(),
+  documentSubtypeId: Joi.string().uuid().required(),
+  requiredForContract: Joi.boolean().optional(),
+  requiredForColaborator: Joi.boolean().optional(),
+});
+
+export const updateDocumentModelSchema = Joi.object({
+  documentTypeId: Joi.string().uuid().optional(),
+  documentSubtypeId: Joi.string().uuid().optional(),
+  requiredForContract: Joi.boolean().optional(),
+  requiredForColaborator: Joi.boolean().optional(),
+}).min(1);

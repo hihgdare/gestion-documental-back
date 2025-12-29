@@ -28,8 +28,8 @@ export class SendToReviewDocumentUseCase {
       documentId: document.id,
       action: DocumentAction.SUBMITTED_FOR_REVIEW,
       updatedBy: userId === 'system' ? undefined : userId,
-      templateId: document.templateId,
-
+      documentTypeId: document.documentTypeId,
+      documentSubtypeId: document.documentSubtypeId,
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,

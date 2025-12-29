@@ -1,10 +1,12 @@
 /// <reference types="node" />
 import { initializeDatabase, clearDatabase, AppDataSource } from './src/shared/infrastructure/database/typeorm.config';
 import runSeeds from './src/shared/infrastructure/database/seed/run-seeds';
+import { runInitialSeedsIfEmpty } from './src/shared/infrastructure/database/seed/initial-seeds';
 
 async function main() {
   const args = process.argv.slice(2);
   const shouldClean = args.includes('--clean');
+  const onlyInit = args.includes('--init');
 
   if (process.env.NODE_ENV !== 'development') {
     console.log('Seeds abortados: NODE_ENV no es development');
@@ -18,6 +20,11 @@ async function main() {
       await clearDatabase();
     }
 
+    console.log('Ejecutando seeds iniciales si es necesario...');
+    await runInitialSeedsIfEmpty();
+    if (onlyInit) return;
+
+    console.log('Ejecutando seeds de prueba...');
     await runSeeds();
   } catch (err) {
     console.error('Error ejecutando seeds:', err);

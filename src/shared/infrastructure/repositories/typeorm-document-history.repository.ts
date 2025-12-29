@@ -75,7 +75,8 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
     return new DocumentHistory({
       id: entity.id,
       documentId: entity.documentId,
-      templateId: entity.templateId,
+      documentTypeId: entity.documentTypeId,
+      documentSubtypeId: entity.documentSubtypeId,
       name: entity.name,
       issuedDate: DateUtils.parse(entity.issuedDate)!,
       expirationDate: DateUtils.parse(entity.expirationDate),
@@ -96,7 +97,8 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
     return {
       id: history.id,
       documentId: history.documentId,
-      templateId: history.templateId,
+      documentTypeId: history.documentTypeId,
+      documentSubtypeId: history.documentSubtypeId,
       name: history.name,
       issuedDate: DateUtils.toLocalDate(history.issuedDate)!,
       expirationDate: history.expirationDate ? DateUtils.toLocalDate(history.expirationDate) : undefined,

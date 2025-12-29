@@ -5,7 +5,7 @@ import { Application } from 'express';
 import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 
-describe('DocumentController with template/colaborator', () => {
+describe('DocumentController with type/subtype/colaborator', () => {
   let appInstance: App;
   let app: Application;
 
@@ -21,7 +21,7 @@ describe('DocumentController with template/colaborator', () => {
     await clearDatabase(AppDataSource);
   });
 
-  async function createTypeSubtypeAndTemplate() {
+  async function createTypeAndSubtype() {
     const typeRes = await supertest(app)
       .post('/api/documents/types')
       .set('x-enable-rbac', 'false')
@@ -34,13 +34,7 @@ describe('DocumentController with template/colaborator', () => {
       .send({ name: `Subtype ${Date.now()}`, documentTypeId: typeId });
     const subtypeId = subtypeRes.body.data.id as string;
 
-    const templateRes = await supertest(app)
-      .post('/api/document-templates')
-      .set('x-enable-rbac', 'false')
-      .send({ name: `Template ${Date.now()}`, documentTypeId: typeId, documentSubtypeId: subtypeId });
-    const templateId = templateRes.body.data.id as string;
-
-    return { typeId, subtypeId, templateId };
+    return { typeId, subtypeId };
   }
 
   async function createContract() {
@@ -99,15 +93,16 @@ describe('DocumentController with template/colaborator', () => {
   }
 
   describe('/api/documents', () => {
-    it('should create a document with template and colaborator', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+    it('should create a document with type/subtype and colaborator', async () => {
+      const { typeId, subtypeId } = await createTypeAndSubtype();
       const colaboratorId = await createColaborator();
 
       const response = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
         .send({
-          templateId,
+          documentTypeId: typeId,
+          documentSubtypeId: subtypeId,
           colaboratorIds: [colaboratorId],
           name: 'Documento de Prueba',
           issuedDate: '2025-01-01',
@@ -120,12 +115,13 @@ describe('DocumentController with template/colaborator', () => {
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('Document created successfully');
-      expect(response.body.data.templateId).toBe(templateId);
+      expect(response.body.data.documentTypeId).toBe(typeId);
+      expect(response.body.data.documentSubtypeId).toBe(subtypeId);
       expect(response.body.data.colaboratorIds).toContain(colaboratorId);
     });
 
-    it('should list documents by template and by colaborator', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+    it('should list documents by type/subtype and by colaborator', async () => {
+      const { typeId, subtypeId } = await createTypeAndSubtype();
       const colaboratorId = await createColaborator();
 
       await supertest(app)
@@ -133,18 +129,19 @@ describe('DocumentController with template/colaborator', () => {
         .set('x-enable-rbac', 'true')
         .set('Authorization', 'Bearer skip-token')
         .send({
-          templateId,
+          documentTypeId: typeId,
+          documentSubtypeId: subtypeId,
           colaboratorIds: [colaboratorId],
           name: 'Documento A',
           issuedDate: '2025-01-01',
         });
 
-      const byTemplate = await supertest(app)
-        .get(`/api/documents/by-template/${templateId}`)
+      const byTypeSubtype = await supertest(app)
+        .get(`/api/documents/by-type-subtype/${typeId}/${subtypeId}`)
         .set('x-enable-rbac', 'false');
-      expect(byTemplate.status).toBe(200);
-      expect(byTemplate.body.success).toBe(true);
-      expect(byTemplate.body.count).toBeGreaterThanOrEqual(1);
+      expect(byTypeSubtype.status).toBe(200);
+      expect(byTypeSubtype.body.success).toBe(true);
+      expect(byTypeSubtype.body.count).toBeGreaterThanOrEqual(1);
 
       const byColab = await supertest(app)
         .get(`/api/documents/by-colaborator/${colaboratorId}`)
@@ -155,13 +152,13 @@ describe('DocumentController with template/colaborator', () => {
     });
 
     it('should update a document fields', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+      const { typeId, subtypeId } = await createTypeAndSubtype();
       const colaboratorId = await createColaborator();
 
       const createRes = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorIds: [colaboratorId], name: 'Doc Edit', issuedDate: '2025-01-01' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'Doc Edit', issuedDate: '2025-01-01' });
       const id = createRes.body.data.id as string;
 
       const updateRes = await supertest(app)
@@ -178,49 +175,49 @@ describe('DocumentController with template/colaborator', () => {
       expect(updateRes.body.data.name).toBe('Doc Edit Updated');
     });
 
-    it('should not allow duplicate template+colaborator on create', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+    it('should not allow duplicate type+subtype+colaborator on create', async () => {
+      const { typeId, subtypeId } = await createTypeAndSubtype();
       const colaboratorId = await createColaborator();
 
       const first = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorIds: [colaboratorId], name: 'Doc1', issuedDate: '2025-01-01' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'Doc1', issuedDate: '2025-01-01' });
       expect(first.status).toBe(201);
 
       const dup = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorIds: [colaboratorId], name: 'Doc2', issuedDate: '2025-01-02' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'Doc2', issuedDate: '2025-01-02' });
       expect(dup.status).toBe(400);
       expect(dup.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should not allow duplicate template+colaborator on update', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+    it('should not allow duplicate type+subtype+colaborator on update', async () => {
+      const { typeId, subtypeId } = await createTypeAndSubtype();
       const colaboratorId = await createColaborator();
-      const otherTemplate = (await createTypeSubtypeAndTemplate()).templateId;
+      const otherTypeSubtype = await createTypeAndSubtype();
 
       await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorIds: [colaboratorId], name: 'DocA', issuedDate: '2025-01-01' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'DocA', issuedDate: '2025-01-01' });
       const b = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId: otherTemplate, colaboratorIds: [colaboratorId], name: 'DocB', issuedDate: '2025-01-01' });
+        .send({ documentTypeId: otherTypeSubtype.typeId, documentSubtypeId: otherTypeSubtype.subtypeId, colaboratorIds: [colaboratorId], name: 'DocB', issuedDate: '2025-01-01' });
       const bId = b.body.data.id as string;
 
       const dupUpdate = await supertest(app)
         .put(`/api/documents/${bId}`)
         .set('x-enable-rbac', 'false')
-        .send({ templateId, comment: 'try duplicate' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, comment: 'try duplicate' });
       expect(dupUpdate.status).toBe(400);
       expect(dupUpdate.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should enforce uniqueness on template+contract+colaborator when contractId provided', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+    it('should enforce uniqueness on type+subtype+contract+colaborator when contractId provided', async () => {
+      const { typeId, subtypeId } = await createTypeAndSubtype();
 
       // Create colaborator and contract
       const colaboratorId = await createColaborator();
@@ -254,47 +251,25 @@ describe('DocumentController with template/colaborator', () => {
       const first = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C1', issuedDate: '2025-01-01' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C1', issuedDate: '2025-01-01' });
       expect(first.status).toBe(201);
 
       // Duplicate triple should fail
       const dup = await supertest(app)
         .post('/api/documents')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C2', issuedDate: '2025-01-02' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C2', issuedDate: '2025-01-02' });
       expect(dup.status).toBe(400);
       expect(dup.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should assign documents from template to all colaborators in a group and skip duplicates', async () => {
-      const { templateId } = await createTypeSubtypeAndTemplate();
+    it('should assign documents from type/subtype to all colaborators in a group and skip duplicates', async () => {
+      const { typeId, subtypeId } = await createTypeAndSubtype();
 
       // Create 3 colaborators
       const c1 = await createColaborator();
       const c2 = await createColaborator();
       const c3 = await createColaborator();
-
-      // Create contract for group
-      const contractIdForGroup = await createContract();
-
-      // Create group
-      const groupRes = await supertest(app)
-        .post('/api/colaborator-groups')
-        .set('x-enable-rbac', 'false')
-        .send({
-          name: `group-${Date.now()}`,
-          description: 'test group',
-          contractId: contractIdForGroup,
-        });
-      expect(groupRes.status).toBe(201);
-      const groupId = groupRes.body.data.id as number;
-
-      // Assign colaborators to group
-      const assignRes = await supertest(app)
-        .post(`/api/colaborator-groups/${groupId}/colaborators`)
-        .set('x-enable-rbac', 'false')
-        .send({ colaboratorIds: [c1, c2, c3] });
-      expect(assignRes.status).toBe(200);
 
       // Create contract
       const now = new Date();
@@ -322,12 +297,9 @@ describe('DocumentController with template/colaborator', () => {
 
       // First bulk assignment
       const bulk1 = await supertest(app)
-        .post('/api/documents/assign-template-to-group')
+        .post('/api/documents/assign-to-group')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, contractId, groupId, name: 'Doc Bulk' });
-      if (bulk1.status !== 201) {
-        console.log('Bulk1 error:', bulk1.body);
-      }
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk' });
       expect(bulk1.status).toBe(201);
       expect(bulk1.body.success).toBe(true);
       expect(bulk1.body.data.createdCount).toBe(3);
@@ -341,9 +313,9 @@ describe('DocumentController with template/colaborator', () => {
 
       // Second bulk assignment should skip all
       const bulk2 = await supertest(app)
-        .post('/api/documents/assign-template-to-group')
+        .post('/api/documents/assign-to-group')
         .set('x-enable-rbac', 'false')
-        .send({ templateId, contractId, groupId, name: 'Doc Bulk 2' });
+        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk 2' });
       expect(bulk2.status).toBe(201);
       expect(bulk2.body.success).toBe(true);
       expect(bulk2.body.data.createdCount).toBe(0);

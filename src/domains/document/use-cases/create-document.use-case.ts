@@ -6,7 +6,8 @@ import { DocumentAction } from '../value-objects/document-enums';
 import { ValidationError } from '@shared/domain/errors';
 
 export interface CreateDocumentRequest {
-  templateId: string;
+  documentTypeId: string;
+  documentSubtypeId: string;
   colaboratorIds?: string[];
   name: string;
   issuedDate?: Date;
@@ -14,6 +15,8 @@ export interface CreateDocumentRequest {
   contractId?: string;
   description?: string;
   documentUrl?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
   createdBy?: string;
   comment?: string;
 }
@@ -29,14 +32,16 @@ export class CreateDocumentUseCase {
     if (request.colaboratorIds && request.colaboratorIds.length > 0) {
       let exists = false;
       if (request.contractId) {
-        exists = await this.documentRepository.existsByTemplateContractColaborator(
-          request.templateId,
+        exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
+          request.documentTypeId,
+          request.documentSubtypeId,
           request.contractId,
           request.colaboratorIds,
         );
       } else {
-        exists = await this.documentRepository.existsByTemplateAndColaborator(
-          request.templateId,
+        exists = await this.documentRepository.existsByTypeSubtypeAndColaborator(
+          request.documentTypeId,
+          request.documentSubtypeId,
           request.colaboratorIds,
         );
       }
@@ -48,7 +53,8 @@ export class CreateDocumentUseCase {
 
     // Creando documento
     const documentProps: DocumentProps = {
-      templateId: request.templateId,
+      documentTypeId: request.documentTypeId,
+      documentSubtypeId: request.documentSubtypeId,
       colaboratorIds: request.colaboratorIds,
       name: request.name,
       issuedDate: request.issuedDate,
@@ -56,6 +62,8 @@ export class CreateDocumentUseCase {
       contractId: request.contractId,
       description: request.description,
       documentUrl: request.documentUrl,
+      requiredForContract: request.requiredForContract,
+      requiredForColaborator: request.requiredForColaborator,
       createdBy: request.createdBy,
     };
 
@@ -68,7 +76,8 @@ export class CreateDocumentUseCase {
     if (request.createdBy && request.createdBy !== 'system') {
       const historyProps: DocumentHistoryProps = {
         documentId: savedDocument.id,
-        templateId: savedDocument.templateId,
+        documentTypeId: savedDocument.documentTypeId,
+        documentSubtypeId: savedDocument.documentSubtypeId,
         name: savedDocument.name,
         issuedDate: savedDocument.issuedDate,
         expirationDate: savedDocument.expirationDate,

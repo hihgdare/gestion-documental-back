@@ -16,9 +16,13 @@ export class TypeOrmColaboratorGroupRepository implements ColaboratorGroupReposi
   }
 
   async assignColaboratorsToGroup(groupId: number, colaboratorIds: string[]): Promise<void> {
-    await this.repository.update(groupId, {
-      colaborators: await this.colaboratorRepository.findBy({ id: In(colaboratorIds) }),
-    });
+    const entity = await this.repository.findOne({ where: { id: groupId } });
+    if (!entity) {
+      throw new NotFoundError('Colaborator group not found');
+    }
+
+    entity.colaborators = await this.colaboratorRepository.findBy({ id: In(colaboratorIds) });
+    await this.repository.save(entity);
   }
 
   async findAll(): Promise<ColaboratorGroup[]> {

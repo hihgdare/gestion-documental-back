@@ -14,12 +14,13 @@ import { createColaboratorRoutes } from '@presentation/routes/colaborators.route
 import { createContractRoutes } from '@presentation/routes/contract.routes';
 import { createDocumentTypeRoutes } from '@presentation/routes/document-type.routes';
 import { createDocumentSubtypeRoutes } from '@presentation/routes/document-subtype.routes';
-import { createDocumentTemplateRoutes } from '@presentation/routes/document-template.routes';
 import { createDocumentRoutes } from '@presentation/routes/document.routes';
 import { createDocumentHistoryRoutes } from '@presentation/routes/document-history.routes';
 import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createColaboratorGroupRoutes } from '@presentation/routes/colaborator-group.routes';
+import { createFamilyRoutes } from '@presentation/routes/family.routes';
+import { createDocumentModelRoutes } from '@presentation/routes/document-model.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
 import { DependencyContainer } from './dependency-container';
@@ -41,7 +42,10 @@ export class App {
     // Initialize dependencies
     await this.dependencyContainer.initialize();
 
-    await runInitialSeedsIfEmpty();
+    // Run initial seeds only if not in production
+    if (process.env.NODE_ENV !== 'production') {
+      await runInitialSeedsIfEmpty();
+    }
 
     // Setup middleware
     this.setupMiddleware();
@@ -121,6 +125,8 @@ export class App {
           permissions: '/api/permissions',
           roles: '/api/roles',
           colaboratorGroups: '/api/colaborator-groups',
+          families: '/api/families',
+          documentModels: '/api/document-models',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -139,8 +145,9 @@ export class App {
     const documentSubtypeController = this.dependencyContainer.getDocumentSubtypeController();
     const documentController = this.dependencyContainer.getDocumentController();
     const documentHistoryController = this.dependencyContainer.getDocumentHistoryController();
-    const documentTemplateController = this.dependencyContainer.getDocumentTemplateController();
     const permissionController = this.dependencyContainer.getPermissionController();
+    const familyController = this.dependencyContainer.getFamilyController();
+    const documentModelController = this.dependencyContainer.getDocumentModelController();
     const roleController = this.dependencyContainer.getRoleController();
     const colaboratorGroupController = this.dependencyContainer.getColaboratorGroupController();
     const authController = this.dependencyContainer.getAuthController();
@@ -162,11 +169,13 @@ export class App {
     this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
     this.app.use('/api/documents/types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
-    this.app.use('/api/document-templates', createDocumentTemplateRoutes(documentTemplateController));
+
     this.app.use('/api/document-history', createDocumentHistoryRoutes(documentHistoryController));
     this.app.use('/api/documents', createDocumentRoutes(documentController, contractReviewerMiddleware));
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
+    this.app.use('/api/families', createFamilyRoutes(familyController));
+    this.app.use('/api/document-models', createDocumentModelRoutes(documentModelController));
     this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));
     this.app.use('/api/files', createFileRoutes(fileController));
 
