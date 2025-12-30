@@ -6,6 +6,8 @@ export interface DashboardMetrics {
   documentsWithoutColaborator: number;
   documentsExpiringSoon: number;
   documentsInReview: number;
+  pendingRequiredForContract: number;
+  pendingRequiredForColaborator: number;
   recentDocuments: Document[];
   documentsRecentlyApproved: Document[];
 }
@@ -29,12 +31,25 @@ export class GetDashboardMetricsUseCase {
     // Cantidad de documentos por vencer en los próximos 30 días
     const documentsExpiringSoon = allDocuments.filter(
       (doc) => doc.expirationDate !== null &&
+        doc.status === DocumentStatus.APPROVED &&
         doc.expirationDate <= new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
     ).length;
 
     // Cantidad de documentos de documentos pendientes por aprobar (in_review)
     const documentsInReview = allDocuments.filter(
       (doc) => doc.status === DocumentStatus.IN_REVIEW,
+    ).length;
+
+    // Cantidad de documentos obligatorios del Contrato en estado Pendiente
+    const pendingRequiredForContract = allDocuments.filter(
+      (doc) => doc.requiredForContract === true &&
+        (doc.status === DocumentStatus.DRAFT || doc.status === DocumentStatus.REJECTED_WITH_COMMENTS),
+    ).length;
+
+    // Cantidad de documentos obligatorios del Colaborador en estado Pendiente
+    const pendingRequiredForColaborator = allDocuments.filter(
+      (doc) => doc.requiredForColaborator === true &&
+        (doc.status === DocumentStatus.DRAFT || doc.status === DocumentStatus.REJECTED_WITH_COMMENTS),
     ).length;
 
     // Listas de los 10 documentos más recientemente creados
@@ -52,6 +67,8 @@ export class GetDashboardMetricsUseCase {
       documentsWithoutColaborator,
       documentsExpiringSoon,
       documentsInReview,
+      pendingRequiredForContract,
+      pendingRequiredForColaborator,
       recentDocuments,
       documentsRecentlyApproved,
     };

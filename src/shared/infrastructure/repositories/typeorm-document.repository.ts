@@ -1,6 +1,7 @@
 import { Repository, LessThanOrEqual, In, IsNull } from 'typeorm';
 import { type DocumentRepository } from '@domains/document/repositories/document.repository';
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
+import { DocumentStatus } from '@domains/document/value-objects/document-enums';
 import { DocumentEntity } from '../database/entities/document.entity';
 import { ColaboratorEntity } from '../database/entities/colaborators.entity';
 import { AppDataSource } from '../database/typeorm.config';
@@ -22,10 +23,28 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return this.toDomain(documentEntity);
   }
 
-  async findAll(filters?: { contractId?: string }): Promise<Document[]> {
+  async findAll(filters?: {
+    contractId?: string;
+    requiredForContract?: boolean;
+    requiredForColaborator?: boolean;
+    status?: DocumentStatus | DocumentStatus[];
+  }): Promise<Document[]> {
     const where: any = { deletedAt: IsNull() };
+
     if (filters?.contractId) {
       where.contractId = filters.contractId;
+    }
+
+    if (filters?.requiredForContract !== undefined) {
+      where.requiredForContract = filters.requiredForContract;
+    }
+
+    if (filters?.requiredForColaborator !== undefined) {
+      where.requiredForColaborator = filters.requiredForColaborator;
+    }
+
+    if (filters?.status) {
+      where.status = Array.isArray(filters.status) ? In(filters.status) : filters.status;
     }
 
     const documentEntities = await this.repository.find({
