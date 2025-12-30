@@ -31,6 +31,7 @@ export class GetDashboardMetricsUseCase {
     // Cantidad de documentos por vencer en los próximos 30 días
     const documentsExpiringSoon = allDocuments.filter(
       (doc) => doc.expirationDate !== null &&
+        doc.status === DocumentStatus.APPROVED &&
         doc.expirationDate <= new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000),
     ).length;
 
