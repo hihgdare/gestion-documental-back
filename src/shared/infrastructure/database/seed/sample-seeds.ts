@@ -3,11 +3,20 @@ import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/reposit
 import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
 import { TypeOrmColaboratorGroupRepository } from '@shared/infrastructure/repositories/typeorm-colaborator-group.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
+import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { DocumentType as DocTypeDomain } from '@domains/document-type/entities/document-type.entity';
 import { DocumentSubtype } from '@domains/document-subtype/entities/document-subtype.entity';
 import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
+import { Document } from '@domains/document/entities/document.entity';
+import { File } from '@domains/file/entities/file.entity';
 import { DocumentType as ColabDocType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { DocumentStatus } from '@domains/document/value-objects/document-enums';
+import { StorageType } from '@domains/file/value-objects/storage-type';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export async function runSampleSeeds(): Promise<void> {
   if (process.env.NODE_ENV !== 'development') return;
@@ -293,5 +302,201 @@ export async function runSampleSeeds(): Promise<void> {
     await groupRepo.update({ id: A.id, colaborators: groupAColabs.map(id => ({ id } as any)) });
     await groupRepo.update({ id: B.id, colaborators: groupBColabs.map(id => ({ id } as any)) });
     await groupRepo.update({ id: C.id, colaborators: groupCColabs.map(id => ({ id } as any)) });
+  }
+
+  /* Create Documents with different statuses */
+  const documentRepo = new TypeOrmDocumentRepository();
+  const fileRepo = new TypeOrmFileRepository();
+  const userRepo = new TypeOrmUserRepository();
+
+  // Get first user to use as createdBy
+  const users = await userRepo.findAll();
+  const createdById = users.length > 0 ? users[0].id : null;
+
+  // Helper function to copy test files to uploads folder
+  const copyTestFile = async (testFileName: string, destinationFileName: string): Promise<File> => {
+    const testsDir = path.join(process.cwd(), 'tests');
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const sourcePath = path.join(testsDir, testFileName);
+    const destPath = path.join(uploadsDir, destinationFileName);
+
+    fs.copyFileSync(sourcePath, destPath);
+
+    const stats = fs.statSync(destPath);
+    const mimeType = testFileName.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+
+    const file = new File({
+      originalName: testFileName,
+      path: `uploads/${destinationFileName}`,
+      storage: 'local' as StorageType,
+      mimeType,
+      size: stats.size,
+    });
+
+    return await fileRepo.save(file);
+  };
+
+  const documentsData = [
+    {
+      name: 'Documento en Borrador',
+      documentTypeId: types[0],
+      documentSubtypeId: subtypes[0],
+      contractId: contractIds[0],
+      colaboratorIds: [colaboratorIds[0], colaboratorIds[1]],
+      description: 'Documento de prueba en estado borrador',
+      status: DocumentStatus.DRAFT,
+      issuedDate: today,
+      expirationDate: new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000),
+      requiredForContract: true,
+      requiredForColaborator: false,
+      createdBy: createdById,
+    },
+    {
+      name: 'Documento en Revisión',
+      documentTypeId: types[1],
+      documentSubtypeId: subtypes[1],
+      contractId: contractIds[1],
+      colaboratorIds: [colaboratorIds[2], colaboratorIds[3]],
+      description: 'Documento de prueba en estado de revisión',
+      status: DocumentStatus.IN_REVIEW,
+      issuedDate: today,
+      expirationDate: new Date(today.getTime() + 180 * 24 * 60 * 60 * 1000),
+      requiredForContract: false,
+      requiredForColaborator: true,
+      createdBy: createdById,
+      testFile: 'test-document-1.pdf',
+    },
+    {
+      name: 'Documento Aprobado',
+      documentTypeId: types[2],
+      documentSubtypeId: subtypes[2],
+      contractId: contractIds[2],
+      colaboratorIds: [colaboratorIds[4], colaboratorIds[5]],
+      description: 'Documento de prueba aprobado',
+      status: DocumentStatus.APPROVED,
+      issuedDate: today,
+      expirationDate: new Date(today.getTime() + 730 * 24 * 60 * 60 * 1000),
+      requiredForContract: true,
+      requiredForColaborator: true,
+      createdBy: createdById,
+      testFile: 'test-document-2.pdf',
+    },
+    {
+      name: 'Documento Rechazado',
+      documentTypeId: types[0],
+      documentSubtypeId: subtypes[0],
+      contractId: contractIds[0],
+      colaboratorIds: [colaboratorIds[6]],
+      description: 'Documento de prueba rechazado',
+      status: DocumentStatus.REJECTED,
+      issuedDate: today,
+      expirationDate: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000),
+      requiredForContract: false,
+      requiredForColaborator: false,
+      createdBy: createdById,
+      comment: 'Rechazado por incumplir requisitos',
+      testFile: 'test-document-3.pdf',
+    },
+    {
+      name: 'Documento Rechazado con Comentarios',
+      documentTypeId: types[1],
+      documentSubtypeId: subtypes[1],
+      contractId: contractIds[1],
+      colaboratorIds: [colaboratorIds[0], colaboratorIds[3]],
+      description: 'Documento rechazado con comentarios para corrección',
+      status: DocumentStatus.REJECTED_WITH_COMMENTS,
+      issuedDate: today,
+      expirationDate: new Date(today.getTime() + 120 * 24 * 60 * 60 * 1000),
+      requiredForContract: true,
+      requiredForColaborator: false,
+      createdBy: createdById,
+      comment: 'Favor revisar las firmas y volver a enviar',
+      testFile: 'test-image-1.jpg',
+    },
+    {
+      name: 'Documento Expirado',
+      documentTypeId: types[2],
+      documentSubtypeId: subtypes[2],
+      contractId: contractIds[2],
+      colaboratorIds: [colaboratorIds[1], colaboratorIds[4]],
+      description: 'Documento que ya ha expirado',
+      status: DocumentStatus.EXPIRED,
+      issuedDate: new Date(today.getTime() - 400 * 24 * 60 * 60 * 1000),
+      expirationDate: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000),
+      requiredForContract: false,
+      requiredForColaborator: true,
+      createdBy: createdById,
+      testFile: 'test-image-2.png',
+    },
+    {
+      name: 'Documento Obsoleto',
+      documentTypeId: types[0],
+      documentSubtypeId: subtypes[0],
+      contractId: contractIds[0],
+      colaboratorIds: [colaboratorIds[2], colaboratorIds[5]],
+      description: 'Documento marcado como obsoleto',
+      status: DocumentStatus.OBSOLETE,
+      issuedDate: new Date(today.getTime() - 200 * 24 * 60 * 60 * 1000),
+      expirationDate: new Date(today.getTime() + 100 * 24 * 60 * 60 * 1000),
+      requiredForContract: false,
+      requiredForColaborator: false,
+      createdBy: createdById,
+      testFile: 'test-document-1.pdf',
+    },
+    {
+      name: 'Documento Archivado',
+      documentTypeId: types[1],
+      documentSubtypeId: subtypes[1],
+      contractId: contractIds[1],
+      colaboratorIds: [colaboratorIds[3], colaboratorIds[6]],
+      description: 'Documento archivado para registro histórico',
+      status: DocumentStatus.ARCHIVED,
+      issuedDate: new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000),
+      expirationDate: null,
+      requiredForContract: true,
+      requiredForColaborator: true,
+      createdBy: createdById,
+      testFile: 'test-document-2.pdf',
+    },
+  ];
+
+  for (const docData of documentsData) {
+    const { testFile, ...documentProps } = docData as any;
+
+    // Check if document already exists by name
+    const existing = await documentRepo.findAll({ contractId: documentProps.contractId });
+    if (existing.some(d => d.name === documentProps.name)) {
+      // console.log(`  ⏭️  Documento "${documentProps.name}" ya existe, omitiendo...`);
+      continue;
+    }
+
+    // Create the document
+    const document = Document.create(documentProps);
+    const savedDocument = await documentRepo.save(document);
+
+    // Attach file if status is not DRAFT
+    if (testFile && documentProps.status !== DocumentStatus.DRAFT) {
+      const fileExtension = path.extname(testFile);
+      const destinationFileName = `${savedDocument.id}${fileExtension}`;
+
+      try {
+        const file = await copyTestFile(testFile, destinationFileName);
+
+        // Update document with file ID (not path)
+        savedDocument.documentUrl = file.id;
+        await documentRepo.update(savedDocument);
+
+        // console.log(`  ✅ Documento "${documentProps.name}" creado con archivo adjunto`);
+      } catch (_error) {
+        // console.log(`  ⚠️  Documento "${documentProps.name}" creado pero no se pudo adjuntar archivo:`, error);
+      }
+    } else {
+      // console.log(`  ✅ Documento "${documentProps.name}" creado (sin archivo)`);
+    }
   }
 }
