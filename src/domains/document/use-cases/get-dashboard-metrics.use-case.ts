@@ -6,6 +6,8 @@ export interface DashboardMetrics {
   documentsWithoutColaborator: number;
   documentsExpiringSoon: number;
   documentsInReview: number;
+  pendingRequiredForContract: number;
+  pendingRequiredForColaborator: number;
   recentDocuments: Document[];
   documentsRecentlyApproved: Document[];
 }
@@ -37,6 +39,18 @@ export class GetDashboardMetricsUseCase {
       (doc) => doc.status === DocumentStatus.IN_REVIEW,
     ).length;
 
+    // Cantidad de documentos obligatorios del Contrato en estado Pendiente
+    const pendingRequiredForContract = allDocuments.filter(
+      (doc) => doc.requiredForContract === true &&
+        (doc.status === DocumentStatus.DRAFT || doc.status === DocumentStatus.REJECTED_WITH_COMMENTS),
+    ).length;
+
+    // Cantidad de documentos obligatorios del Colaborador en estado Pendiente
+    const pendingRequiredForColaborator = allDocuments.filter(
+      (doc) => doc.requiredForColaborator === true &&
+        (doc.status === DocumentStatus.DRAFT || doc.status === DocumentStatus.REJECTED_WITH_COMMENTS),
+    ).length;
+
     // Listas de los 10 documentos más recientemente creados
     const recentDocuments = allDocuments
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -52,6 +66,8 @@ export class GetDashboardMetricsUseCase {
       documentsWithoutColaborator,
       documentsExpiringSoon,
       documentsInReview,
+      pendingRequiredForContract,
+      pendingRequiredForColaborator,
       recentDocuments,
       documentsRecentlyApproved,
     };

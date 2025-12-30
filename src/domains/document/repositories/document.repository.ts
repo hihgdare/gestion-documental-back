@@ -1,8 +1,14 @@
 import { Document } from '../entities/document.entity';
+import { DocumentStatus } from '../value-objects/document-enums';
 
 export interface DocumentRepository {
   findById(id: string): Promise<Document | null>;
-  findAll(filters?: { contractId?: string }): Promise<Document[]>;
+  findAll(filters?: {
+    contractId?: string;
+    requiredForContract?: boolean;
+    requiredForColaborator?: boolean;
+    status?: DocumentStatus | DocumentStatus[];
+  }): Promise<Document[]>;
   findByContractId(contractId: string): Promise<Document[]>;
   save(request: Partial<Omit<Document, 'id'>>): Promise<Document>;
   update(request: Document & { id: string }): Promise<Document>;

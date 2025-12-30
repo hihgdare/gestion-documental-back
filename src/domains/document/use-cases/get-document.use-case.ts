@@ -1,5 +1,6 @@
 import { DocumentRepository } from '../repositories/document.repository';
 import { Document } from '../entities/document.entity';
+import { DocumentStatus } from '../value-objects/document-enums';
 import { NotFoundError } from '@shared/domain/errors';
 
 export class GetDocumentByIdUseCase {
@@ -17,7 +18,12 @@ export class GetDocumentByIdUseCase {
 export class GetAllDocumentsUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  public async execute(filters?: { contractId?: string }): Promise<Document[]> {
+  public async execute(filters?: {
+    contractId?: string;
+    requiredForContract?: boolean;
+    requiredForColaborator?: boolean;
+    status?: DocumentStatus | DocumentStatus[];
+  }): Promise<Document[]> {
     return await this.documentRepository.findAll(filters);
   }
 }
