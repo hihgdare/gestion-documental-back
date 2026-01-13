@@ -295,6 +295,16 @@ export class Contract {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // days
   }
 
+  public softDelete(): void {
+    this.deletedAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  public restore(): void {
+    this.deletedAt = null;
+    this.updatedAt = new Date();
+  }
+
   public toJSON(): ContractJson {
     return {
       id: this.id,
