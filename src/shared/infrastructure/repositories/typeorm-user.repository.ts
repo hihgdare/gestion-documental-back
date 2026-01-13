@@ -1,4 +1,4 @@
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { type UserRepository } from '@domains/user/repositories/user.repository';
 import { CreateUserProps, UpdateUserProps, User } from '@domains/user/entities/user.entity';
 import { UserStatus } from '@domains/user/value-objects/user-status';
@@ -12,9 +12,10 @@ export class TypeOrmUserRepository implements UserRepository {
   private repository: Repository<UserEntity>;
   private roleRepository: Repository<RoleEntity>;
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(UserEntity);
-    this.roleRepository = AppDataSource.getRepository(RoleEntity);
+  constructor(dataSource?: DataSource) {
+    const ds = dataSource || AppDataSource;
+    this.repository = ds.getRepository(UserEntity);
+    this.roleRepository = ds.getRepository(RoleEntity);
   }
 
   async assignRoleToUser(userId: string, roleId: number): Promise<void> {

@@ -9,6 +9,7 @@ declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
     token?: string;
+    userPermissions?: string[];
   }
 }
 
@@ -23,10 +24,16 @@ export const authorize = (required?: string | string[]) => (
       : res.status(401).json({ message: 'unauthorized' });
 
     // First, check permissions from the user already loaded by auth middleware
-    if (!required || user.can(required)) return next();
+    if (!required || user.can(required)) {
+      // Set userPermissions in request for use in controllers
+      const perms = await getUserEffectivePermissions(user.id);
+      req.userPermissions = Array.from(perms);
+      return next();
+    }
 
     // Fallback: recompute from DB (handles cases where relations weren't loaded or cache invalidation)
     const perms = await getUserEffectivePermissions(user.id);
+    req.userPermissions = Array.from(perms);
     if (toArray(required).some(perm => perms.has(perm))) return next();
     res.status(403).json({ message: 'forbidden' });
   }

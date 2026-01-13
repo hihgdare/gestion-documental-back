@@ -139,6 +139,7 @@ import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains
 
 import { TypeOrmFamilyRepository } from '@shared/infrastructure/repositories/typeorm-family.repository';
 import { TypeOrmDocumentModelRepository } from '@shared/infrastructure/repositories/typeorm-document-model.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
@@ -159,6 +160,13 @@ import { FileController } from '@presentation/controllers/file.controller';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
 import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
 
+// Group domain
+import { CreateGroupUseCase, GetAllGroupsUseCase } from '@domains/group/use-cases/create-group.use-case';
+import { GetGroupByIdUseCase } from '@domains/group/use-cases/get-group.use-case';
+import { UpdateGroupUseCase, DeleteGroupUseCase } from '@domains/group/use-cases/update-group.use-case';
+import { AddUserToGroupUseCase, RemoveUserFromGroupUseCase, AssignGroupToUserUseCase } from '@domains/group/use-cases/manage-group-users.use-case';
+import { GroupController } from '@presentation/controllers/group.controller';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -176,6 +184,7 @@ export class DependencyContainer {
   private fileRepository!: TypeOrmFileRepository;
   private familyRepository!: TypeOrmFamilyRepository;
   private documentModelRepository!: TypeOrmDocumentModelRepository;
+  private groupRepository!: TypeOrmGroupRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -306,6 +315,16 @@ export class DependencyContainer {
   private updateDocumentModelUseCase!: UpdateDocumentModelUseCase;
   private deleteDocumentModelUseCase!: DeleteDocumentModelUseCase;
 
+  // Use Cases - Group
+  private createGroupUseCase!: CreateGroupUseCase;
+  private getGroupByIdUseCase!: GetGroupByIdUseCase;
+  private getAllGroupsUseCase!: GetAllGroupsUseCase;
+  private updateGroupUseCase!: UpdateGroupUseCase;
+  private deleteGroupUseCase!: DeleteGroupUseCase;
+  private addUserToGroupUseCase!: AddUserToGroupUseCase;
+  private removeUserFromGroupUseCase!: RemoveUserFromGroupUseCase;
+  private assignGroupToUserUseCase!: AssignGroupToUserUseCase;
+
   // Controllers
   private colaboratorController!: ColaboratorController;
   private contractController!: ContractController;
@@ -319,6 +338,7 @@ export class DependencyContainer {
   private colaboratorGroupController!: ColaboratorGroupController;
   private familyController!: FamilyController;
   private documentModelController!: DocumentModelController;
+  private groupController!: GroupController;
   private userController!: UserController;
   private authController!: AuthController;
   private fileController!: FileController;
@@ -340,6 +360,7 @@ export class DependencyContainer {
     this.fileRepository = new TypeOrmFileRepository();
     this.familyRepository = new TypeOrmFamilyRepository();
     this.documentModelRepository = new TypeOrmDocumentModelRepository();
+    this.groupRepository = new TypeOrmGroupRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
@@ -648,6 +669,27 @@ export class DependencyContainer {
       this.deleteDocumentModelUseCase,
     );
 
+    // Initialize Group use cases
+    this.createGroupUseCase = new CreateGroupUseCase(this.groupRepository);
+    this.getGroupByIdUseCase = new GetGroupByIdUseCase(this.groupRepository);
+    this.getAllGroupsUseCase = new GetAllGroupsUseCase(this.groupRepository);
+    this.updateGroupUseCase = new UpdateGroupUseCase(this.groupRepository);
+    this.deleteGroupUseCase = new DeleteGroupUseCase(this.groupRepository);
+    this.addUserToGroupUseCase = new AddUserToGroupUseCase(this.groupRepository, this.userRepository);
+    this.removeUserFromGroupUseCase = new RemoveUserFromGroupUseCase(this.groupRepository, this.userRepository);
+    this.assignGroupToUserUseCase = new AssignGroupToUserUseCase(this.groupRepository, this.userRepository);
+
+    this.groupController = new GroupController(
+      this.createGroupUseCase,
+      this.getGroupByIdUseCase,
+      this.getAllGroupsUseCase,
+      this.updateGroupUseCase,
+      this.deleteGroupUseCase,
+      this.addUserToGroupUseCase,
+      this.removeUserFromGroupUseCase,
+      this.assignGroupToUserUseCase,
+    );
+
     this.userController = new UserController(
       this.createUserUseCase,
       this.getUserByIdUseCase,
@@ -714,6 +756,10 @@ export class DependencyContainer {
 
   public getDocumentModelController(): DocumentModelController {
     return this.documentModelController;
+  }
+
+  public getGroupController(): GroupController {
+    return this.groupController;
   }
 
   public getAuthController(): AuthController {
