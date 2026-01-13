@@ -16,6 +16,7 @@ const adminSections = [
   'document-type',
   'document',
   'family',
+  'group',
   'permission',
   'role',
   'user',
@@ -25,8 +26,10 @@ const otherPermissions = [
   'colaborator-group:assign:document',
   'contract:assign:reviewer',
   'document:review',
+  'group:assign:user',
   'role:assign:permission',
   'user:assign:role',
+  'user:change:group',
 ];
 
 export async function runInitialSeedsIfEmpty(): Promise<void> {

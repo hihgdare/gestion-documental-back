@@ -1,0 +1,74 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@token = {{login.response.body.data.token}}
+
+### Login
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+### Get all groups
+GET {{baseUrl}}/groups
+Authorization: Bearer {{token}}
+
+### Get group by ID
+GET {{baseUrl}}/groups/1
+Authorization: Bearer {{token}}
+
+### Create group
+POST {{baseUrl}}/groups
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Administradores",
+  "description": "Grupo de usuarios administradores"
+}
+
+### Update group
+PUT {{baseUrl}}/groups/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Administradores Actualizados",
+  "description": "Grupo de usuarios administradores actualizado"
+}
+
+### Add user to group (from group perspective)
+# Requires: group:assign:user OR user:change:group permission
+POST {{baseUrl}}/groups/1/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "userId": "user-uuid-here"
+}
+
+### Assign group to user (from user perspective)
+# Requires: group:assign:user OR user:change:group permission
+POST {{baseUrl}}/groups/assign-to-user/user-uuid-here
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "groupId": 1
+}
+
+### Remove user from group
+DELETE {{baseUrl}}/groups/1/users/user-uuid-here
+Authorization: Bearer {{token}}
+
+### Delete group
+DELETE {{baseUrl}}/groups/1
+Authorization: Bearer {{token}}
+
+### Notes:
+# Permission differences:
+# - group:assign:user: Can assign users to groups, but will get error if user already belongs to another group
+# - user:change:group: Can change user's group freely, even if user already belongs to another group

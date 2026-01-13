@@ -2,7 +2,7 @@ import { AppDataSource } from '@shared/infrastructure/database/typeorm.config';
 import { RoleEntity } from '@shared/infrastructure/database/entities/role.entity';
 import { CreateRoleProps, Role, UpdateRoleProps } from '@domains/role/entities/role.entity';
 import { RoleRepository } from '@domains/role/repositories/role.repository';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { PermissionEntity } from '@shared/infrastructure/database/entities/permission.entity';
 import { NotFoundError } from '@shared/domain/errors';
 
@@ -10,9 +10,10 @@ export class TypeOrmRoleRepository implements RoleRepository {
   private repository: Repository<RoleEntity>;
   private permissionRepository: Repository<PermissionEntity>;
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(RoleEntity);
-    this.permissionRepository = AppDataSource.getRepository(PermissionEntity);
+  constructor(dataSource?: DataSource) {
+    const ds = dataSource || AppDataSource;
+    this.repository = ds.getRepository(RoleEntity);
+    this.permissionRepository = ds.getRepository(PermissionEntity);
   }
 
   async assignPermissionsToRole(roleId: number, permissionIds: number[]): Promise<void> {
