@@ -113,10 +113,13 @@ export class ColaboratorController {
     const { id } = req.params;
     const dto: UpdateColaboratorDto = req.body;
 
-    const colaborator = await this.updateColaboratorUseCase.execute({
-      id,
-      ...dto,
-    });
+    // Convert fechaNacimiento string to Date if provided
+    const updateRequest: any = { id, ...dto };
+    if (dto.fechaNacimiento) {
+      updateRequest.fechaNacimiento = new Date(dto.fechaNacimiento);
+    }
+
+    const colaborator = await this.updateColaboratorUseCase.execute(updateRequest);
 
     res.status(200).json({
       success: true,

@@ -434,6 +434,74 @@ export class Colaborator extends BaseEntity {
     this._cargo = cargo.trim();
   }
 
+  public updateBasicInfo(nombre: string, apellidoPaterno: string, apellidoMaterno?: string): void {
+    if (!nombre?.trim()) {
+      throw new ValidationError('Nombre is required', 'nombre');
+    }
+    if (!apellidoPaterno?.trim()) {
+      throw new ValidationError('Apellido paterno is required', 'apellidoPaterno');
+    }
+    this._nombre = nombre.trim();
+    this._apellidoPaterno = apellidoPaterno.trim();
+    this._apellidoMaterno = apellidoMaterno?.trim();
+  }
+
+  public updateDocumentInfo(tipoDocumento: DocumentType, numeroDocumento: string): void {
+    if (!numeroDocumento?.trim()) {
+      throw new ValidationError('Número de documento is required', 'numeroDocumento');
+    }
+    this._tipoDocumento = tipoDocumento;
+    this._numeroDocumento = numeroDocumento.trim();
+  }
+
+  public updatePersonalInfo(nacionalidad: string, sexo: Gender, estadoCivil: CivilStatus, fechaNacimiento: Date): void {
+    if (!nacionalidad?.trim()) {
+      throw new ValidationError('Nacionalidad is required', 'nacionalidad');
+    }
+    Colaborator.validateAge(fechaNacimiento);
+    this._nacionalidad = nacionalidad.trim();
+    this._sexo = sexo;
+    this._estadoCivil = estadoCivil;
+    this._fechaNacimiento = fechaNacimiento;
+  }
+
+  public updateLocationInfo(paisResidencia: string, region?: string, comuna?: string, estadoRegion?: string, ciudadMunicipio?: string): void {
+    if (!paisResidencia?.trim()) {
+      throw new ValidationError('País de residencia is required', 'paisResidencia');
+    }
+
+    // Validación para Chile
+    if (paisResidencia === 'CL') {
+      if (!region?.trim()) {
+        throw new ValidationError('Región is required for Chile', 'region');
+      }
+      if (!comuna?.trim()) {
+        throw new ValidationError('Comuna is required for Chile', 'comuna');
+      }
+    } else {
+      // Validación para otros países
+      if (!estadoRegion?.trim()) {
+        throw new ValidationError('Estado/Región is required for non-Chilean residents', 'estadoRegion');
+      }
+      if (!ciudadMunicipio?.trim()) {
+        throw new ValidationError('Ciudad/Municipio is required for non-Chilean residents', 'ciudadMunicipio');
+      }
+    }
+
+    this._paisResidencia = paisResidencia.trim();
+    this._region = region?.trim();
+    this._comuna = comuna?.trim();
+    this._estadoRegion = estadoRegion?.trim();
+    this._ciudadMunicipio = ciudadMunicipio?.trim();
+  }
+
+  public updateProfesion(profesion: string): void {
+    if (!profesion?.trim()) {
+      throw new ValidationError('Profesión is required', 'profesion');
+    }
+    this._profesion = profesion.trim();
+  }
+
   public isActive(): boolean {
     return this._status === ColaboratorStatus.ACTIVE;
   }
