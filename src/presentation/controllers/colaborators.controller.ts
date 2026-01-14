@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
 import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
-import { UpdateColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
+import { UpdateColaboratorUseCase, DeleteColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
 import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
 import { CreateColaboratorDto } from '@presentation/dto/colaborator/create-colaborator.dto';
 import { UpdateColaboratorDto } from '@presentation/dto/colaborator/update-colaborator.dto';
@@ -16,6 +16,7 @@ export class ColaboratorController {
     private readonly createColaboratorUseCase: CreateColaboratorUseCase,
     private readonly getColaboratorUseCase: GetColaboratorUseCase,
     private readonly updateColaboratorUseCase: UpdateColaboratorUseCase,
+    private readonly deleteColaboratorUseCase: DeleteColaboratorUseCase,
     private readonly getColaboratorGroupsUseCase: GetColaboratorGroupsUseCase,
     private readonly updateColaboratorContractsUseCase: UpdateColaboratorContractsUseCase,
     private readonly getContractsByColaboratorUseCase: GetContractsByColaboratorUseCase,
@@ -197,6 +198,15 @@ export class ColaboratorController {
       success: true,
       data: contracts.map(contract => toContractResponseDto(contract)),
       count: contracts.length,
+    });
+  });
+
+  public deleteColaborator = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await this.deleteColaboratorUseCase.execute(id);
+    res.status(200).json({
+      success: true,
+      message: 'Colaborator deleted successfully',
     });
   });
 }

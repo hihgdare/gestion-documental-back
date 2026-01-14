@@ -34,6 +34,7 @@ export interface ColaboratorProps {
   status?: ColaboratorStatus;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
   contractIds?: string[];
 }
 
@@ -67,6 +68,7 @@ export interface ColaboratorJson {
   contractIds?: string[];
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export class Colaborator extends BaseEntity {
@@ -96,6 +98,7 @@ export class Colaborator extends BaseEntity {
     private _status: ColaboratorStatus,
     public createdAt: Date,
     public updatedAt: Date,
+    public deletedAt: Date | null,
     public contractIds?: string[],
   ) {
     super();
@@ -136,6 +139,7 @@ export class Colaborator extends BaseEntity {
       status,
       props.createdAt || new Date(),
       props.updatedAt || new Date(),
+      props.deletedAt || null,
       props.contractIds,
     );
   }
@@ -169,6 +173,7 @@ export class Colaborator extends BaseEntity {
       status,
       props.createdAt! instanceof Date ? props.createdAt! : new Date(props.createdAt!),
       props.updatedAt! instanceof Date ? props.updatedAt! : new Date(props.updatedAt!),
+      props.deletedAt ? (props.deletedAt instanceof Date ? props.deletedAt : new Date(props.deletedAt)) : null,
       props.contractIds,
     );
   }
@@ -433,6 +438,16 @@ export class Colaborator extends BaseEntity {
     return this._status === ColaboratorStatus.ACTIVE;
   }
 
+  public softDelete(): void {
+    this.deletedAt = new Date();
+    this.updatedAt = new Date();
+  }
+
+  public restore(): void {
+    this.deletedAt = null;
+    this.updatedAt = new Date();
+  }
+
   public toJSON(): ColaboratorJson {
     return {
       id: this.id,
@@ -464,6 +479,7 @@ export class Colaborator extends BaseEntity {
       contractIds: this.contractIds,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
     };
   }
 }

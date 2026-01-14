@@ -4,6 +4,7 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   Index,
   ManyToMany,
   JoinTable,
@@ -102,6 +103,9 @@ export class ColaboratorEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt!: Date | null;
 
   @ManyToMany(() => ColaboratorGroupEntity, (group) => group.colaborators)
   groups!: ColaboratorGroupEntity[];

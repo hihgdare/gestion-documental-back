@@ -111,3 +111,17 @@ export class UpdateColaboratorUseCase {
     return await this.colaboratorRepository.update(colaborator);
   }
 }
+
+export class DeleteColaboratorUseCase {
+  constructor(private readonly colaboratorRepository: ColaboratorRepository) {}
+
+  public async execute(id: string): Promise<void> {
+    const colaborator = await this.colaboratorRepository.findById(id);
+    if (!colaborator) {
+      throw new NotFoundError('Colaborator', id);
+    }
+
+    colaborator.softDelete();
+    await this.colaboratorRepository.update(colaborator);
+  }
+}
