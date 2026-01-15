@@ -20,6 +20,7 @@ import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createColaboratorGroupRoutes } from '@presentation/routes/colaborator-group.routes';
 import { createFamilyRoutes } from '@presentation/routes/family.routes';
+import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createDocumentModelRoutes } from '@presentation/routes/document-model.routes';
 import { createGroupRoutes } from '@presentation/routes/group.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
@@ -127,6 +128,7 @@ export class App {
           roles: '/api/roles',
           colaboratorGroups: '/api/colaborator-groups',
           families: '/api/families',
+          companies: '/api/companies',
           documentModels: '/api/document-models',
           groups: '/api/groups',
           files: '/api/files',
@@ -149,6 +151,7 @@ export class App {
     const documentHistoryController = this.dependencyContainer.getDocumentHistoryController();
     const permissionController = this.dependencyContainer.getPermissionController();
     const familyController = this.dependencyContainer.getFamilyController();
+    const companyController = this.dependencyContainer.getCompanyController();
     const documentModelController = this.dependencyContainer.getDocumentModelController();
     const groupController = this.dependencyContainer.getGroupController();
     const roleController = this.dependencyContainer.getRoleController();
@@ -178,6 +181,7 @@ export class App {
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
     this.app.use('/api/families', createFamilyRoutes(familyController));
+    this.app.use('/api/companies', createCompanyRoutes(companyController));
     this.app.use('/api/document-models', createDocumentModelRoutes(documentModelController));
     this.app.use('/api/groups', createGroupRoutes(groupController));
     this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));

@@ -10,6 +10,7 @@ import { PermissionController } from '@presentation/controllers/permission.contr
 import { RoleController } from '@presentation/controllers/role.controller';
 import { ColaboratorGroupController } from '@presentation/controllers/colaborator-group.controller';
 import { FamilyController } from '@presentation/controllers/family.controller';
+import { CompanyController } from '@presentation/controllers/company.controller';
 import { DocumentModelController } from '@presentation/controllers/document-model.controller';
 
 // User domain
@@ -128,6 +129,11 @@ import { GetFamilyByIdUseCase, GetAllFamiliesUseCase } from '@domains/family/use
 import { UpdateFamilyUseCase, DeleteFamilyUseCase } from '@domains/family/use-cases/update-family.use-case';
 import { AssignDocumentsFromFamilyUseCase } from '@domains/family/use-cases/assign-documents-from-family.use-case';
 
+// Company domain
+import { CreateCompanyUseCase } from '@domains/company/use-cases/create-company.use-case';
+import { GetCompanyByIdUseCase, GetAllCompaniesUseCase } from '@domains/company/use-cases/get-company.use-case';
+import { UpdateCompanyUseCase, DeleteCompanyUseCase } from '@domains/company/use-cases/update-company.use-case';
+
 // DocumentModel domain
 import { CreateDocumentModelUseCase } from '@domains/document-model/use-cases/create-document-model.use-case';
 import {
@@ -138,6 +144,7 @@ import {
 import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains/document-model/use-cases/update-document-model.use-case';
 
 import { TypeOrmFamilyRepository } from '@shared/infrastructure/repositories/typeorm-family.repository';
+import { TypeOrmCompanyRepository } from '@shared/infrastructure/repositories/typeorm-company.repository';
 import { TypeOrmDocumentModelRepository } from '@shared/infrastructure/repositories/typeorm-document-model.repository';
 import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 // Repositories
@@ -183,6 +190,7 @@ export class DependencyContainer {
   private colaboratorGroupRepository!: TypeOrmColaboratorGroupRepository;
   private fileRepository!: TypeOrmFileRepository;
   private familyRepository!: TypeOrmFamilyRepository;
+  private companyRepository!: TypeOrmCompanyRepository;
   private documentModelRepository!: TypeOrmDocumentModelRepository;
   private groupRepository!: TypeOrmGroupRepository;
 
@@ -307,6 +315,13 @@ export class DependencyContainer {
   private deleteFamilyUseCase!: DeleteFamilyUseCase;
   private assignDocumentsFromFamilyUseCase!: AssignDocumentsFromFamilyUseCase;
 
+  // Use Cases - Company
+  private createCompanyUseCase!: CreateCompanyUseCase;
+  private getCompanyByIdUseCase!: GetCompanyByIdUseCase;
+  private getAllCompaniesUseCase!: GetAllCompaniesUseCase;
+  private updateCompanyUseCase!: UpdateCompanyUseCase;
+  private deleteCompanyUseCase!: DeleteCompanyUseCase;
+
   // Use Cases - DocumentModel
   private createDocumentModelUseCase!: CreateDocumentModelUseCase;
   private getDocumentModelByIdUseCase!: GetDocumentModelByIdUseCase;
@@ -337,6 +352,7 @@ export class DependencyContainer {
   private roleController!: RoleController;
   private colaboratorGroupController!: ColaboratorGroupController;
   private familyController!: FamilyController;
+  private companyController!: CompanyController;
   private documentModelController!: DocumentModelController;
   private groupController!: GroupController;
   private userController!: UserController;
@@ -359,6 +375,7 @@ export class DependencyContainer {
     this.colaboratorGroupRepository = new TypeOrmColaboratorGroupRepository();
     this.fileRepository = new TypeOrmFileRepository();
     this.familyRepository = new TypeOrmFamilyRepository();
+    this.companyRepository = new TypeOrmCompanyRepository();
     this.documentModelRepository = new TypeOrmDocumentModelRepository();
     this.groupRepository = new TypeOrmGroupRepository();
 
@@ -649,6 +666,21 @@ export class DependencyContainer {
       this.assignDocumentsFromFamilyUseCase,
     );
 
+    // Initialize Company use cases
+    this.createCompanyUseCase = new CreateCompanyUseCase(this.companyRepository);
+    this.getCompanyByIdUseCase = new GetCompanyByIdUseCase(this.companyRepository);
+    this.getAllCompaniesUseCase = new GetAllCompaniesUseCase(this.companyRepository);
+    this.updateCompanyUseCase = new UpdateCompanyUseCase(this.companyRepository);
+    this.deleteCompanyUseCase = new DeleteCompanyUseCase(this.companyRepository);
+
+    this.companyController = new CompanyController(
+      this.createCompanyUseCase,
+      this.getCompanyByIdUseCase,
+      this.getAllCompaniesUseCase,
+      this.updateCompanyUseCase,
+      this.deleteCompanyUseCase,
+    );
+
     // Initialize DocumentModel use cases
     this.createDocumentModelUseCase = new CreateDocumentModelUseCase(
       this.documentModelRepository,
@@ -752,6 +784,10 @@ export class DependencyContainer {
 
   public getFamilyController(): FamilyController {
     return this.familyController;
+  }
+
+  public getCompanyController(): CompanyController {
+    return this.companyController;
   }
 
   public getDocumentModelController(): DocumentModelController {

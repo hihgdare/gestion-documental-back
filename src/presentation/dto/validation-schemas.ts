@@ -306,6 +306,16 @@ export const updateFamilySchema = Joi.object({
   name: Joi.string().min(2).max(100).optional(),
 }).min(1);
 
+export const createCompanySchema = Joi.object({
+  name: Joi.string().min(2).max(200).required(),
+  rut: Joi.string().min(8).max(12).required(),
+});
+
+export const updateCompanySchema = Joi.object({
+  name: Joi.string().min(2).max(200).optional(),
+  rut: Joi.string().min(8).max(12).optional(),
+}).min(1);
+
 export const createDocumentModelSchema = Joi.object({
   familyId: Joi.string().uuid().required(),
   documentTypeId: Joi.string().uuid().required(),
