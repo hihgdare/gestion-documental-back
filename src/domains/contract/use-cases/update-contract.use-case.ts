@@ -165,6 +165,7 @@ export class DeleteContractUseCase {
       throw new NotFoundError('Contract', id);
     }
 
-    await this.contractRepository.delete(id);
+    contract.softDelete();
+    await this.contractRepository.update(contract);
   }
 }

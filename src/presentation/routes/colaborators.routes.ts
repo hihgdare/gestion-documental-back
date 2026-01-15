@@ -55,5 +55,8 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
   // PATCH /api/colaborators/:id/terminate - Terminate colaborator
   router.patch('/:id/terminate', colaboratorController.terminateColaborator);
 
+  // DELETE /api/colaborators/:id - Delete (soft-delete) colaborator
+  router.delete('/:id', colaboratorController.deleteColaborator);
+
   return router;
 };

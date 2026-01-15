@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
 import {
@@ -20,7 +20,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findById(id: string): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
-      where: { id },
+      where: { id, deletedAt: IsNull() },
       relations: ['contracts'],
     });
     if (!colaboratorEntity) return null;
@@ -31,6 +31,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     const query = this.repository
       .createQueryBuilder('colaborator')
       .leftJoinAndSelect('colaborator.contracts', 'contracts')
+      .where('colaborator.deleted_at IS NULL')
       .orderBy('colaborator.createdAt', 'DESC');
 
     if (filters?.contractId && filters.contractId !== 'undefined' && filters.contractId !== 'null' && filters.contractId.trim() !== '') {
@@ -50,19 +51,21 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async update(colaborator: Colaborator): Promise<Colaborator> {
     const colaboratorEntity = this.toEntity(colaborator);
-    await this.repository.update(colaborator.id, colaboratorEntity);
+    // Exclude relations (many-to-many) from update
+    const { contracts: _contracts, ...colaboratorData } = colaboratorEntity;
+    await this.repository.update(colaborator.id, colaboratorData);
     return (await this.findById(colaborator.id))!;
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.repository.softDelete(id);
   }
 
   async findByNumeroDocumento(
     numeroDocumento: string,
   ): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
-      where: { numeroDocumento },
+      where: { numeroDocumento, deletedAt: IsNull() },
       relations: ['contracts'],
     });
     if (!colaboratorEntity) return null;
@@ -71,7 +74,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByEmail(email: string): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
-      where: { email: email.toLowerCase() },
+      where: { email: email.toLowerCase(), deletedAt: IsNull() },
       relations: ['contracts'],
     });
     if (!colaboratorEntity) return null;
@@ -80,7 +83,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByNombre(nombre: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { nombre },
+      where: { nombre, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -89,7 +92,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByStatus(status: ColaboratorStatus): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { status },
+      where: { status, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -98,7 +101,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByDocumentType(tipo: DocumentType): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { tipoDocumento: tipo },
+      where: { tipoDocumento: tipo, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -107,7 +110,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByNacionalidad(nacionalidad: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { nacionalidad },
+      where: { nacionalidad, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -116,7 +119,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByPaisResidencia(pais: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { paisResidencia: pais },
+      where: { paisResidencia: pais, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -125,7 +128,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByRegion(region: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { region },
+      where: { region, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -134,7 +137,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByComuna(comuna: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { comuna },
+      where: { comuna, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -143,7 +146,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByCargo(cargo: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { cargo },
+      where: { cargo, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -152,7 +155,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findActiveColaborators(): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository.find({
-      where: { status: ColaboratorStatus.ACTIVE },
+      where: { status: ColaboratorStatus.ACTIVE, deletedAt: IsNull() },
       relations: ['contracts'],
       order: { createdAt: 'DESC' },
     });
@@ -163,15 +166,11 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     const colaboratorEntities = await this.repository
       .createQueryBuilder('colaborator')
       .leftJoinAndSelect('colaborator.contracts', 'contracts')
-      .where('colaborator.nombre ILIKE :searchTerm', {
-        searchTerm: `%${searchTerm}%`,
-      })
-      .orWhere('colaborator.apellidoPaterno ILIKE :searchTerm', {
-        searchTerm: `%${searchTerm}%`,
-      })
-      .orWhere('colaborator.apellidoMaterno ILIKE :searchTerm', {
-        searchTerm: `%${searchTerm}%`,
-      })
+      .where('colaborator.deleted_at IS NULL')
+      .andWhere(
+        '(colaborator.nombre ILIKE :searchTerm OR colaborator.apellidoPaterno ILIKE :searchTerm OR colaborator.apellidoMaterno ILIKE :searchTerm)',
+        { searchTerm: `%${searchTerm}%` },
+      )
       .orderBy('colaborator.createdAt', 'DESC')
       .getMany();
 
@@ -182,7 +181,8 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     const colaboratorEntities = await this.repository
       .createQueryBuilder('colaborator')
       .leftJoinAndSelect('colaborator.contracts', 'contracts')
-      .whereInIds(ids)
+      .where('colaborator.deleted_at IS NULL')
+      .andWhereInIds(ids)
       .getMany();
 
     return colaboratorEntities.map((entity) => this.toDomain(entity));
@@ -190,7 +190,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
 
   async findByIdWithGroups(id: string): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
-      where: { id },
+      where: { id, deletedAt: IsNull() },
       relations: ['groups', 'contracts'],
     });
     if (!colaboratorEntity) return null;
@@ -202,7 +202,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     contractIds: string[],
   ): Promise<void> {
     const colaborator = await this.repository.findOne({
-      where: { id: colaboratorId },
+      where: { id: colaboratorId, deletedAt: IsNull() },
       relations: ['contracts'],
     });
 
@@ -252,6 +252,11 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
         entity.updatedAt instanceof Date
           ? entity.updatedAt
           : new Date(entity.updatedAt),
+      deletedAt: entity.deletedAt
+        ? (entity.deletedAt instanceof Date
+          ? entity.deletedAt
+          : new Date(entity.deletedAt))
+        : null,
       contractIds: entity.contracts?.map((c) => c.id),
     };
     return Colaborator.fromPersistence(props);
@@ -284,6 +289,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       status: colaborator.status,
       createdAt: colaborator.createdAt,
       updatedAt: colaborator.updatedAt,
+      deletedAt: colaborator.deletedAt,
       contracts: colaborator.contractIds?.map((id) => ({ id } as ContractEntity)),
     };
   }

@@ -123,16 +123,33 @@ export const updateColaboratorContractsSchema = Joi.object({
 });
 
 export const updateColaboratorSchema = Joi.object({
+  // Información básica
+  nombre: Joi.string().min(2).max(100).optional(),
+  apellidoPaterno: Joi.string().min(2).max(100).optional(),
+  apellidoMaterno: Joi.string().min(2).max(100).optional().allow('', null),
+  // Información del documento
+  tipoDocumento: Joi.string().valid('rut', 'pasaporte', 'dni', 'otro').optional(),
+  numeroDocumento: Joi.string().min(5).max(50).optional(),
+  // Información personal
+  nacionalidad: Joi.string().min(2).max(100).optional(),
+  sexo: Joi.string().valid('masculino', 'femenino', 'otro').optional(),
+  estadoCivil: Joi.string().valid('soltero', 'casado', 'divorciado', 'viudo', 'union_civil').optional(),
+  fechaNacimiento: Joi.string().isoDate().optional(),
+  // Ubicación
+  paisResidencia: Joi.string().length(2).optional(),
+  region: Joi.string().max(100).optional().allow('', null),
+  comuna: Joi.string().max(100).optional().allow('', null),
+  estadoRegion: Joi.string().max(100).optional().allow('', null),
+  ciudadMunicipio: Joi.string().max(100).optional().allow('', null),
+  direccionResidencia: Joi.string().min(5).max(255).optional(),
+  // Contacto
   telefono: Joi.string().min(7).max(20).optional(),
   email: Joi.string().email().optional(),
-  direccionResidencia: Joi.string().min(5).max(255).optional(),
-  contactoEmergencia: Joi.string().max(100).optional(),
-  telefonoEmergencia: Joi.string().min(7).max(20).optional(),
+  contactoEmergencia: Joi.string().max(100).optional().allow('', null),
+  telefonoEmergencia: Joi.string().min(7).max(20).optional().allow('', null),
+  // Profesional
+  profesion: Joi.string().min(2).max(100).optional(),
   cargo: Joi.string().min(2).max(100).optional(),
-  region: Joi.string().max(100).optional(),
-  comuna: Joi.string().max(100).optional(),
-  estadoRegion: Joi.string().max(100).optional(),
-  ciudadMunicipio: Joi.string().max(100).optional(),
 }).min(1);
 
 export const createDocumentTypeSchema = Joi.object({
