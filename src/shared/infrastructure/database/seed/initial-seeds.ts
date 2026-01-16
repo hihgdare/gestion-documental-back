@@ -20,6 +20,7 @@ const adminSections = [
   'permission',
   'role',
   'user',
+  'company',
 ];
 const otherPermissions = [
   'colaborator-group:assign:colaborator',
