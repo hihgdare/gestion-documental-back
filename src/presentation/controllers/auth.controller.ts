@@ -6,12 +6,14 @@ import { GetAuthenticatedUserPermissionsUseCase } from '@domains/user/use-cases/
 import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { ValidationError } from '@shared/domain/errors';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 // Extend the Request type to include the user property
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
     token?: string;
+    groupId?: number;
   }
 }
 
@@ -21,6 +23,7 @@ export class AuthController {
     private readonly getAuthenticatedUserPermissionsUseCase: GetAuthenticatedUserPermissionsUseCase,
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
+    private readonly groupRepository: GroupRepository,
   ) {
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);
@@ -29,6 +32,7 @@ export class AuthController {
     this.getMe = this.getMe.bind(this);
     this.updateMe = this.updateMe.bind(this);
     this.getToken = this.getToken.bind(this);
+    this.getGroup = this.getGroup.bind(this);
   }
 
   private getCookieOptions(): CookieOptions {
@@ -71,12 +75,19 @@ export class AuthController {
 
       res.cookie('token', token, this.getCookieOptions());
 
+      // Auto-assign group: Find the first group the user belongs to
+      const userGroup = await this.groupRepository.findByUserId(user.id);
+      if (userGroup && userGroup.id) {
+        res.cookie('groupId', userGroup.id.toString(), this.getCookieOptions());
+      }
+
       res.status(200).json({
         success: true,
         message: 'Login successful',
         data: {
           token,
           user: user.toJSON(),
+          groupId: userGroup?.id ?? null,
         },
       });
     } catch (error) {
@@ -88,6 +99,7 @@ export class AuthController {
     try {
       const { maxAge: _maxAge, ...clearOptions } = this.getCookieOptions();
       res.clearCookie('token', clearOptions);
+      res.clearCookie('groupId', clearOptions);
 
       res.status(200).json({
         success: true,
@@ -128,6 +140,12 @@ export class AuthController {
 
       res.cookie('token', token, this.getCookieOptions());
 
+      // Auto-assign group: Find the first group the user belongs to
+      const userGroup = await this.groupRepository.findByUserId(req.user.id);
+      if (userGroup && userGroup.id) {
+        res.cookie('groupId', userGroup.id.toString(), this.getCookieOptions());
+      }
+
       res.status(200).json({
         success: true,
         message: 'Token refreshed successfully',
@@ -147,9 +165,32 @@ export class AuthController {
       const user = await this.getUserByIdUseCase.execute(req.user.id);
 
       const permissions = await this.getAuthenticatedUserPermissionsUseCase.execute(user);
+
+      // Get user's group
+      const userGroup = await this.groupRepository.findByUserId(user.id);
+
+      // Prepare group data without users (for privacy/permission reasons)
+      const groupData = userGroup ? {
+        id: userGroup.id,
+        name: userGroup.name,
+        description: userGroup.description,
+        createdAt: userGroup.createdAt,
+        updatedAt: userGroup.updatedAt,
+      } : null;
+
+      // Get selected group from request (set by middleware from cookie)
+      const selectedGroup = req.groupId && userGroup && userGroup.id === req.groupId
+        ? groupData
+        : null;
+
       res.status(200).json({
         success: true,
-        data: { ...user.toJSON(), permissions },
+        data: {
+          ...user.toJSON(),
+          permissions,
+          groups: groupData ? [groupData] : [],
+          selectedGroup,
+        },
       });
     } catch (error) {
       next(error);
@@ -209,6 +250,40 @@ export class AuthController {
       res.status(200).json({
         success: true,
         data: { token },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getGroup(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Get groupId from cookie
+      const cookieHeader = req.headers.cookie;
+      let groupId: string | null = null;
+
+      if (cookieHeader && typeof cookieHeader === 'string') {
+        const pairs = cookieHeader.split(';');
+        const match = pairs.find(p => p.trim().startsWith('groupId='));
+        if (match) {
+          const value = match.split('=')[1];
+          if (value) {
+            groupId = decodeURIComponent(value.trim());
+          }
+        }
+      }
+
+      if (!groupId) {
+        res.status(200).json({
+          success: true,
+          data: { groupId: null },
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { groupId: parseInt(groupId) },
       });
     } catch (error) {
       next(error);

@@ -18,6 +18,7 @@ Content-Type: application/json
 @token = {{ login.response.body.token }}
 
 ### User data (requires token)
+# Returns user info with groups and selectedGroup (from cookie)
 
 # @name me
 GET {{baseUrl}}/{{module}}/me
@@ -34,3 +35,13 @@ Authorization: Bearer {{token}}
 # @name logout
 POST {{baseUrl}}/{{module}}/logout
 Authorization: Bearer {{token}}
+
+### Get Token from Cookie
+
+# @name get-token
+GET {{baseUrl}}/{{module}}/token
+
+### Get Group from Cookie
+
+# @name get-group
+GET {{baseUrl}}/{{module}}/group
