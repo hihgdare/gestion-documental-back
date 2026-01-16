@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from 'bun:test';
+import { describe, expect, it, beforeAll, afterAll } from '@jest/globals';
 import FileUtils from './FileUtils';
 import fs from 'fs';
 import path from 'path';
@@ -327,8 +327,8 @@ describe('FileUtils Utility Class', () => {
       const metadata = await FileUtils.getMetadata(filePath);
 
       expect(metadata.size).toBe(content.length);
-      expect(metadata.created).toBeInstanceOf(Date);
-      expect(metadata.modified).toBeInstanceOf(Date);
+      expect(typeof metadata.created.getTime).toBe('function');
+      expect(typeof metadata.modified.getTime).toBe('function');
       expect(metadata.isFile).toBe(true);
       expect(metadata.isDirectory).toBe(false);
     });

@@ -5,16 +5,11 @@ interface EnumColumnOptions extends Omit<ColumnOptions, 'type'> {
 }
 
 export function EnumColumn(options: EnumColumnOptions) {
-  if (process.env.DB_TYPE !== 'sqljs') {
-    return Column({ type: 'enum', ...options });
-  }
-  // sqljs does not support enum types, so we simulate it
-  const length = options.enum.reduce((max: number, val) => Math.max(max, String(val).length), 0) || 5;
-  const { enum: _enum, ...rest } = options as any;
+  const dbType = process.env.DB_TYPE;
+  const supportEnum = dbType !== 'sqljs' && dbType !== 'sqlite' && dbType !== 'better-sqlite3';
+
   return Column({
-    type: 'varchar',
-    ...rest,
-    length,
-    default: String(options.default) || String(options.enum[0]),
+    ...options,
+    type: supportEnum ? 'enum' : 'simple-enum',
   });
 }

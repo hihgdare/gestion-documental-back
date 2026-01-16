@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
-    "types": ["node"],
+    "types": ["node", "jest", "jest-extended"],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
@@ -27,7 +27,8 @@
   },
   "include": [
     "types.d.ts",
-    "src/**/*"
+    "src/**/*",
+    "node_modules/jest-extended/types/index.d.ts"
   ],
   "exclude": [
     "node_modules",

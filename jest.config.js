@@ -1,28 +1,35 @@
-// Bun Test Configuration
-// Note: Bun has built-in testing, but this Jest config is kept for compatibility
+// Jest Test Configuration
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  setupFilesAfterEnv: ['jest-extended/all', '<rootDir>/test-setup.ts'],
   roots: ['<rootDir>/src'],
-  testMatch: ['**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        isolatedModules: true,
+      },
+    }],
   },
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/index.ts',
-  ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@domains/(.*)$': '<rootDir>/src/domains/$1',
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
     '^@config/(.*)$': '<rootDir>/config/$1',
   },
-  // Bun compatibility settings
-  testTimeout: 10000,
-  maxWorkers: '50%',
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.spec.ts',
+    '!src/index.ts',
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  testTimeout: 30000,
+  maxWorkers: 1,
 };

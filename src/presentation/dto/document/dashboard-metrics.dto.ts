@@ -1,3 +1,5 @@
+import { Document } from '@domains/document/entities/document.entity';
+
 export interface DashboardMetricsDto {
   documentsInDraft: number;
   documentsWithoutColaborator: number;

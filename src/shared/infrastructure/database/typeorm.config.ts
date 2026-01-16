@@ -1,8 +1,9 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { SqljsConnectionOptions } from 'typeorm/driver/sqljs/SqljsConnectionOptions.js';
+import { BetterSqlite3ConnectionOptions } from 'typeorm/driver/better-sqlite3/BetterSqlite3ConnectionOptions.js';
 
 type Mode = 'development' | 'production' | 'test';
-type DbType = 'mysql' | 'postgres';
+type DbType = 'mysql' | 'postgres' | 'sqlite' | 'better-sqlite3';
 
 export const AppDataSource = initializeDataSource();
 
@@ -16,8 +17,12 @@ export function initializeDataSource(): DataSource {
       location: ':memory:', // use in-memory database
       autoSave: false, // disable auto-save
       synchronize: true,
-      logging: mode !== 'production' && process.env.SHOW_DB_QUERY === 'true',
     } satisfies SqljsConnectionOptions;
+  } else if (process.env.DB_TYPE === 'sqlite' || process.env.DB_TYPE === 'better-sqlite3') {
+    options = {
+      type: 'better-sqlite3',
+      database: process.env.DB_DATABASE || 'mydb.sqlite',
+    } satisfies BetterSqlite3ConnectionOptions;
   } else {
     options = {
       type: (process.env.DB_TYPE || 'mysql') as DbType,
@@ -26,14 +31,14 @@ export function initializeDataSource(): DataSource {
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_DATABASE || 'gestion_documental',
-      synchronize: mode !== 'production' && process.env.DB_SYNCHRONIZE !== 'false',
-      logging: mode !== 'production' && process.env.SHOW_DB_QUERY === 'true',
       charset: 'utf8mb4',
       timezone: 'local',
     } satisfies DataSourceOptions;
   }
   return new DataSource({
     ...options,
+    logging: options.logging ?? (mode !== 'production' && process.env.SHOW_DB_QUERY === 'true'),
+    synchronize: options.synchronize ?? (mode !== 'production' && process.env.DB_SYNCHRONIZE !== 'false'),
     entities: [
       'src/shared/infrastructure/database/entities/**/*.ts',
       'src/domains/**/*.entity.ts',

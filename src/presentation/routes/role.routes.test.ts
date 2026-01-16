@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, expect, beforeAll } from '@jest/globals';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';

@@ -1,5 +1,6 @@
 import { DocumentRepository } from '../repositories/document.repository';
 import { DocumentStatus } from '../value-objects/document-enums';
+import { Document } from '../entities/document.entity';
 
 export interface DashboardMetrics {
   documentsInDraft: number;
