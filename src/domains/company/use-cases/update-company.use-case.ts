@@ -1,6 +1,6 @@
 import { ICompanyRepository } from '../repositories/company.repository.interface';
 import { Company } from '../entities/company.entity';
-import { NotFoundError, ConflictError } from '@shared/domain/errors';
+import { NotFoundError } from '@shared/domain/errors';
 
 export interface UpdateCompanyRequest {
   name?: string;
@@ -16,12 +16,8 @@ export class UpdateCompanyUseCase {
       throw new NotFoundError('Empresa no encontrada');
     }
 
-    // Check if RUT is being updated and if it already exists
+    // Update RUT if provided
     if (request.rut && request.rut !== company.rut) {
-      const existingCompany = await this.companyRepository.findByRut(request.rut);
-      if (existingCompany) {
-        throw new ConflictError('Ya existe una empresa con este RUT');
-      }
       company.updateRut(request.rut);
     }
 

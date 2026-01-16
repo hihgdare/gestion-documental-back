@@ -23,8 +23,8 @@ export class Company {
 
     EntityUtils.assign(this as Company, props, {
       id: 'uuid',
-      createdAt: 'date',
-      updatedAt: 'date',
+      createdAt: 'datetime',
+      updatedAt: 'datetime',
       deletedAt: 'dateNullable',
     });
   }

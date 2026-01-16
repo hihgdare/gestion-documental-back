@@ -15,7 +15,7 @@ export class CompanyEntity {
   @Column({ type: 'varchar', length: 200 })
   name!: string;
 
-  @Column({ type: 'varchar', length: 12, unique: true })
+  @Column({ type: 'varchar', length: 12 })
   rut!: string;
 
   @CreateDateColumn({ name: 'created_at' })
