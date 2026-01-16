@@ -3,13 +3,16 @@ import jwt from 'jsonwebtoken';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { User } from '@domains/user/entities/user.entity';
-import { getToken, isRbacEnabled } from '@shared/utils/requests';
+import { getToken, isRbacEnabled, parseCookies } from '@shared/utils/requests';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 
 // Extend the Request type to include the user property
 declare module 'express-serve-static-core' {
   interface Request {
     user?: User;
     token?: string;
+    groupId?: number;
   }
 }
 
@@ -18,7 +21,9 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
 
   try {
     const userRepository: UserRepository = new TypeOrmUserRepository();
-    const token = getToken(req);
+    const groupRepository: GroupRepository = new TypeOrmGroupRepository();
+    const cookies = parseCookies(req);
+    const token = getToken(req.headers, cookies);
     if (token) {
       req.token = token;
       if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && token === 'skip-token') {
@@ -28,6 +33,16 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
       const user = await userRepository.findById(decodedToken.userId);
       if (!user) return res.status(401).json({ message: 'Unauthorized: User not found' });
       req.user = user;
+
+      // Get groupId from cookie
+      if (cookies?.groupId) {
+        const groupId = parseInt(decodeURIComponent(cookies.groupId.trim()));
+        const userGroup = await groupRepository.findByUserId(user.id);
+        if (userGroup && userGroup.id === groupId) {
+          req.groupId = groupId;
+        }
+      }
+
       return next();
     }
 
