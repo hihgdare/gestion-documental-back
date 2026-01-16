@@ -4,6 +4,10 @@ import { Company, CompanyProps } from '../entities/company.entity';
 export interface CreateCompanyRequest {
   name: string;
   rut: string;
+  address?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
 }
 
 export class CreateCompanyUseCase {
@@ -14,6 +18,10 @@ export class CreateCompanyUseCase {
     const companyProps: CompanyProps = {
       name: request.name,
       rut: request.rut,
+      address: request.address,
+      contactName: request.contactName,
+      contactPhone: request.contactPhone,
+      contactEmail: request.contactEmail,
     };
 
     const company = Company.create(companyProps);

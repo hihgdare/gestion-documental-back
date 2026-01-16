@@ -5,6 +5,10 @@ import { NotFoundError } from '@shared/domain/errors';
 export interface UpdateCompanyRequest {
   name?: string;
   rut?: string;
+  address?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
 }
 
 export class UpdateCompanyUseCase {
@@ -24,6 +28,24 @@ export class UpdateCompanyUseCase {
     // Update name if provided
     if (request.name) {
       company.updateName(request.name);
+    }
+
+    // Update address if provided
+    if (request.address !== undefined) {
+      company.updateAddress(request.address);
+    }
+
+    // Update contact info if provided
+    if (request.contactName !== undefined) {
+      company.updateContactName(request.contactName);
+    }
+
+    if (request.contactPhone !== undefined) {
+      company.updateContactPhone(request.contactPhone);
+    }
+
+    if (request.contactEmail !== undefined) {
+      company.updateContactEmail(request.contactEmail);
     }
 
     return await this.companyRepository.update(company);

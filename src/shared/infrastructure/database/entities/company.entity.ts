@@ -18,6 +18,18 @@ export class CompanyEntity {
   @Column({ type: 'varchar', length: 12 })
   rut!: string;
 
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  address?: string;
+
+  @Column({ name: 'contact_name', type: 'varchar', length: 150, nullable: true })
+  contactName?: string;
+
+  @Column({ name: 'contact_phone', type: 'varchar', length: 20, nullable: true })
+  contactPhone?: string;
+
+  @Column({ name: 'contact_email', type: 'varchar', length: 100, nullable: true })
+  contactEmail?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

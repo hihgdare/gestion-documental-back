@@ -24,7 +24,30 @@ export class CreateCompaniesTable1768496143686 implements MigrationInterface {
             type: 'varchar',
             length: '12',
             isNullable: false,
-            isUnique: true,
+          },
+          {
+            name: 'address',
+            type: 'varchar',
+            length: '300',
+            isNullable: true,
+          },
+          {
+            name: 'contact_name',
+            type: 'varchar',
+            length: '150',
+            isNullable: true,
+          },
+          {
+            name: 'contact_phone',
+            type: 'varchar',
+            length: '20',
+            isNullable: true,
+          },
+          {
+            name: 'contact_email',
+            type: 'varchar',
+            length: '100',
+            isNullable: true,
           },
           {
             name: 'created_at',
@@ -50,7 +73,6 @@ export class CreateCompaniesTable1768496143686 implements MigrationInterface {
           {
             name: 'IDX_COMPANIES_RUT',
             columnNames: ['rut'],
-            isUnique: true,
           },
           {
             name: 'IDX_COMPANIES_NAME',
