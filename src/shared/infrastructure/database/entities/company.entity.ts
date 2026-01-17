@@ -5,7 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { GroupEntity } from './group.entity';
 
 @Entity('companies')
 export class CompanyEntity {
@@ -29,6 +32,13 @@ export class CompanyEntity {
 
   @Column({ name: 'contact_email', type: 'varchar', length: 100, nullable: true })
   contactEmail?: string;
+
+  @Column({ name: 'group_id', type: 'varchar', nullable: true })
+  groupId?: string;
+
+  @ManyToOne(() => GroupEntity, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'group_id' })
+  group?: GroupEntity;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

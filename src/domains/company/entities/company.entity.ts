@@ -9,6 +9,7 @@ export interface CompanyProps {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
+  groupId?: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
@@ -22,6 +23,7 @@ export class Company {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
+  groupId?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -165,6 +167,7 @@ export class Company {
       contactName: this.contactName,
       contactPhone: this.contactPhone,
       contactEmail: this.contactEmail,
+      groupId: this.groupId,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       deletedAt: this.deletedAt,

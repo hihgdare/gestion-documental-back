@@ -50,6 +50,12 @@ export class CreateCompaniesTable1768496143686 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'group_id',
+            type: 'varchar',
+            length: '36',
+            isNullable: true,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'CURRENT_TIMESTAMP',
