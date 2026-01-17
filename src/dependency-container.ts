@@ -364,7 +364,7 @@ export class DependencyContainer {
     this.groupRepository = new TypeOrmGroupRepository();
 
     // Initialize User use cases
-    this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
+    this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
     this.getUserByIdUseCase = new GetUserByIdUseCase(this.userRepository);
     this.getAllUsersUseCase = new GetAllUsersUseCase(this.userRepository);
     this.updateUserUseCase = new UpdateUserUseCase(this.userRepository, this.roleRepository);

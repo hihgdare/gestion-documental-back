@@ -4,8 +4,6 @@ import { UserRepository } from '@domains/user/repositories/user.repository';
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { User } from '@domains/user/entities/user.entity';
 import { getToken, isRbacEnabled, parseCookies } from '@shared/utils/requests';
-import { GroupRepository } from '@domains/group/repositories/group.repository';
-import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 
 // Extend the Request type to include the user property
 declare module 'express-serve-static-core' {
@@ -21,7 +19,6 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
 
   try {
     const userRepository: UserRepository = new TypeOrmUserRepository();
-    const groupRepository: GroupRepository = new TypeOrmGroupRepository();
     const cookies = parseCookies(req);
     const token = getToken(req.headers, cookies);
     if (token) {
@@ -37,8 +34,8 @@ export async function auth(req: Request, res: Response, next: NextFunction) {
       // Get groupId from cookie
       if (cookies?.groupId) {
         const groupId = parseInt(decodeURIComponent(cookies.groupId.trim()));
-        const userGroup = await groupRepository.findByUserId(user.id);
-        if (userGroup && userGroup.id === groupId) {
+        const belongsToGroup = user.groups?.some(g => g.id === groupId);
+        if (belongsToGroup) {
           req.groupId = groupId;
         }
       }

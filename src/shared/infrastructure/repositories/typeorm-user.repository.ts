@@ -35,16 +35,24 @@ export class TypeOrmUserRepository implements UserRepository {
     }
   }
 
-  async findAll(): Promise<User[]> {
-    const userEntities = await this.repository.find({
-      order: { createdAt: 'DESC' },
-      relations: ['roles', 'roles.permissions'],
-    });
+  async findAll(groupId?: number): Promise<User[]> {
+    const query = this.repository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role')
+      .leftJoinAndSelect('role.permissions', 'permission')
+      .leftJoinAndSelect('user.groups', 'group')
+      .orderBy('user.createdAt', 'DESC');
+
+    if (groupId) {
+      query.innerJoin('group_users', 'gu', 'gu.user_id = user.id')
+        .where('gu.group_id = :groupId', { groupId });
+    }
+
+    const userEntities = await query.getMany();
     return userEntities.map(UserEntity.toDomain);
   }
 
   async findById(id: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles', 'roles.permissions'] });
+    const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles', 'roles.permissions', 'groups'] });
     if (!userEntity) return null;
     return UserEntity.toDomain(userEntity);
   }
@@ -53,7 +61,7 @@ export class TypeOrmUserRepository implements UserRepository {
     const userEntities = await this.repository.find({
       where: { roles: { id: roleId } },
       order: { createdAt: 'DESC' },
-      relations: ['roles', 'roles.permissions'],
+      relations: ['roles', 'roles.permissions', 'groups'],
     });
     return userEntities.map(UserEntity.toDomain);
   }
@@ -74,7 +82,7 @@ export class TypeOrmUserRepository implements UserRepository {
     }
 
     const savedEntity = await this.repository.save(entity);
-    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions'] });
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions', 'groups'] });
     return UserEntity.toDomain(reloadedEntity!);
   }
 
@@ -106,7 +114,7 @@ export class TypeOrmUserRepository implements UserRepository {
     }
 
     const savedEntity = await this.repository.save(entity);
-    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions'] });
+    const reloadedEntity = await this.repository.findOne({ where: { id: savedEntity.id }, relations: ['roles', 'roles.permissions', 'groups'] });
     return UserEntity.toDomain(reloadedEntity!);
   }
 
@@ -115,7 +123,7 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles', 'roles.permissions'] });
+    const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles', 'roles.permissions', 'groups'] });
     if (!userEntity) return null;
     return UserEntity.toDomain(userEntity);
   }
@@ -124,7 +132,7 @@ export class TypeOrmUserRepository implements UserRepository {
     const userEntities = await this.repository.find({
       where: { status: status as any },
       order: { createdAt: 'DESC' },
-      relations: ['roles'],
+      relations: ['roles', 'groups'],
     });
     return userEntities.map(UserEntity.toDomain);
   }
