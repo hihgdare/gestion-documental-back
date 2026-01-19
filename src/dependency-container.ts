@@ -6,6 +6,7 @@ import { DocumentTypeController } from '@presentation/controllers/document-type.
 import { DocumentSubtypeController } from '@presentation/controllers/document-subtype.controller';
 import { DocumentController } from '@presentation/controllers/document.controller';
 import { AreaController } from '@presentation/controllers/area.controller';
+import { DivisionController } from '@presentation/controllers/division.controller';
 
 import { PermissionController } from '@presentation/controllers/permission.controller';
 import { RoleController } from '@presentation/controllers/role.controller';
@@ -150,6 +151,7 @@ import { TypeOrmCompanyRepository } from '@shared/infrastructure/repositories/ty
 import { TypeOrmDocumentModelRepository } from '@shared/infrastructure/repositories/typeorm-document-model.repository';
 import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { TypeOrmAreaRepository } from '@shared/infrastructure/repositories/typeorm-area.repository';
+import { TypeOrmDivisionRepository } from '@shared/infrastructure/repositories/typeorm-division.repository';
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
@@ -184,6 +186,13 @@ import { ListAreasUseCase } from '@domains/area/use-cases/list-areas.use-case';
 import { UpdateAreaUseCase } from '@domains/area/use-cases/update-area.use-case';
 import { DeleteAreaUseCase } from '@domains/area/use-cases/delete-area.use-case';
 
+// Division domain
+import { CreateDivisionUseCase } from '@domains/division/use-cases/create-division.use-case';
+import { GetDivisionUseCase } from '@domains/division/use-cases/get-division.use-case';
+import { ListDivisionsUseCase } from '@domains/division/use-cases/list-divisions.use-case';
+import { UpdateDivisionUseCase } from '@domains/division/use-cases/update-division.use-case';
+import { DeleteDivisionUseCase } from '@domains/division/use-cases/delete-division.use-case';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -204,6 +213,7 @@ export class DependencyContainer {
   private documentModelRepository!: TypeOrmDocumentModelRepository;
   private groupRepository!: TypeOrmGroupRepository;
   private areaRepository!: TypeOrmAreaRepository;
+  private divisionRepository!: TypeOrmDivisionRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -360,6 +370,13 @@ export class DependencyContainer {
   private updateAreaUseCase!: UpdateAreaUseCase;
   private deleteAreaUseCase!: DeleteAreaUseCase;
 
+  // Use Cases - Division
+  private createDivisionUseCase!: CreateDivisionUseCase;
+  private getDivisionUseCase!: GetDivisionUseCase;
+  private listDivisionsUseCase!: ListDivisionsUseCase;
+  private updateDivisionUseCase!: UpdateDivisionUseCase;
+  private deleteDivisionUseCase!: DeleteDivisionUseCase;
+
   // Controllers
   private colaboratorController!: ColaboratorController;
   private contractController!: ContractController;
@@ -376,6 +393,7 @@ export class DependencyContainer {
   private documentModelController!: DocumentModelController;
   private groupController!: GroupController;
   private areaController!: AreaController;
+  private divisionController!: DivisionController;
   private userController!: UserController;
   private authController!: AuthController;
   private fileController!: FileController;
@@ -400,6 +418,7 @@ export class DependencyContainer {
     this.documentModelRepository = new TypeOrmDocumentModelRepository();
     this.groupRepository = new TypeOrmGroupRepository();
     this.areaRepository = new TypeOrmAreaRepository();
+    this.divisionRepository = new TypeOrmDivisionRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository);
@@ -744,6 +763,13 @@ export class DependencyContainer {
     this.updateAreaUseCase = new UpdateAreaUseCase(this.areaRepository);
     this.deleteAreaUseCase = new DeleteAreaUseCase(this.areaRepository);
 
+    // Initialize Division use cases
+    this.createDivisionUseCase = new CreateDivisionUseCase(this.divisionRepository);
+    this.getDivisionUseCase = new GetDivisionUseCase(this.divisionRepository);
+    this.listDivisionsUseCase = new ListDivisionsUseCase(this.divisionRepository);
+    this.updateDivisionUseCase = new UpdateDivisionUseCase(this.divisionRepository);
+    this.deleteDivisionUseCase = new DeleteDivisionUseCase(this.divisionRepository);
+
     this.groupController = new GroupController(
       this.createGroupUseCase,
       this.getGroupByIdUseCase,
@@ -761,6 +787,14 @@ export class DependencyContainer {
       this.listAreasUseCase,
       this.updateAreaUseCase,
       this.deleteAreaUseCase,
+    );
+
+    this.divisionController = new DivisionController(
+      this.createDivisionUseCase,
+      this.getDivisionUseCase,
+      this.listDivisionsUseCase,
+      this.updateDivisionUseCase,
+      this.deleteDivisionUseCase,
     );
 
     this.userController = new UserController(
@@ -841,6 +875,10 @@ export class DependencyContainer {
 
   public getAreaController(): AreaController {
     return this.areaController;
+  }
+
+  public getDivisionController(): DivisionController {
+    return this.divisionController;
   }
 
   public getAuthController(): AuthController {

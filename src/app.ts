@@ -24,6 +24,7 @@ import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createDocumentModelRoutes } from '@presentation/routes/document-model.routes';
 import { createGroupRoutes } from '@presentation/routes/group.routes';
 import { createAreaRoutes } from '@presentation/routes/area.routes';
+import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
 import { DependencyContainer } from './dependency-container';
@@ -133,6 +134,7 @@ export class App {
           documentModels: '/api/document-models',
           groups: '/api/groups',
           areas: '/api/areas',
+          divisions: '/api/divisions',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -157,6 +159,7 @@ export class App {
     const documentModelController = this.dependencyContainer.getDocumentModelController();
     const groupController = this.dependencyContainer.getGroupController();
     const areaController = this.dependencyContainer.getAreaController();
+    const divisionController = this.dependencyContainer.getDivisionController();
     const roleController = this.dependencyContainer.getRoleController();
     const colaboratorGroupController = this.dependencyContainer.getColaboratorGroupController();
     const authController = this.dependencyContainer.getAuthController();
@@ -188,6 +191,7 @@ export class App {
     this.app.use('/api/document-models', createDocumentModelRoutes(documentModelController));
     this.app.use('/api/groups', createGroupRoutes(groupController));
     this.app.use('/api/areas', createAreaRoutes(areaController));
+    this.app.use('/api/divisions', createDivisionRoutes(divisionController));
     this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));
     this.app.use('/api/files', createFileRoutes(fileController));
 

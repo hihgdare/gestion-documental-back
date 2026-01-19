@@ -9,7 +9,6 @@ import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-
 
 const crudActions = ['create', 'read', 'update', 'delete'];
 const adminSections = [
-  'area',
   'colaborator-group',
   'colaborator',
   'contract',
@@ -22,6 +21,8 @@ const adminSections = [
   'role',
   'user',
   'company',
+  'area',
+  'division',
 ];
 const otherPermissions = [
   'colaborator-group:assign:colaborator',
