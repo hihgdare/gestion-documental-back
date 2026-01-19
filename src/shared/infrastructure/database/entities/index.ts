@@ -7,3 +7,4 @@ export { DocumentEntity } from './document.entity';
 export { PermissionEntity } from './permission.entity';
 export { RoleEntity } from './role.entity';
 export { UserEntity } from './user.entity';
+export { AreaEntity } from './area.entity';
