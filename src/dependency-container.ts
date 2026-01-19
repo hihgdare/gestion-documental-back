@@ -133,6 +133,7 @@ import { AssignDocumentsFromFamilyUseCase } from '@domains/family/use-cases/assi
 import { CreateCompanyUseCase } from '@domains/company/use-cases/create-company.use-case';
 import { GetCompanyByIdUseCase, GetAllCompaniesUseCase } from '@domains/company/use-cases/get-company.use-case';
 import { UpdateCompanyUseCase, DeleteCompanyUseCase } from '@domains/company/use-cases/update-company.use-case';
+import { GetCompaniesByUserGroupsUseCase } from '@domains/company/use-cases/get-companies-by-user-groups.use-case';
 
 // DocumentModel domain
 import { CreateDocumentModelUseCase } from '@domains/document-model/use-cases/create-document-model.use-case';
@@ -322,6 +323,7 @@ export class DependencyContainer {
   private getAllCompaniesUseCase!: GetAllCompaniesUseCase;
   private updateCompanyUseCase!: UpdateCompanyUseCase;
   private deleteCompanyUseCase!: DeleteCompanyUseCase;
+  private getCompaniesByUserGroupsUseCase!: GetCompaniesByUserGroupsUseCase;
 
   // Use Cases - DocumentModel
   private createDocumentModelUseCase!: CreateDocumentModelUseCase;
@@ -675,6 +677,7 @@ export class DependencyContainer {
     this.getAllCompaniesUseCase = new GetAllCompaniesUseCase(this.companyRepository);
     this.updateCompanyUseCase = new UpdateCompanyUseCase(this.companyRepository);
     this.deleteCompanyUseCase = new DeleteCompanyUseCase(this.companyRepository);
+    this.getCompaniesByUserGroupsUseCase = new GetCompaniesByUserGroupsUseCase(this.companyRepository, this.groupRepository);
 
     this.companyController = new CompanyController(
       this.createCompanyUseCase,
@@ -682,6 +685,7 @@ export class DependencyContainer {
       this.getAllCompaniesUseCase,
       this.updateCompanyUseCase,
       this.deleteCompanyUseCase,
+      this.getCompaniesByUserGroupsUseCase,
     );
 
     // Initialize DocumentModel use cases

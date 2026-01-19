@@ -12,6 +12,10 @@ export const createCompanyRoutes = (companyController: CompanyController): Route
   const router = Router();
   router.use(auth);
 
+  // GET /api/companies/by-user-groups - Get companies by user groups (must be before /:id route)
+  // Only requires authentication, not specific permissions, as users should see their group's companies
+  router.get('/by-user-groups/list', companyController.getCompaniesByUserGroups);
+
   // POST /api/companies - Create a new company
   router.post('/', authorize('company:create'), validateRequest(createCompanySchema), companyController.createCompany);
 
