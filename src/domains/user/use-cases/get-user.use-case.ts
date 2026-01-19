@@ -17,8 +17,8 @@ export class GetUserByIdUseCase {
 export class GetAllUsersUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
-  public async execute(): Promise<User[]> {
-    return await this.userRepository.findAll();
+  public async execute(groupId?: number): Promise<User[]> {
+    return await this.userRepository.findAll(groupId);
   }
 }
 

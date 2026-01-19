@@ -4,6 +4,8 @@ import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case'
 import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
+import { ForbiddenError } from '@shared/domain/errors';
+import { isRbacEnabled } from '@shared/utils/requests';
 
 export class UserController {
   constructor(
@@ -16,7 +18,23 @@ export class UserController {
   ) {}
 
   public createUser = asyncHandler(async (req: Request, res: Response) => {
-    const user = await this.createUserUseCase.execute(req.body);
+    const { groupId } = req;
+    const { user: currentUser } = req;
+
+    // Logica para asignacion de grupos:
+    // 1. Si el creador tiene un grupo seleccionado, ese grupo se asigna al nuevo usuario.
+    // 2. Si no posee ningun grupo, debe tener permiso 'user:empty:group'.
+    // 3. De lo contrario, tiene prohibido crear usuarios.
+
+    if (isRbacEnabled(req) && !groupId && !currentUser?.can('user:empty:group')) {
+      throw new ForbiddenError('You must have a group selected to create users, or have the "user:empty:group" permission.');
+    }
+
+    const user = await this.createUserUseCase.execute({
+      ...req.body,
+      groupId: groupId,
+    });
+
     res.status(201).json({
       success: true,
       data: user.toJSON(),
@@ -34,7 +52,8 @@ export class UserController {
   });
 
   public getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-    const users = await this.getAllUsersUseCase.execute();
+    const { groupId } = req;
+    const users = await this.getAllUsersUseCase.execute(groupId);
     res.status(200).json({
       success: true,
       data: users.map(user => user.toJSON()),

@@ -11,6 +11,7 @@ import {
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { RoleEntity } from './role.entity';
 import { User } from '@domains/user/entities/user.entity';
+import { GroupEntity } from './group.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -39,6 +40,9 @@ export class UserEntity {
     inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
   })
   roles?: RoleEntity[];
+
+  @ManyToMany(() => GroupEntity, (group: any) => group.users)
+  groups?: any[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -70,6 +74,7 @@ export class UserEntity {
       password: entity.password,
       status: entity.status,
       roles: entity.roles?.map(RoleEntity.toDomain) ?? [],
+      groups: entity.groups?.map((g: any) => ({ id: g.id, name: g.name })) ?? [],
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
