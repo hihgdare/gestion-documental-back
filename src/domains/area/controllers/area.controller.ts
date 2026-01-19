@@ -23,11 +23,11 @@ export class AreaController {
     return await this.updateAreaUseCase.execute(dto);
   }
 
-  public async delete(id: number) {
+  public async delete(id: string) {
     return await this.deleteAreaUseCase.execute(id);
   }
 
-  public async get(id: number) {
+  public async get(id: string) {
     return await this.getAreaUseCase.execute(id);
   }
 

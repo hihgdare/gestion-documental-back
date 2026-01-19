@@ -23,11 +23,11 @@ export class DivisionController {
     return await this.updateDivisionUseCase.execute(dto);
   }
 
-  public async delete(id: number) {
+  public async delete(id: string) {
     return await this.deleteDivisionUseCase.execute(id);
   }
 
-  public async get(id: number) {
+  public async get(id: string) {
     return await this.getDivisionUseCase.execute(id);
   }
 
