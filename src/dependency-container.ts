@@ -707,6 +707,7 @@ export class DependencyContainer {
       this.getAuthenticatedUserPermissionsUseCase,
       this.getUserByIdUseCase,
       this.updateUserUseCase,
+      this.groupRepository,
     );
 
     this.fileController = new FileController(this.fileRepository);
