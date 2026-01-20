@@ -12,6 +12,7 @@ const crudActions = ['create', 'read', 'update', 'delete'];
 const adminSections = [
   'colaborator-group',
   'colaborator',
+  'company',
   'contract',
   'document-model',
   'document-type',
