@@ -18,11 +18,7 @@ export class CompanyController {
 
   public create = async (req: Request, res: Response) => {
     const dto = req.body as CreateCompanyDto;
-    // req.assignGroupId comes from assignGroup middleware
-    const company = await this.createCompanyUseCase.execute({
-      ...dto,
-      groupId: req.assignGroupId!,
-    });
+    const company = await this.createCompanyUseCase.execute(dto);
 
     res.status(201).json({
       success: true,
@@ -34,14 +30,9 @@ export class CompanyController {
     const { id } = req.params;
     const dto = req.body as UpdateCompanyDto;
 
-    // Si changeGroup middleware puso algo en assignGroupId, lo usamos.
-    // De lo contrario, usamos lo que venga en el dto (que podría ser undefined si no se quiere cambiar)
-    const groupId = req.assignGroupId !== undefined ? req.assignGroupId : dto.groupId;
-
     const company = await this.updateCompanyUseCase.execute({
       ...dto,
       id,
-      groupId,
     });
 
     res.status(200).json({

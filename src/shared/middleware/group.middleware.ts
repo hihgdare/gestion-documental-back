@@ -2,80 +2,78 @@ import { Request, Response, NextFunction } from 'express';
 import { User } from '@domains/user/entities/user.entity';
 import { ForbiddenError, UnauthorizedError, ValidationError } from '@shared/domain/errors';
 
-// Extiende el tipo Request para incluir la propiedad assignGroupId
-declare module 'express-serve-static-core' {
-  interface Request {
-    assignGroupId?: number;
-  }
-}
-
-type GroupFieldSelector = (body: any) => any;
+type Body = Request['body'];
+type GroupIdHandlers = {
+  get?: (body: Body) => any,
+  set?: (body: Body, groupId?: number) => void,
+};
 
 /**
  * Middleware para asignar un ID de grupo al request basado en el grupo seleccionado del usuario logueado,
  * o desde el body de la request si el usuario tiene el permiso admin:groups.
+ * El valor se guarda en el body de la request (default: body.groupId).
  *
- * @param fieldGetter - Función para extraer el ID del grupo del body de la request (default: body.groupId)
+ * @param handlers - Objeto con las funciones para extraer y guardar el ID del grupo del body.
  */
-export function assignGroup(fieldGetter: GroupFieldSelector = (body) => body.groupId) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user as User;
-    if (!user) {
-      throw new UnauthorizedError();
-    }
-    const dispatchGroupId = dispatcher(req, next);
+export const assignGroup = (handlers?: GroupIdHandlers) => (req: Request, _res: Response, next: NextFunction) => {
+  const [ user, groupId, setGroupId ] = init(req, handlers);
 
-    if (user.can('admin:groups')) {
-      // Obtiene el grupo del body de la request.
-      const bodyGroupId = parseId(fieldGetter(req.body));
-      if (bodyGroupId) return dispatchGroupId(bodyGroupId);
-    }
+  if (user.can('admin:groups')) {
+    // Obtiene el grupo del body de la request.
+    if (groupId) return setGroupId(groupId), next();
+  }
 
-    // Si el usuario tiene grupo asignado, lo almacena y continua.
-    const groupId = parseId(req.groupId);
-    if (groupId) return dispatchGroupId(groupId);
+  // Si el usuario tiene grupo asignado, lo almacena y continua.
+  const userGroupId = parseId(req.groupId);
+  if (userGroupId) return setGroupId(userGroupId), next();
 
-    // Si no tiene el permiso admin:groups, devuelve error de autorización.
-    if (!user.can('admin:groups')) {
-      throw new ForbiddenError('Forbidden: You can\'t proceed without a group assigned.');
-    }
-
-    // Devuelve error de validación, ID de grupo requerido.
+  // Si tiene el permiso admin:groups, devuelve error de validación.
+  if (user.can('admin:groups')) {
     throw new ValidationError('El ID del grupo es requerido');
-  };
-}
+  }
+
+  // Si no tiene el permiso admin:groups, devuelve error de autorización.
+  throw new ForbiddenError('Prohibido: No puedes continuar sin un grupo asignado.');
+};
 
 /**
  * Middleware para cambiar el ID de grupo si el usuario tiene los permisos user:change:group o admin:groups.
  *
- * @param fieldGetter - Función para extraer el ID del grupo del body de la request (default: body.groupId)
+ * @param handlers - Objeto con las funciones para extraer, guardar y remover el ID del grupo del body de la request (default: body.groupId)
  */
-export function changeGroup(fieldGetter: GroupFieldSelector = (body) => body.groupId) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user as User;
-    if (!user) {
-      throw new UnauthorizedError();
-    }
+export const changeGroup = (handlers?: GroupIdHandlers & {
+  unset?: (body: Body) => void,
+}) => (req: Request, _res: Response, next: NextFunction) => {
+  const [ user, groupId, setGroupId ] = init(req, handlers);
+  const unsetGroupId = handlers?.unset ?? ((body: Body) => { delete body.groupId; });
 
-    // Busca el grupo en el body de la request.
-    const id = parseId(fieldGetter(req.body));
-    // Si no existe, se mantiene el grupo actual.
-    if (!id) return next();
+  // Si no existe, se mantiene el grupo actual.
+  if (!groupId) return unsetGroupId(req.body), next();
 
-    // Usuarios con los permisos user:change:group o admin:groups pueden cambiar el grupo.
-    if (user.can(['user:change:group', 'admin:groups'])) {
-      return dispatcher(req, next)(id);
-    }
+  // Usuarios con los permisos user:change:group o admin:groups pueden cambiar el grupo.
+  if (user.can(['user:change:group', 'admin:groups'])) {
+    return setGroupId(groupId), next();
+  }
 
-    // Si no tienen los permisos, lanzamos error de autorización.
-    throw new ForbiddenError('Forbidden: You can\'t change the group.');
-  };
-}
-
-const dispatcher = (req: Request, next: NextFunction) => (groupId: number) => {
-  req.assignGroupId = groupId;
-  return next();
+  // Si no tienen los permisos, lanzamos error de autorización.
+  throw new ForbiddenError('Prohibido: No puedes cambiar el grupo.');
 };
+
+function init(req: Request, handlers?: GroupIdHandlers) {
+  const user = req.user as User;
+  if (!user) {
+    throw new UnauthorizedError();
+  }
+
+  req.body = req.body || {};
+  const getter = handlers?.get ?? ((body: Body) => body.groupId);
+  const setter = handlers?.set ?? ((body: Body, groupId?: number) => { body.groupId = groupId; });
+  return [
+    user,
+    parseId(getter(req.body)),
+    (groupId?: number) => setter(req.body, groupId),
+  ] as const;
+}
 
 function parseId(value: any): number | null {
   if (!value) return null;
