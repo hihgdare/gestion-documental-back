@@ -11,6 +11,7 @@ import { RoleController } from '@presentation/controllers/role.controller';
 import { ColaboratorGroupController } from '@presentation/controllers/colaborator-group.controller';
 import { FamilyController } from '@presentation/controllers/family.controller';
 import { DocumentModelController } from '@presentation/controllers/document-model.controller';
+import { CompanyController } from '@presentation/controllers/company/company.controller';
 
 // User domain
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
@@ -137,6 +138,13 @@ import {
 } from '@domains/document-model/use-cases/get-document-model.use-case';
 import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains/document-model/use-cases/update-document-model.use-case';
 
+// Company domain
+import { CreateCompanyUseCase } from '@domains/company/use-cases/create-company.use-case';
+import { UpdateCompanyUseCase } from '@domains/company/use-cases/update-company.use-case';
+import { DeleteCompanyUseCase } from '@domains/company/use-cases/delete-company.use-case';
+import { GetCompanyUseCase } from '@domains/company/use-cases/get-company.use-case';
+import { ListCompaniesUseCase } from '@domains/company/use-cases/list-companies.use-case';
+
 import { TypeOrmFamilyRepository } from '@shared/infrastructure/repositories/typeorm-family.repository';
 import { TypeOrmDocumentModelRepository } from '@shared/infrastructure/repositories/typeorm-document-model.repository';
 import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
@@ -148,6 +156,7 @@ import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositori
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 import { TypeOrmDocumentHistoryRepository } from '@shared/infrastructure/repositories/typeorm-document-history.repository';
+import { TypeOrmCompanyRepository } from '@shared/infrastructure/repositories/typeorm-company.repository';
 
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
@@ -185,6 +194,7 @@ export class DependencyContainer {
   private familyRepository!: TypeOrmFamilyRepository;
   private documentModelRepository!: TypeOrmDocumentModelRepository;
   private groupRepository!: TypeOrmGroupRepository;
+  private companyRepository!: TypeOrmCompanyRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -326,6 +336,13 @@ export class DependencyContainer {
   private removeUserFromGroupUseCase!: RemoveUserFromGroupUseCase;
   private assignGroupToUserUseCase!: AssignGroupToUserUseCase;
 
+  // Use Cases - Company
+  private createCompanyUseCase!: CreateCompanyUseCase;
+  private updateCompanyUseCase!: UpdateCompanyUseCase;
+  private deleteCompanyUseCase!: DeleteCompanyUseCase;
+  private getCompanyUseCase!: GetCompanyUseCase;
+  private listCompaniesUseCase!: ListCompaniesUseCase;
+
   // Controllers
   private colaboratorController!: ColaboratorController;
   private contractController!: ContractController;
@@ -342,6 +359,7 @@ export class DependencyContainer {
   private groupController!: GroupController;
   private userController!: UserController;
   private authController!: AuthController;
+  private companyController!: CompanyController;
   private fileController!: FileController;
 
   public async initialize(): Promise<void> {
@@ -362,6 +380,7 @@ export class DependencyContainer {
     this.familyRepository = new TypeOrmFamilyRepository();
     this.documentModelRepository = new TypeOrmDocumentModelRepository();
     this.groupRepository = new TypeOrmGroupRepository();
+    this.companyRepository = new TypeOrmCompanyRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -693,6 +712,21 @@ export class DependencyContainer {
       this.assignGroupToUserUseCase,
     );
 
+    // Initialize Company use cases
+    this.createCompanyUseCase = new CreateCompanyUseCase(this.companyRepository, this.groupRepository);
+    this.updateCompanyUseCase = new UpdateCompanyUseCase(this.companyRepository, this.groupRepository);
+    this.deleteCompanyUseCase = new DeleteCompanyUseCase(this.companyRepository);
+    this.getCompanyUseCase = new GetCompanyUseCase(this.companyRepository);
+    this.listCompaniesUseCase = new ListCompaniesUseCase(this.companyRepository);
+
+    this.companyController = new CompanyController(
+      this.createCompanyUseCase,
+      this.updateCompanyUseCase,
+      this.deleteCompanyUseCase,
+      this.getCompanyUseCase,
+      this.listCompaniesUseCase,
+    );
+
     this.userController = new UserController(
       this.createUserUseCase,
       this.getUserByIdUseCase,
@@ -774,6 +808,10 @@ export class DependencyContainer {
     return this.fileController;
   }
 
+  public getCompanyController(): CompanyController {
+    return this.companyController;
+  }
+
   // Getters for repositories (if needed for testing)
   public getUserRepository(): TypeOrmUserRepository {
     return this.userRepository;
@@ -793,6 +831,14 @@ export class DependencyContainer {
 
   public getDocumentSubtypeRepository(): TypeOrmDocumentSubtypeRepository {
     return this.documentSubtypeRepository;
+  }
+
+  public getGroupRepository(): TypeOrmGroupRepository {
+    return this.groupRepository;
+  }
+
+  public getCompanyRepository(): TypeOrmCompanyRepository {
+    return this.companyRepository;
   }
 
 
@@ -832,5 +878,9 @@ export class DependencyContainer {
 
   public getCheckUserCanReviewContractUseCase(): CheckUserCanReviewContractUseCase {
     return this.checkUserCanReviewContractUseCase;
+  }
+
+  public getAddUserToGroupUseCase(): AddUserToGroupUseCase {
+    return this.addUserToGroupUseCase;
   }
 }
