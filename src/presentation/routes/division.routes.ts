@@ -7,7 +7,10 @@ export const createDivisionRoutes = (divisionController: DivisionController): Ro
   const router = Router();
   router.use(auth);
 
-  // CRUD Divisions
+  // Endpoint público (solo requiere autenticación) para formularios
+  router.get('/options', divisionController.listDivisions);
+
+  // CRUD Divisions (requieren permisos específicos)
   router.post('/', authorize('division:create'), divisionController.createDivision);
   router.get('/', authorize('division:read'), divisionController.listDivisions);
   router.get('/:id', authorize('division:read'), divisionController.getDivisionById);

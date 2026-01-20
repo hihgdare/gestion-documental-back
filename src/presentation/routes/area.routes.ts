@@ -7,7 +7,10 @@ export const createAreaRoutes = (areaController: AreaController): Router => {
   const router = Router();
   router.use(auth);
 
-  // CRUD Areas
+  // Endpoint público (solo requiere autenticación) para formularios
+  router.get('/options', areaController.listAreas);
+
+  // CRUD Areas (requieren permisos específicos)
   router.post('/', authorize('area:create'), areaController.createArea);
   router.get('/', authorize('area:read'), areaController.listAreas);
   router.get('/:id', authorize('area:read'), areaController.getAreaById);
