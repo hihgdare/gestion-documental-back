@@ -25,6 +25,8 @@ import { createGroupRoutes } from '@presentation/routes/group.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
 import { createCompanyRoutes } from '@presentation/routes/company.routes';
+import { createAreaRoutes } from '@presentation/routes/area.routes';
+import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seed/initial-seeds';
 
@@ -131,6 +133,8 @@ export class App {
           documentModels: '/api/document-models',
           groups: '/api/groups',
           companies: '/api/companies',
+          areas: '/api/areas',
+          divisions: '/api/divisions',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -155,6 +159,8 @@ export class App {
     const groupController = this.dependencyContainer.getGroupController();
     const roleController = this.dependencyContainer.getRoleController();
     const colaboratorGroupController = this.dependencyContainer.getColaboratorGroupController();
+    const areaController = this.dependencyContainer.getAreaController();
+    const divisionController = this.dependencyContainer.getDivisionController();
     const authController = this.dependencyContainer.getAuthController();
     const fileController = this.dependencyContainer.getFileController();
     const companyController = this.dependencyContainer.getCompanyController();
@@ -185,6 +191,8 @@ export class App {
     this.app.use('/api/groups', createGroupRoutes(groupController));
     this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));
     this.app.use('/api/companies', createCompanyRoutes(companyController));
+    this.app.use('/api/areas', createAreaRoutes(areaController));
+    this.app.use('/api/divisions', createDivisionRoutes(divisionController));
     this.app.use('/api/files', createFileRoutes(fileController));
 
     // Auth routes
