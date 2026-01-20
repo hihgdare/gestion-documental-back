@@ -59,6 +59,25 @@ export const changeGroup = (handlers?: GroupIdHandlers & {
   throw new ForbiddenError('Prohibido: No puedes cambiar el grupo.');
 };
 
+/**
+ * Middleware para obtener recursos por grupo.
+ * Si el usuario tiene los permisos admin:groups, tendrá acceso a obtener recursos de cualquier grupo.
+ * Si no tiene los permisos, y no tiene un grupo asignado, devuelve error de autorización.
+ */
+export const getByGroup = () => (req: Request, _res: Response, next: NextFunction) => {
+  const user = req.user as User;
+  if (!user) {
+    throw new UnauthorizedError();
+  }
+
+  const groupId = req.groupId;
+  if (!groupId && !user.can('admin:groups')) {
+    throw new ForbiddenError('Prohibido: Es necesario que el usuario elija un grupo para consultar este recurso.');
+  }
+
+  return next();
+};
+
 function init(req: Request, handlers?: GroupIdHandlers) {
   const user = req.user as User;
   if (!user) {
