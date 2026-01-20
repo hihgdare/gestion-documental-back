@@ -4,5 +4,5 @@ export interface CreateCompanyDto {
   address?: string;
   phone?: string;
   email?: string;
-  groupId?: number; // Optional in DTO because assignGroup middleware can set it
+  groupId: number;
 }
