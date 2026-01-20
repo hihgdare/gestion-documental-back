@@ -13,6 +13,8 @@ import {
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { UserEntity } from '@shared/infrastructure/database/entities/user.entity';
 import { ColaboratorEntity } from './colaborators.entity';
+import { AreaEntity } from './area.entity';
+import { DivisionEntity } from './division.entity';
 
 @Entity('contracts')
 @Index('IDX_contracts_rut_sociedad', ['rutSociedad'])
@@ -61,6 +63,20 @@ export class ContractEntity {
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   area?: string;
+
+  @Column({ name: 'areaId', type: 'varchar', length: 36, nullable: true })
+  areaId?: string;
+
+  @ManyToOne(() => AreaEntity)
+  @JoinColumn({ name: 'areaId' })
+  areaRelation?: AreaEntity;
+
+  @Column({ name: 'divisionId', type: 'varchar', length: 36, nullable: true })
+  divisionId?: string;
+
+  @ManyToOne(() => DivisionEntity)
+  @JoinColumn({ name: 'divisionId' })
+  divisionRelation?: DivisionEntity;
 
   @Column({ name: 'dotacion_personal', type: 'int', default: 0 })
   dotacionPersonal!: number;

@@ -36,7 +36,9 @@ export const createContractSchema = Joi.object({
   contractNumber: Joi.string().trim().min(1).max(50).required(),
   nombreMandante: Joi.string().trim().min(2).max(100).required(),
   division: Joi.string().trim().max(100).optional(),
+  divisionId: Joi.string().uuid().optional(),
   area: Joi.string().max(100).optional(),
+  areaId: Joi.string().uuid().optional(),
   dotacionPersonal: Joi.number().integer().min(0).optional().default(0),
   dotacionVehiculos: Joi.number().integer().min(0).optional().default(0),
   descripcionServicio: Joi.string().max(1000).optional(),
@@ -61,7 +63,9 @@ export const updateContractSchema = Joi.object({
   descripcionServicio: Joi.string().max(1000).optional(),
   nombreProyecto: Joi.string().max(100).optional(),
   division: Joi.string().trim().max(100).optional(),
+  divisionId: Joi.string().uuid().optional(),
   area: Joi.string().max(100).optional(),
+  areaId: Joi.string().uuid().optional(),
   jornadaTrabajo: Joi.string().valid(...Object.values(JornadaTrabajo)).optional(),
   dotacionPersonal: Joi.number().integer().min(0).optional(),
   dotacionVehiculos: Joi.number().integer().min(0).optional(),
@@ -321,6 +325,24 @@ export const createFamilySchema = Joi.object({
 
 export const updateFamilySchema = Joi.object({
   name: Joi.string().min(2).max(100).optional(),
+}).min(1);
+
+export const createCompanySchema = Joi.object({
+  name: Joi.string().min(2).max(200).required(),
+  rut: Joi.string().min(8).max(12).required(),
+  address: Joi.string().max(300).optional().allow(''),
+  contactName: Joi.string().max(150).optional().allow(''),
+  contactPhone: Joi.string().max(20).optional().allow(''),
+  contactEmail: Joi.string().email().max(100).optional().allow(''),
+});
+
+export const updateCompanySchema = Joi.object({
+  name: Joi.string().min(2).max(200).optional(),
+  rut: Joi.string().min(8).max(12).optional(),
+  address: Joi.string().max(300).optional().allow(''),
+  contactName: Joi.string().max(150).optional().allow(''),
+  contactPhone: Joi.string().max(20).optional().allow(''),
+  contactEmail: Joi.string().email().max(100).optional().allow(''),
 }).min(1);
 
 export const createDocumentModelSchema = Joi.object({

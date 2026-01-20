@@ -22,6 +22,9 @@ const adminSections = [
   'permission',
   'role',
   'user',
+  'company',
+  'area',
+  'division',
 ];
 const otherPermissions = [
   'admin:groups',

@@ -16,7 +16,10 @@ export class TypeOrmContractRepository implements ContractRepository {
   }
 
   async findById(id: string): Promise<Contract | null> {
-    const contractEntity = await this.repository.findOne({ where: { id, deletedAt: IsNull() } });
+    const contractEntity = await this.repository.findOne({
+      where: { id, deletedAt: IsNull() },
+      relations: ['areaRelation', 'divisionRelation'],
+    });
     if (!contractEntity) return null;
     return this.toDomain(contractEntity);
   }
@@ -24,6 +27,7 @@ export class TypeOrmContractRepository implements ContractRepository {
   async findAll(): Promise<Contract[]> {
     const contractEntities = await this.repository.find({
       where: { deletedAt: IsNull() },
+      relations: ['areaRelation', 'divisionRelation'],
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -65,6 +69,8 @@ export class TypeOrmContractRepository implements ContractRepository {
     if (props.nombreMandante !== undefined) domain.nombreMandante = props.nombreMandante;
     if (props.division !== undefined) domain.division = props.division;
     if (props.area !== undefined) domain.area = props.area;
+    if (props.areaId !== undefined) domain.areaId = props.areaId;
+    if (props.divisionId !== undefined) domain.divisionId = props.divisionId;
     if (props.descripcionServicio !== undefined) domain.descripcionServicio = props.descripcionServicio;
     if (props.nombreProyecto !== undefined) domain.nombreProyecto = props.nombreProyecto;
     if (props.dotacionPersonal !== undefined) domain.dotacionPersonal = props.dotacionPersonal;
@@ -371,6 +377,10 @@ export class TypeOrmContractRepository implements ContractRepository {
       nombreMandante: entity.nombreMandante,
       division: entity.division,
       area: entity.area,
+      areaId: entity.areaId,
+      areaName: entity.areaRelation?.name,
+      divisionId: entity.divisionId,
+      divisionName: entity.divisionRelation?.name,
       dotacionPersonal: entity.dotacionPersonal,
       dotacionVehiculos: entity.dotacionVehiculos,
       descripcionServicio: entity.descripcionServicio,
@@ -401,6 +411,8 @@ export class TypeOrmContractRepository implements ContractRepository {
       nombreMandante: contract.nombreMandante,
       division: contract.division,
       area: contract.area,
+      areaId: contract.areaId,
+      divisionId: contract.divisionId,
       dotacionPersonal: contract.dotacionPersonal,
       dotacionVehiculos: contract.dotacionVehiculos,
       descripcionServicio: contract.descripcionServicio,
