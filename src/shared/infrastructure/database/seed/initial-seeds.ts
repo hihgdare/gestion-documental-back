@@ -1,6 +1,7 @@
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
 import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
@@ -11,6 +12,7 @@ const crudActions = ['create', 'read', 'update', 'delete'];
 const adminSections = [
   'colaborator-group',
   'colaborator',
+  'company',
   'contract',
   'document-model',
   'document-type',
@@ -25,6 +27,7 @@ const adminSections = [
   'division',
 ];
 const otherPermissions = [
+  'admin:groups',
   'colaborator-group:assign:colaborator',
   'colaborator-group:assign:document',
   'contract:assign:reviewer',
@@ -33,6 +36,7 @@ const otherPermissions = [
   'role:assign:permission',
   'user:assign:role',
   'user:change:group',
+  'user:empty:group',
 ];
 
 export async function runInitialSeedsIfEmpty(): Promise<void> {
@@ -45,11 +49,12 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
   const userRepository = new TypeOrmUserRepository();
   const roleRepository = new TypeOrmRoleRepository();
   const permissionRepository = new TypeOrmPermissionRepository();
+  const groupRepository = new TypeOrmGroupRepository();
 
   const savePermissionUseCase = new SavePermissionUseCase(permissionRepository);
   const saveRoleUseCase = new SaveRoleUseCase(roleRepository);
   const assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(roleRepository, permissionRepository);
-  const createUserUseCase = new CreateUserUseCase(userRepository, roleRepository);
+  const createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
   const assignRoleToUserUseCase = new AssignRoleToUserUseCase(userRepository, roleRepository);
 
   const existingUser = await userRepository.findByEmail(email);

@@ -7,6 +7,7 @@ import FileUtils from '@shared/utils/FileUtils';
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 import { User } from '@domains/user/entities/user.entity';
 import { Role } from '@domains/role/entities/role.entity';
@@ -16,6 +17,7 @@ describe('FileController', () => {
   let app: Application;
   let userRepository: TypeOrmUserRepository;
   let roleRepository: TypeOrmRoleRepository;
+  let groupRepository: TypeOrmGroupRepository;
   let createUserUseCase: CreateUserUseCase;
   let saveRoleUseCase: SaveRoleUseCase;
   let testUser: User;
@@ -39,7 +41,8 @@ describe('FileController', () => {
 
     userRepository = new TypeOrmUserRepository();
     roleRepository = new TypeOrmRoleRepository();
-    createUserUseCase = new CreateUserUseCase(userRepository, roleRepository);
+    groupRepository = new TypeOrmGroupRepository();
+    createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
     saveRoleUseCase = new SaveRoleUseCase(roleRepository);
   });
 

@@ -1,67 +1,53 @@
-import { ICompanyRepository } from '../repositories/company.repository.interface';
+import { CompanyRepository } from '../repositories/company.repository';
+import { GroupRepository } from '../../group/repositories/group.repository';
 import { Company } from '../entities/company.entity';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
-export interface UpdateCompanyRequest {
+export interface UpdateCompanyInput {
+  id: string;
   name?: string;
-  rut?: string;
+  taxId?: string;
   address?: string;
-  contactName?: string;
-  contactPhone?: string;
-  contactEmail?: string;
+  phone?: string;
+  email?: string;
+  groupId?: number;
 }
 
 export class UpdateCompanyUseCase {
-  constructor(private readonly companyRepository: ICompanyRepository) {}
+  constructor(
+    private readonly companyRepository: CompanyRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
-  public async execute(id: string, request: UpdateCompanyRequest): Promise<Company> {
-    const company = await this.companyRepository.findById(id);
+  async execute(input: UpdateCompanyInput): Promise<Company> {
+    const company = await this.companyRepository.findById(input.id);
     if (!company) {
-      throw new NotFoundError('Empresa no encontrada');
+      throw new NotFoundError('Company not found');
     }
 
-    // Update RUT if provided
-    if (request.rut && request.rut !== company.rut) {
-      company.updateRut(request.rut);
+    if (input.taxId && input.taxId !== company.taxId) {
+      const exists = await this.companyRepository.existsByTaxId(input.taxId, input.id);
+      if (exists) {
+        throw new ValidationError(`Company with tax ID ${input.taxId} already exists`, 'taxId');
+      }
     }
 
-    // Update name if provided
-    if (request.name) {
-      company.updateName(request.name);
-    }
+    company.update({
+      name: input.name,
+      taxId: input.taxId,
+      address: input.address,
+      phone: input.phone,
+      email: input.email,
+    });
 
-    // Update address if provided
-    if (request.address !== undefined) {
-      company.updateAddress(request.address);
-    }
-
-    // Update contact info if provided
-    if (request.contactName !== undefined) {
-      company.updateContactName(request.contactName);
-    }
-
-    if (request.contactPhone !== undefined) {
-      company.updateContactPhone(request.contactPhone);
-    }
-
-    if (request.contactEmail !== undefined) {
-      company.updateContactEmail(request.contactEmail);
+    if (input.groupId !== undefined && input.groupId !== company.groupId) {
+      const group = await this.groupRepository.findById(input.groupId);
+      if (!group) {
+        throw new ValidationError('Group not found', 'groupId');
+      }
+      company.changeGroup(input.groupId);
     }
 
     return await this.companyRepository.update(company);
-  }
-}
-
-export class DeleteCompanyUseCase {
-  constructor(private readonly companyRepository: ICompanyRepository) {}
-
-  public async execute(id: string): Promise<void> {
-    const company = await this.companyRepository.findById(id);
-    if (!company) {
-      throw new NotFoundError('Empresa no encontrada');
-    }
-
-    company.softDelete();
-    await this.companyRepository.update(company);
   }
 }

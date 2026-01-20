@@ -7,7 +7,9 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
+import { Company } from '@domains/company/entities/company.entity';
 import { GroupEntity } from './group.entity';
 
 @Entity('companies')
@@ -15,28 +17,26 @@ export class CompanyEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar', length: 200 })
+  @Column({ type: 'varchar', length: 255 })
   name!: string;
 
-  @Column({ type: 'varchar', length: 12 })
-  rut!: string;
+  @Column({ type: 'varchar', length: 50, unique: true, name: 'tax_id' })
+  @Index('IDX_companies_tax_id')
+  taxId!: string;
 
-  @Column({ type: 'varchar', length: 300, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   address?: string;
 
-  @Column({ name: 'contact_name', type: 'varchar', length: 150, nullable: true })
-  contactName?: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  phone?: string;
 
-  @Column({ name: 'contact_phone', type: 'varchar', length: 20, nullable: true })
-  contactPhone?: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email?: string;
 
-  @Column({ name: 'contact_email', type: 'varchar', length: 100, nullable: true })
-  contactEmail?: string;
+  @Column({ type: 'int', name: 'group_id' })
+  groupId!: number;
 
-  @Column({ name: 'group_id', type: 'varchar', nullable: true })
-  groupId?: string;
-
-  @ManyToOne(() => GroupEntity, { onDelete: 'SET NULL' })
+  @ManyToOne(() => GroupEntity)
   @JoinColumn({ name: 'group_id' })
   group?: GroupEntity;
 
@@ -48,4 +48,34 @@ export class CompanyEntity {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt!: Date | null;
+
+  static fromDomain(company: Company): CompanyEntity {
+    const entity = new CompanyEntity();
+    entity.id = company.id;
+    entity.name = company.name;
+    entity.taxId = company.taxId;
+    entity.address = company.address;
+    entity.phone = company.phone;
+    entity.email = company.email;
+    entity.groupId = company.groupId;
+    entity.createdAt = company.createdAt;
+    entity.updatedAt = company.updatedAt;
+    entity.deletedAt = company.deletedAt;
+    return entity;
+  }
+
+  static toDomain(entity: CompanyEntity): Company {
+    return new Company({
+      id: entity.id,
+      name: entity.name,
+      taxId: entity.taxId,
+      address: entity.address,
+      phone: entity.phone,
+      email: entity.email,
+      groupId: entity.groupId,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      deletedAt: entity.deletedAt,
+    });
+  }
 }

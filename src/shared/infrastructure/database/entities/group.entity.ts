@@ -21,7 +21,7 @@ export class GroupEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   description?: string;
 
-  @ManyToMany(() => UserEntity)
+  @ManyToMany(() => UserEntity, (user) => user.groups)
   @JoinTable({
     name: 'group_users',
     joinColumn: { name: 'group_id', referencedColumnName: 'id' },

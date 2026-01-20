@@ -20,13 +20,11 @@ import { createPermissionRoutes } from '@presentation/routes/permission.routes';
 import { createRoleRoutes } from '@presentation/routes/role.routes';
 import { createColaboratorGroupRoutes } from '@presentation/routes/colaborator-group.routes';
 import { createFamilyRoutes } from '@presentation/routes/family.routes';
-import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createDocumentModelRoutes } from '@presentation/routes/document-model.routes';
 import { createGroupRoutes } from '@presentation/routes/group.routes';
-import { createAreaRoutes } from '@presentation/routes/area.routes';
-import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
+import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seed/initial-seeds';
 
@@ -130,11 +128,9 @@ export class App {
           roles: '/api/roles',
           colaboratorGroups: '/api/colaborator-groups',
           families: '/api/families',
-          companies: '/api/companies',
           documentModels: '/api/document-models',
           groups: '/api/groups',
-          areas: '/api/areas',
-          divisions: '/api/divisions',
+          companies: '/api/companies',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -155,15 +151,13 @@ export class App {
     const documentHistoryController = this.dependencyContainer.getDocumentHistoryController();
     const permissionController = this.dependencyContainer.getPermissionController();
     const familyController = this.dependencyContainer.getFamilyController();
-    const companyController = this.dependencyContainer.getCompanyController();
     const documentModelController = this.dependencyContainer.getDocumentModelController();
     const groupController = this.dependencyContainer.getGroupController();
-    const areaController = this.dependencyContainer.getAreaController();
-    const divisionController = this.dependencyContainer.getDivisionController();
     const roleController = this.dependencyContainer.getRoleController();
     const colaboratorGroupController = this.dependencyContainer.getColaboratorGroupController();
     const authController = this.dependencyContainer.getAuthController();
     const fileController = this.dependencyContainer.getFileController();
+    const companyController = this.dependencyContainer.getCompanyController();
 
     // Get use cases and repositories needed for middleware
     const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
@@ -187,12 +181,10 @@ export class App {
     this.app.use('/api/permissions', createPermissionRoutes(permissionController));
     this.app.use('/api/roles', createRoleRoutes(roleController));
     this.app.use('/api/families', createFamilyRoutes(familyController));
-    this.app.use('/api/companies', createCompanyRoutes(companyController));
     this.app.use('/api/document-models', createDocumentModelRoutes(documentModelController));
     this.app.use('/api/groups', createGroupRoutes(groupController));
-    this.app.use('/api/areas', createAreaRoutes(areaController));
-    this.app.use('/api/divisions', createDivisionRoutes(divisionController));
     this.app.use('/api/colaborator-groups', createColaboratorGroupRoutes(colaboratorGroupController));
+    this.app.use('/api/companies', createCompanyRoutes(companyController));
     this.app.use('/api/files', createFileRoutes(fileController));
 
     // Auth routes

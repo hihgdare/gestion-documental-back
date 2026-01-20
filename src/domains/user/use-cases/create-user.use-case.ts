@@ -1,5 +1,6 @@
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { RoleRepository } from '@domains/role/repositories/role.repository';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { User } from '@domains/user/entities/user.entity';
 import { ConflictError, ValidationError } from '@shared/domain/errors';
 import bcrypt from 'bcryptjs';
@@ -10,12 +11,14 @@ export interface CreateUserRequest {
   lastName: string;
   password: string;
   roleIds?: number[];
+  groupId?: number;
 }
 
 export class CreateUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly roleRepository: RoleRepository,
+    private readonly groupRepository: GroupRepository,
   ) {}
 
   public async execute(request: CreateUserRequest): Promise<User> {
@@ -45,6 +48,13 @@ export class CreateUserUseCase {
       roles: roles.filter(r => r) as any,
     });
 
-    return await this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    // If groupId is provided, assign user to group
+    if (request.groupId) {
+      await this.groupRepository.addUserToGroup(request.groupId, savedUser.id);
+    }
+
+    return savedUser;
   }
 }

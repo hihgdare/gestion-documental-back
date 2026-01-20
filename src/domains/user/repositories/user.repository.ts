@@ -4,7 +4,7 @@ import { UserStatus } from '../value-objects/user-status';
 export interface UserRepository {
   assignRoleToUser(userId: string, roleId: number): Promise<void>;
   findById(id: string): Promise<User | null>;
-  findAll(): Promise<User[]>;
+  findAll(groupId?: number): Promise<User[]>;
   findByEmail(email: string): Promise<User | null>;
   findByStatus(status: UserStatus): Promise<User[]>;
   findByRoleId(roleId: number): Promise<User[]>;

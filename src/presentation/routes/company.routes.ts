@@ -1,35 +1,40 @@
 import { Router } from 'express';
-import { CompanyController } from '../controllers/company.controller';
-import { validateRequest } from '@shared/middleware/validation';
-import {
-  createCompanySchema,
-  updateCompanySchema,
-} from '../dto/validation-schemas';
+import { CompanyController } from '../controllers/company/company.controller';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
+import { assignGroup, changeGroup } from '@shared/middleware/group.middleware';
 
-export const createCompanyRoutes = (companyController: CompanyController): Router => {
+export const createCompanyRoutes = (controller: CompanyController) => {
   const router = Router();
+
   router.use(auth);
 
-  // GET /api/companies/by-user-groups - Get companies by user groups (must be before /:id route)
-  // Only requires authentication, not specific permissions, as users should see their group's companies
-  router.get('/by-user-groups/list', companyController.getCompaniesByUserGroups);
+  router.post('/',
+    authorize('company:create'),
+    assignGroup(),
+    controller.create,
+  );
 
-  // POST /api/companies - Create a new company
-  router.post('/', authorize('company:create'), validateRequest(createCompanySchema), companyController.createCompany);
+  router.get('/',
+    authorize('company:read'),
+    controller.findAll,
+  );
 
-  // GET /api/companies - Get all companies
-  router.get('/', authorize('company:read'), companyController.getAllCompanies);
+  router.get('/:id',
+    authorize('company:read'),
+    controller.findById,
+  );
 
-  // GET /api/companies/:id - Get company by ID
-  router.get('/:id', authorize('company:read'), companyController.getCompanyById);
+  router.put('/:id',
+    authorize('company:update'),
+    changeGroup(),
+    controller.update,
+  );
 
-  // PUT /api/companies/:id - Update company
-  router.put('/:id', authorize('company:update'), validateRequest(updateCompanySchema), companyController.updateCompany);
-
-  // DELETE /api/companies/:id - Delete company
-  router.delete('/:id', authorize('company:delete'), companyController.deleteCompany);
+  router.delete('/:id',
+    authorize('company:delete'),
+    controller.delete,
+  );
 
   return router;
 };

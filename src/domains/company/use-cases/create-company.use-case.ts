@@ -1,31 +1,35 @@
-import { ICompanyRepository } from '../repositories/company.repository.interface';
-import { Company, CompanyProps } from '../entities/company.entity';
+import { CompanyRepository } from '../repositories/company.repository';
+import { GroupRepository } from '../../group/repositories/group.repository';
+import { Company } from '../entities/company.entity';
+import { ValidationError } from '@shared/domain/errors';
 
-export interface CreateCompanyRequest {
+export interface CreateCompanyInput {
   name: string;
-  rut: string;
+  taxId: string;
   address?: string;
-  contactName?: string;
-  contactPhone?: string;
-  contactEmail?: string;
+  phone?: string;
+  email?: string;
+  groupId: number;
 }
 
 export class CreateCompanyUseCase {
-  constructor(private readonly companyRepository: ICompanyRepository) {}
+  constructor(
+    private readonly companyRepository: CompanyRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
-  public async execute(request: CreateCompanyRequest): Promise<Company> {
-    // Create company
-    const companyProps: CompanyProps = {
-      name: request.name,
-      rut: request.rut,
-      address: request.address,
-      contactName: request.contactName,
-      contactPhone: request.contactPhone,
-      contactEmail: request.contactEmail,
-    };
+  async execute(input: CreateCompanyInput): Promise<Company> {
+    const exists = await this.companyRepository.existsByTaxId(input.taxId);
+    if (exists) {
+      throw new ValidationError(`Company with tax ID ${input.taxId} already exists`, 'taxId');
+    }
 
-    const company = Company.create(companyProps);
+    const group = await this.groupRepository.findById(input.groupId);
+    if (!group) {
+      throw new ValidationError('Group not found', 'groupId');
+    }
 
-    return await this.companyRepository.create(company);
+    const company = new Company(input);
+    return await this.companyRepository.save(company);
   }
 }

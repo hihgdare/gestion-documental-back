@@ -1,107 +1,52 @@
-import { Repository, IsNull } from 'typeorm';
-import { type ICompanyRepository } from '@domains/company/repositories/company.repository.interface';
-import { Company, type CompanyProps } from '@domains/company/entities/company.entity';
+import { Repository, DataSource, Not } from 'typeorm';
+import { CompanyRepository } from '@domains/company/repositories/company.repository';
+import { Company } from '@domains/company/entities/company.entity';
 import { CompanyEntity } from '../database/entities/company.entity';
 import { AppDataSource } from '../database/typeorm.config';
-import { NotFoundError } from '@shared/domain/errors';
 
-export class TypeOrmCompanyRepository implements ICompanyRepository {
+export class TypeOrmCompanyRepository implements CompanyRepository {
   private repository: Repository<CompanyEntity>;
 
-  constructor() {
-    this.repository = AppDataSource.getRepository(CompanyEntity);
-  }
-
-  async findAll(): Promise<Company[]> {
-    const entities = await this.repository.find({
-      where: { deletedAt: IsNull() },
-      order: { name: 'ASC' },
-    });
-    return entities.map(entity => this.toDomain(entity));
+  constructor(dataSource?: DataSource) {
+    this.repository = (dataSource || AppDataSource).getRepository(CompanyEntity);
   }
 
   async findById(id: string): Promise<Company | null> {
-    const entity = await this.repository.findOne({
-      where: { id, deletedAt: IsNull() },
-    });
-    if (!entity) return null;
-    return this.toDomain(entity);
+    const entity = await this.repository.findOne({ where: { id } });
+    return entity ? CompanyEntity.toDomain(entity) : null;
   }
 
-  async findByRut(rut: string): Promise<Company | null> {
-    const entity = await this.repository.findOne({
-      where: { rut, deletedAt: IsNull() },
+  async findAll(groupId?: number): Promise<Company[]> {
+    const where = groupId ? { groupId } : {};
+    const entities = await this.repository.find({
+      where,
+      order: { createdAt: 'DESC' },
     });
-    if (!entity) return null;
-    return this.toDomain(entity);
+    return entities.map(CompanyEntity.toDomain);
   }
 
-  async findByName(name: string): Promise<Company | null> {
-    const entity = await this.repository.findOne({
-      where: { name, deletedAt: IsNull() },
-    });
-    if (!entity) return null;
-    return this.toDomain(entity);
-  }
-
-  async create(company: Company): Promise<Company> {
-    const entity = this.toEntity(company);
+  async save(company: Company): Promise<Company> {
+    const entity = CompanyEntity.fromDomain(company);
     const savedEntity = await this.repository.save(entity);
-    return this.toDomain(savedEntity);
+    return CompanyEntity.toDomain(savedEntity);
   }
 
   async update(company: Company): Promise<Company> {
-    const entity = this.toEntity(company);
-    await this.repository.update(company.id, entity);
-    const updatedEntity = await this.repository.findOne({ where: { id: company.id } });
-    if (!updatedEntity) {
-      throw new NotFoundError('Empresa no encontrada');
-    }
-    return this.toDomain(updatedEntity);
+    const entity = CompanyEntity.fromDomain(company);
+    const savedEntity = await this.repository.save(entity);
+    return CompanyEntity.toDomain(savedEntity);
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
-  }
-
-  async softDelete(id: string): Promise<void> {
     await this.repository.softDelete(id);
   }
 
-  async restore(id: string): Promise<void> {
-    await this.repository.restore(id);
-  }
-
-  private toDomain(entity: CompanyEntity): Company {
-    const props: CompanyProps = {
-      id: entity.id,
-      name: entity.name,
-      rut: entity.rut,
-      address: entity.address,
-      contactName: entity.contactName,
-      contactPhone: entity.contactPhone,
-      contactEmail: entity.contactEmail,
-      groupId: entity.groupId,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-      deletedAt: entity.deletedAt,
-    };
-    return Company.create(props);
-  }
-
-  private toEntity(company: Company): Partial<CompanyEntity> {
-    return {
-      id: company.id,
-      name: company.name,
-      rut: company.rut,
-      address: company.address,
-      contactName: company.contactName,
-      contactPhone: company.contactPhone,
-      contactEmail: company.contactEmail,
-      groupId: company.groupId,
-      createdAt: company.createdAt,
-      updatedAt: company.updatedAt,
-      deletedAt: company.deletedAt,
-    };
+  async existsByTaxId(taxId: string, excludeId?: string): Promise<boolean> {
+    const where: any = { taxId };
+    if (excludeId) {
+      where.id = Not(excludeId);
+    }
+    const count = await this.repository.count({ where });
+    return count > 0;
   }
 }

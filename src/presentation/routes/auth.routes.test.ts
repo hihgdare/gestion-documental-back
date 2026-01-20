@@ -7,6 +7,7 @@ import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/ty
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
@@ -19,6 +20,7 @@ describe('Auth Routes', () => {
   let app: Application;
   let userRepository: TypeOrmUserRepository;
   let roleRepository: TypeOrmRoleRepository;
+  let groupRepository: TypeOrmGroupRepository;
   let permissionRepository: TypeOrmPermissionRepository;
   let createUserUseCase: CreateUserUseCase;
   let saveRoleUseCase: SaveRoleUseCase;
@@ -38,8 +40,9 @@ describe('Auth Routes', () => {
 
     userRepository = new TypeOrmUserRepository();
     roleRepository = new TypeOrmRoleRepository();
+    groupRepository = new TypeOrmGroupRepository();
     permissionRepository = new TypeOrmPermissionRepository();
-    createUserUseCase = new CreateUserUseCase(userRepository, roleRepository);
+    createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
     saveRoleUseCase = new SaveRoleUseCase(roleRepository);
     savePermissionUseCase = new SavePermissionUseCase(permissionRepository);
   });

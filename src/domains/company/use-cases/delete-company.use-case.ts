@@ -1,16 +1,15 @@
 import { CompanyRepository } from '../repositories/company.repository';
-import { Company } from '../entities/company.entity';
 import { NotFoundError } from '@shared/domain/errors';
 
-export class GetCompanyUseCase {
+export class DeleteCompanyUseCase {
   constructor(private readonly companyRepository: CompanyRepository) {}
 
-  async execute(id: string): Promise<Company> {
+  async execute(id: string): Promise<void> {
     const company = await this.companyRepository.findById(id);
     if (!company) {
       throw new NotFoundError('Company not found');
     }
 
-    return company;
+    await this.companyRepository.delete(id);
   }
 }

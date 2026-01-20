@@ -12,6 +12,7 @@ export function createAuthRoutes(authController: AuthController): Router {
   authRouter.get('/me', auth, authController.getMe);
   authRouter.post('/me', auth, authController.updateMe);
   authRouter.get('/token', authController.getToken);
+  authRouter.get('/group', authController.getGroup);
 
   return authRouter;
 }

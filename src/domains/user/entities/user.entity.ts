@@ -11,6 +11,7 @@ interface BaseUserProps {
   lastName: string;
   status?: string;
   roles?: Role[];
+  groups?: { id: number; name: string }[];
   createdAt?: DateType;
   updatedAt?: DateType;
   deletedAt?: DateType | null;
@@ -29,6 +30,7 @@ export type UserJson = Overlap<BaseUserProps, {
   id: string;
   fullName: string;
   roles?: RoleJson[];
+  groups?: { id: number; name: string }[];
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;
@@ -50,6 +52,7 @@ export class User {
   password: string;
   status?: UserStatus;
   roles?: Role[];
+  groups?: { id: number; name: string }[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -63,6 +66,7 @@ export class User {
       createdAt: 'datetime',
       updatedAt: 'datetime',
       deletedAt: 'datetimeNullable',
+      groups: (groups: any[]) => groups ?? [],
     });
   }
 
@@ -137,6 +141,7 @@ export class User {
       fullName: `${this.firstName} ${this.lastName}`,
       status: this.status,
       roles: this.roles?.map(role => role.toJSON()) ?? [],
+      groups: this.groups ?? [],
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       deletedAt: this.deletedAt?.toISOString() ?? null,
