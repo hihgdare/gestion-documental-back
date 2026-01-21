@@ -112,6 +112,7 @@ export class DocumentController {
       documentUrl: dto.documentUrl,
       requiredForContract: dto.requiredForContract,
       requiredForColaborator: dto.requiredForColaborator,
+      groupId: dto.groupId,
       createdBy: req.user?.id,
     });
 
@@ -140,7 +141,7 @@ export class DocumentController {
     const requiredForColaborator = filterObj.requiredForColaborator === 'true' ? true : undefined;
     const status = filterObj.status;
 
-    const documents = await this.getAllDocumentsUseCase.execute({
+    const documents = await this.getAllDocumentsUseCase.execute(req.groupId, {
       contractId,
       requiredForContract,
       requiredForColaborator,

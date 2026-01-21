@@ -127,6 +127,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56922222222',
       profesion: 'Ingeniero',
       cargo: 'Analista',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -148,6 +149,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56944444444',
       profesion: 'Abogada',
       cargo: 'Consultora',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -169,6 +171,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56966666666',
       profesion: 'Técnico',
       cargo: 'Operario',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -190,6 +193,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56988888888',
       profesion: 'Diseñadora',
       cargo: 'UX',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -211,6 +215,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56900000000',
       profesion: 'Desarrollador',
       cargo: 'Backend',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -232,6 +237,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56913131313',
       profesion: 'Analista',
       cargo: 'QA',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -253,6 +259,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56934343434',
       profesion: 'Project Manager',
       cargo: 'PM',
+      groupId: 1,
     },
   ] satisfies ColaboratorProps[];
 
@@ -469,7 +476,7 @@ export async function runSampleSeeds(): Promise<void> {
     const { testFile, ...documentProps } = docData as any;
 
     // Check if document already exists by name
-    const existing = await documentRepo.findAll({ contractId: documentProps.contractId });
+    const existing = await documentRepo.findAll(undefined, { contractId: documentProps.contractId });
     if (existing.some(d => d.name === documentProps.name)) {
       // console.log(`  ⏭️  Documento "${documentProps.name}" ya existe, omitiendo...`);
       continue;

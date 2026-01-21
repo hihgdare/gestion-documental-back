@@ -4,6 +4,7 @@ import { Document } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export interface UpdateDocumentRequest {
   documentTypeId?: string;
@@ -17,6 +18,7 @@ export interface UpdateDocumentRequest {
   documentUrl?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  groupId?: number;
   updatedBy?: string;
   comment?: string;
 }
@@ -25,6 +27,7 @@ export class UpdateDocumentUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
+    private readonly groupRepository: GroupRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -75,6 +78,15 @@ export class UpdateDocumentUseCase {
 
     if (request.requiredForColaborator !== undefined) {
       document.updateRequiredForColaborator(request.requiredForColaborator);
+    }
+
+    // Update group if provided
+    if (request.groupId !== undefined && request.groupId !== document.groupId) {
+      const group = await this.groupRepository.findById(request.groupId);
+      if (!group) {
+        throw new ValidationError('Group not found', 'groupId');
+      }
+      document.changeGroup(request.groupId);
     }
 
     // Verificar que no haya documentos duplicados

@@ -25,7 +25,8 @@ describe('ContractController', () => {
     const dependencyContainer = new DependencyContainer();
     await dependencyContainer.initialize();
     colaboratorRepository = dependencyContainer.getColaboratorRepository();
-    createColaboratorUseCase = new CreateColaboratorUseCase(colaboratorRepository);
+    const groupRepository = dependencyContainer.getGroupRepository();
+    createColaboratorUseCase = new CreateColaboratorUseCase(colaboratorRepository, groupRepository);
   });
 
   beforeEach(async () => {
@@ -467,6 +468,7 @@ describe('ContractController', () => {
       const colaborator = await createColaboratorUseCase.execute({
         ...colaboratorDto,
         contractIds: [otherContractId],
+        groupId: 1,
       });
       colaboratorId = colaborator.id;
     });

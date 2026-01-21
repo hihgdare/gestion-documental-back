@@ -4,6 +4,7 @@ import { validateRequest } from '@shared/middleware/validation';
 import { createDocumentSchema, updateDocumentSchema } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
+import { assignGroup, changeGroup, getByGroup } from '@shared/middleware/group.middleware';
 import { RequestHandler } from 'express';
 
 export const createDocumentRoutes = (
@@ -18,7 +19,12 @@ export const createDocumentRoutes = (
   router.use(auth);
 
   // POST routes
-  router.post('/', authorize('document:create'), validateRequest(createDocumentSchema, true), controller.createDocument);
+  router.post('/',
+    authorize('document:create'),
+    assignGroup(),
+    validateRequest(createDocumentSchema, true),
+    controller.createDocument,
+  );
   router.post('/assign-to-group', authorize('document:create'), controller.assignDocumentsToGroup);
 
   // GET routes - specific routes before parameterized routes
@@ -27,7 +33,11 @@ export const createDocumentRoutes = (
   router.get('/by-contract/:contractId', authorize('document:read'), controller.getDocumentsByContractId);
   router.get('/by-type-subtype/:typeId/:subtypeId', authorize('document:read'), controller.getDocumentsByTypeAndSubtypeId);
   router.get('/by-colaborator/:colaboratorId', authorize('document:read'), controller.getDocumentsByColaboratorId);
-  router.get('/', authorize('document:read'), controller.getAllDocuments);
+  router.get('/',
+    authorize('document:read'),
+    getByGroup(),
+    controller.getAllDocuments,
+  );
   router.get('/:id', authorize('document:read'), controller.getDocumentById);
 
   // PUT routes
@@ -37,7 +47,12 @@ export const createDocumentRoutes = (
   router.put('/:id/approve', authorize('document:review'), contractReviewerMiddleware, controller.approveDocument);
   router.put('/:id/reject', authorize('document:review'), contractReviewerMiddleware, controller.rejectDocument);
   router.put('/:id/reject-with-comments', authorize('document:review'), contractReviewerMiddleware, controller.rejectDocumentWithComments);
-  router.put('/:id', authorize('document:update'), validateRequest(updateDocumentSchema, true), controller.updateDocument);
+  router.put('/:id',
+    authorize('document:update'),
+    changeGroup(),
+    validateRequest(updateDocumentSchema, true),
+    controller.updateDocument,
+  );
 
   // DELETE routes
   router.delete('/:id', authorize('document:delete'), controller.deleteDocument);

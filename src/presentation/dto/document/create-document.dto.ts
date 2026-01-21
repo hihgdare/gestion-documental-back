@@ -10,4 +10,5 @@ export interface CreateDocumentDto {
   documentUrl?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  groupId: number;
 }

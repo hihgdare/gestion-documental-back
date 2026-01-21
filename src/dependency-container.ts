@@ -456,7 +456,7 @@ export class DependencyContainer {
 
 
     // Initialize Document use cases
-    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository, this.groupRepository);
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
@@ -464,7 +464,7 @@ export class DependencyContainer {
     this.getDocumentsByColaboratorIdUseCase = new GetDocumentsByColaboratorIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
-    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository, this.groupRepository);
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.approveDocumentUseCase = new ApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
@@ -476,6 +476,7 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.contractRepository,
+      this.colaboratorRepository,
     );
 
 
@@ -698,6 +699,7 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.contractRepository,
+      this.colaboratorRepository,
     );
 
     this.familyController = new FamilyController(

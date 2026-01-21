@@ -18,13 +18,13 @@ export class GetDocumentByIdUseCase {
 export class GetAllDocumentsUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  public async execute(filters?: {
+  public async execute(groupId?: number, filters?: {
     contractId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
     status?: DocumentStatus | DocumentStatus[];
   }): Promise<Document[]> {
-    return await this.documentRepository.findAll(filters);
+    return await this.documentRepository.findAll(groupId, filters);
   }
 }
 

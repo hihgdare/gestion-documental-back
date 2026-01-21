@@ -4,6 +4,7 @@ import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { ValidationError } from '@shared/domain/errors';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export interface CreateDocumentRequest {
   documentTypeId: string;
@@ -17,6 +18,7 @@ export interface CreateDocumentRequest {
   documentUrl?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  groupId: number;
   createdBy?: string;
   comment?: string;
 }
@@ -25,9 +27,16 @@ export class CreateDocumentUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
+    private readonly groupRepository: GroupRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
+    // Validate group exists
+    const group = await this.groupRepository.findById(request.groupId);
+    if (!group) {
+      throw new ValidationError('Group not found', 'groupId');
+    }
+
     // Verificando que no haya documentos duplicados
     if (request.colaboratorIds && request.colaboratorIds.length > 0) {
       let exists = false;
@@ -64,6 +73,7 @@ export class CreateDocumentUseCase {
       documentUrl: request.documentUrl,
       requiredForContract: request.requiredForContract,
       requiredForColaborator: request.requiredForColaborator,
+      groupId: request.groupId,
       createdBy: request.createdBy,
     };
 
