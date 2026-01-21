@@ -22,6 +22,7 @@ export interface ContractResponseDto {
   nombreProyecto?: string;
   jornadaTrabajo: JornadaTrabajo;
   status: ContractStatus;
+  groupId: number;
   duration?: number | null; // days
   isActive: boolean;
   isExpired: boolean;
@@ -52,6 +53,7 @@ export function toContractResponseDto(contract: Contract): ContractResponseDto {
     nombreProyecto: json.nombreProyecto,
     jornadaTrabajo: json.jornadaTrabajo as JornadaTrabajo,
     status: json.status as ContractStatus,
+    groupId: json.groupId,
     duration: json.duration,
     isActive: json.isActive,
     isExpired: json.isExpired,

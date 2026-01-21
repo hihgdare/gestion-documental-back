@@ -18,4 +18,5 @@ export interface CreateContractDto {
   descripcionServicio?: string;
   nombreProyecto?: string;
   jornadaTrabajo: JornadaTrabajo;
+  groupId: number;
 }

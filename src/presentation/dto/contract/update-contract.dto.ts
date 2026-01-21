@@ -16,4 +16,5 @@ export interface UpdateContractDto {
   dotacionPersonal?: number;
   dotacionVehiculos?: number;
   jornadaTrabajo?: string;
+  groupId?: number;
 }

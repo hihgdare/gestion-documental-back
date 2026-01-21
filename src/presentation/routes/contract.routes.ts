@@ -9,16 +9,23 @@ import {
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
+import { assignGroup, changeGroup, getByGroup } from '@shared/middleware/group.middleware';
 
 export const createContractRoutes = (contractController: ContractController): Router => {
   const router = Router();
   router.use(auth);
 
   // POST /api/contracts - Create a new contract
-  router.post('/', authorize('contract:create'), validateRequest(createContractSchema, true), contractController.createContract);
+  router.post(
+    '/',
+    authorize('contract:create'),
+    assignGroup(),
+    validateRequest(createContractSchema, true),
+    contractController.createContract,
+  );
 
   // GET /api/contracts - Get all contracts
-  router.get('/', authorize('contract:read'), contractController.getAllContracts);
+  router.get('/', authorize('contract:read'), getByGroup(), contractController.getAllContracts);
 
   // GET /api/contracts/active - Get active contracts
   router.get('/active', authorize('contract:read'), contractController.getActiveContracts);
@@ -51,7 +58,13 @@ export const createContractRoutes = (contractController: ContractController): Ro
   router.get('/:id', authorize('contract:read'), contractController.getContractById);
 
   // PUT /api/contracts/:id - Update contract
-  router.put('/:id', authorize('contract:update'), validateRequest(updateContractSchema, true), contractController.updateContract);
+  router.put(
+    '/:id',
+    authorize('contract:update'),
+    changeGroup(),
+    validateRequest(updateContractSchema, true),
+    contractController.updateContract,
+  );
 
   // PATCH /api/contracts/:id/activate - Activate contract
   router.patch('/:id/activate', authorize('contract:update'), contractController.activateContract);

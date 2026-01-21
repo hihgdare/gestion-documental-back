@@ -24,9 +24,15 @@ export class TypeOrmContractRepository implements ContractRepository {
     return this.toDomain(contractEntity);
   }
 
-  async findAll(): Promise<Contract[]> {
+  async findAll(groupId?: number): Promise<Contract[]> {
+    const where: any = { deletedAt: IsNull() };
+
+    if (groupId !== undefined) {
+      where.groupId = groupId;
+    }
+
     const contractEntities = await this.repository.find({
-      where: { deletedAt: IsNull() },
+      where,
       relations: ['areaRelation', 'divisionRelation'],
       order: { createdAt: 'DESC' },
     });
@@ -389,6 +395,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       status: entity.status as ContractStatus,
       employeeId: entity.employeeId,
       managerId: entity.managerId,
+      groupId: entity.groupId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
@@ -421,6 +428,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       status: contract.status,
       employeeId: contract.employeeId,
       managerId: contract.managerId,
+      groupId: contract.groupId,
       createdAt: contract.createdAt,
       updatedAt: contract.updatedAt,
       deletedAt: contract.deletedAt || undefined,

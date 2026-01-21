@@ -102,6 +102,7 @@ export class ContractController {
       nombreProyecto: json.nombreProyecto,
       jornadaTrabajo: json.jornadaTrabajo as JornadaTrabajo,
       status: json.status as ContractStatus,
+      groupId: json.groupId,
       duration: json.duration,
       isActive: json.isActive,
       isExpired: json.isExpired,
@@ -112,7 +113,11 @@ export class ContractController {
   }
 
   public createContract = asyncHandler(async (req: Request, res: Response) => {
-    const contract = await this.createContractUseCase.execute(req.body as CreateContractDto);
+    const dto: CreateContractDto = req.body;
+    const contract = await this.createContractUseCase.execute({
+      ...dto,
+      groupId: dto.groupId,
+    });
     res.status(201).json({
       success: true,
       data: this.toResponseDto(contract),
@@ -130,7 +135,7 @@ export class ContractController {
   });
 
   public getAllContracts = asyncHandler(async (req: Request, res: Response) => {
-    const contracts = await this.getAllContractsUseCase.execute();
+    const contracts = await this.getAllContractsUseCase.execute(req.groupId);
     res.status(200).json({
       success: true,
       data: contracts.map((contract: Contract) => this.toResponseDto(contract)),

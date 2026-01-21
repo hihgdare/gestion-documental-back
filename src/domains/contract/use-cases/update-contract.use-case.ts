@@ -1,10 +1,14 @@
 import { ContractRepository } from '../repositories/contract.repository';
 import { Contract, UpdateContractProps } from '../entities/contract.entity';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { only } from '@shared/utils/objects';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export class UpdateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) { }
+  constructor(
+    private readonly contractRepository: ContractRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
   public async execute(request: UpdateContractProps): Promise<Contract> {
     const contract = await this.contractRepository.findById(request.id);
@@ -85,6 +89,15 @@ export class UpdateContractUseCase {
       );
     }
 
+    // Update group if provided
+    if (request.groupId !== undefined && request.groupId !== contract.groupId) {
+      const group = await this.groupRepository.findById(request.groupId);
+      if (!group) {
+        throw new ValidationError('Group not found', 'groupId');
+      }
+      contract.changeGroup(request.groupId);
+    }
+
     if (request.endDate) {
       contract.extendContract(new Date(request.endDate));
     }
@@ -108,6 +121,7 @@ export class UpdateContractUseCase {
       'jornadaTrabajo',
       'dotacionPersonal',
       'dotacionVehiculos',
+      'groupId',
     ]);
 
     return await this.contractRepository.update(updateFields);

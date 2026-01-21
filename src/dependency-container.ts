@@ -481,7 +481,7 @@ export class DependencyContainer {
 
 
     // Initialize Contract use cases
-    this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
+    this.createContractUseCase = new CreateContractUseCase(this.contractRepository, this.groupRepository);
     this.getContractByIdUseCase = new GetContractByIdUseCase(this.contractRepository);
     this.getAllContractsUseCase = new GetAllContractsUseCase(this.contractRepository);
     this.getContractsByRutSociedadUseCase = new GetContractsByRutSociedadUseCase(this.contractRepository);
@@ -493,7 +493,7 @@ export class DependencyContainer {
     this.getActiveContractsUseCase = new GetActiveContractsUseCase(this.contractRepository);
     this.getExpiredContractsUseCase = new GetExpiredContractsUseCase(this.contractRepository);
     this.getContractsEndingBeforeUseCase = new GetContractsEndingBeforeUseCase(this.contractRepository);
-    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository);
+    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository, this.groupRepository);
     this.activateContractUseCase = new ActivateContractUseCase(this.contractRepository);
     this.suspendContractUseCase = new SuspendContractUseCase(this.contractRepository);
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);

@@ -30,6 +30,7 @@ interface BaseContractProps {
   dotacionVehiculos?: number;
   employeeId?: string;
   managerId?: string;
+  groupId: number;
   createdAt?: DateType;
   updatedAt?: DateType;
   deletedAt?: DateType | null;
@@ -64,6 +65,7 @@ export type UpdateContractProps = {
   dotacionVehiculos?: number;
   employeeId?: string;
   managerId?: string;
+  groupId?: number;
   userId?: string;
   userRoles?: Array<{ id: number; name: string }>;
 };
@@ -108,6 +110,7 @@ export class Contract {
   status: ContractStatus;
   employeeId?: string;
   managerId?: string;
+  groupId: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -152,6 +155,9 @@ export class Contract {
     }
     if (!props.nombreMandante?.trim()) {
       throw new ValidationError('Nombre mandante is required', 'nombreMandante');
+    }
+    if (!props.groupId || props.groupId <= 0) {
+      throw new ValidationError('Group ID is required and must be positive', 'groupId');
     }
     if (props.contractType && !isValid(props.contractType, ContractType)) {
       throw new ValidationError('Invalid contract type', 'contractType');
@@ -262,6 +268,13 @@ export class Contract {
     this.nombreProyecto = nombreProyecto?.trim();
   }
 
+  public changeGroup(groupId: number): void {
+    if (!groupId || groupId <= 0) {
+      throw new ValidationError('Group ID must be positive', 'groupId');
+    }
+    this.groupId = groupId;
+  }
+
   public updateJornadaTrabajo(jornadaTrabajo: string): void {
     this.jornadaTrabajo = parseEnum(jornadaTrabajo, JornadaTrabajo) ?? JornadaTrabajo.COMPLETA;
   }
@@ -334,6 +347,7 @@ export class Contract {
       status: this.status,
       dotacionPersonal: this.dotacionPersonal,
       dotacionVehiculos: this.dotacionVehiculos,
+      groupId: this.groupId,
       startDate: DateUtils.toString(this.startDate),
       endDate: DateUtils.toString(this.endDate),
       duration: this.getDuration(),

@@ -21,6 +21,7 @@ import { DivisionEntity } from './division.entity';
 @Index('IDX_contracts_nombre_colaborador', ['nombreColaborador'])
 @Index('IDX_contracts_contract_type', ['contractType'])
 @Index('IDX_contracts_status', ['status'])
+@Index('IDX_contracts_group_id', ['groupId'])
 export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -102,6 +103,9 @@ export class ContractEntity {
     default: 'draft',
   })
   status!: string;
+
+  @Column({ name: 'group_id', type: 'integer' })
+  groupId!: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

@@ -44,6 +44,7 @@ export const createContractSchema = Joi.object({
   descripcionServicio: Joi.string().max(1000).optional(),
   nombreProyecto: Joi.string().max(100).optional(),
   jornadaTrabajo: Joi.string().valid(...Object.values(JornadaTrabajo)).required(),
+  groupId: Joi.number().integer().positive().required(),
   status: Joi.string().valid(...Object.values(ContractStatus)).optional().default(ContractStatus.DRAFT),
 });
 
@@ -69,6 +70,7 @@ export const updateContractSchema = Joi.object({
   jornadaTrabajo: Joi.string().valid(...Object.values(JornadaTrabajo)).optional(),
   dotacionPersonal: Joi.number().integer().min(0).optional(),
   dotacionVehiculos: Joi.number().integer().min(0).optional(),
+  groupId: Joi.number().integer().positive().optional(),
 }).min(1);
 
 export const getContractByIdSchema = Joi.object({
