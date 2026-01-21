@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ObjectSchema } from 'joi';
 import { DateUtils } from '@shared/utils/date';
+import { ValidationError } from '@shared/domain/errors';
 
 export const validateRequest = (schema: ObjectSchema, convert?: boolean) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -11,20 +12,12 @@ export const validateRequest = (schema: ObjectSchema, convert?: boolean) => {
     });
 
     if (error) {
-      const errors = error.details.map((detail) => ({
+      const details = error.details.map((detail) => ({
         field: detail.path.join('.'),
         message: detail.message,
       }));
 
-      return res.status(400).json({
-        error: {
-          message: 'Validation failed',
-          code: 'VALIDATION_ERROR',
-          details: errors,
-          timestamp: new Date().toISOString(),
-          path: req.originalUrl,
-        },
-      });
+      throw new ValidationError('Validation failed', details);
     }
 
     req.body = value;

@@ -17,15 +17,15 @@ export class GetDocumentModelByIdUseCase {
 export class GetAllDocumentModelsUseCase {
   constructor(private readonly documentModelRepository: IDocumentModelRepository) {}
 
-  public async execute(): Promise<DocumentModel[]> {
-    return await this.documentModelRepository.findAll();
+  public async execute(groupId?: number): Promise<DocumentModel[]> {
+    return await this.documentModelRepository.findAll(groupId);
   }
 }
 
 export class GetDocumentModelsByFamilyIdUseCase {
   constructor(private readonly documentModelRepository: IDocumentModelRepository) {}
 
-  public async execute(familyId: string): Promise<DocumentModel[]> {
-    return await this.documentModelRepository.findByFamilyId(familyId);
+  public async execute(familyId: string, groupId?: number): Promise<DocumentModel[]> {
+    return await this.documentModelRepository.findByFamilyId(familyId, groupId);
   }
 }

@@ -10,6 +10,7 @@ import { asyncHandler } from '@shared/middleware/validation';
 import { UpdateColaboratorContractsUseCase } from '@domains/colaborators/use-cases/update-colaborator-contracts.use-case';
 import { GetContractsByColaboratorUseCase } from '@domains/contract/use-cases/get-contracts-by-colaborator.use-case';
 import { toContractResponseDto } from '@presentation/dto/contract/contract-response.dto';
+import { ValidationError } from '@shared/domain/errors';
 
 export class ColaboratorController {
   constructor(
@@ -94,11 +95,7 @@ export class ColaboratorController {
   public searchColaboratorsByName = asyncHandler(async (req: Request, res: Response) => {
     const { name } = req.query;
     if (!name || typeof name !== 'string') {
-      res.status(400).json({
-        success: false,
-        message: 'Name parameter is required',
-      });
-      return;
+      throw new ValidationError('Name parameter is required', 'name');
     }
 
     const colaborators = await this.getColaboratorUseCase.searchByName(name);

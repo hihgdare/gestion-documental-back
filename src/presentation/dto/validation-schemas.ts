@@ -328,6 +328,7 @@ export const updateFamilySchema = Joi.object({
 }).min(1);
 
 export const createCompanySchema = Joi.object({
+  groupId: Joi.number().integer().required(),
   name: Joi.string().min(2).max(200).required(),
   rut: Joi.string().min(8).max(12).required(),
   address: Joi.string().max(300).optional().allow(''),
@@ -337,6 +338,7 @@ export const createCompanySchema = Joi.object({
 });
 
 export const updateCompanySchema = Joi.object({
+  groupId: Joi.number().integer().optional(),
   name: Joi.string().min(2).max(200).optional(),
   rut: Joi.string().min(8).max(12).optional(),
   address: Joi.string().max(300).optional().allow(''),
@@ -346,6 +348,7 @@ export const updateCompanySchema = Joi.object({
 }).min(1);
 
 export const createDocumentModelSchema = Joi.object({
+  groupId: Joi.number().integer().required(),
   familyId: Joi.string().uuid().required(),
   documentTypeId: Joi.string().uuid().required(),
   documentSubtypeId: Joi.string().uuid().required(),
@@ -354,6 +357,7 @@ export const createDocumentModelSchema = Joi.object({
 });
 
 export const updateDocumentModelSchema = Joi.object({
+  groupId: Joi.number().integer().optional(),
   documentTypeId: Joi.string().uuid().optional(),
   documentSubtypeId: Joi.string().uuid().optional(),
   requiredForContract: Joi.boolean().optional(),

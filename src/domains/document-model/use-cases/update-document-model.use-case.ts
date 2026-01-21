@@ -3,6 +3,7 @@ import { DocumentModel } from '../entities/document-model.entity';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface UpdateDocumentModelRequest {
+  groupId?: number;
   documentTypeId?: string;
   documentSubtypeId?: string;
   requiredForContract?: boolean;
@@ -18,25 +19,28 @@ export class UpdateDocumentModelUseCase {
       throw new NotFoundError('Modelo de documento no encontrado');
     }
 
-    // If updating type or subtype, check for duplicates
-    if (request.documentTypeId || request.documentSubtypeId) {
+    // If updating type, subtype or group, check for duplicates
+    if (request.documentTypeId || request.documentSubtypeId || request.groupId) {
       const newTypeId = request.documentTypeId || documentModel.documentTypeId;
       const newSubtypeId = request.documentSubtypeId || documentModel.documentSubtypeId;
+      const newGroupId = request.groupId || documentModel.groupId;
 
-      // Only check if the combination is actually changing
+      // Only check if any of the key fields is changing
       if (
         newTypeId !== documentModel.documentTypeId ||
-        newSubtypeId !== documentModel.documentSubtypeId
+        newSubtypeId !== documentModel.documentSubtypeId ||
+        newGroupId !== documentModel.groupId
       ) {
         const existing = await this.documentModelRepository.findByFamilyTypeSubtype(
           documentModel.familyId,
           newTypeId,
           newSubtypeId,
+          newGroupId,
         );
 
         if (existing && existing.id !== id) {
           throw new ValidationError(
-            'Ya existe un modelo de documento con esta combinación de familia, tipo y subtipo',
+            'Ya existe un modelo de documento con esta combinación de familia, tipo y subtipo en el grupo seleccionado',
           );
         }
       }

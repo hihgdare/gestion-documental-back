@@ -26,6 +26,7 @@ import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/u
 import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
 import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export class DocumentController {
   constructor(
@@ -66,10 +67,7 @@ export class DocumentController {
     // Lazy import to avoid circular deps in constructor if use-case not injected earlier
     // but prefer to access via dependency injection container in wiring; here assume it's available via (any) this
     const useCase: any = (this as any).assignDocumentsToGroupUseCase;
-    if (!useCase) {
-      res.status(500).json({ success: false, message: 'Use case not configured' });
-      return;
-    }
+    if (!useCase) throw new NotFoundError('Use case assignDocumentsToGroupUseCase');
 
     const result = await useCase.execute({
       documentTypeId,
@@ -320,11 +318,7 @@ export class DocumentController {
     const { comments } = req.body;
 
     if (!comments || typeof comments !== 'string' || comments.trim() === '') {
-      res.status(400).json({
-        success: false,
-        message: 'Los comentarios son obligatorios',
-      });
-      return;
+      throw new ValidationError('Los comentarios son obligatorios', { comments });
     }
 
     await this.rejectDocumentWithCommentsUseCase.execute(id, req.user?.id || 'system', comments);

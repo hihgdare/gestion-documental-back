@@ -44,6 +44,7 @@ import { AddColaboratorToContractUseCase } from '@domains/contract/use-cases/add
 import { RemoveColaboratorFromContractUseCase } from '@domains/contract/use-cases/remove-colaborator-from-contract.use-case';
 import { GetContractColaboratorsUseCase } from '@domains/contract/use-cases/get-contract-colaborators.use-case';
 import { Colaborator } from '@domains/colaborators/entities/colaborator.entity';
+import { ValidationError } from '@shared/domain/errors';
 
 
 export class ContractController {
@@ -218,11 +219,7 @@ export class ContractController {
   public getContractsEndingBefore = asyncHandler(async (req: Request, res: Response) => {
     const { date } = req.query;
     if (!date || typeof date !== 'string') {
-      res.status(400).json({
-        success: false,
-        message: 'Date parameter is required',
-      });
-      return;
+      throw new ValidationError('Date parameter is required', 'date');
     }
 
     const contracts = await this.getContractsEndingBeforeUseCase.execute(new Date(date));
@@ -299,11 +296,7 @@ export class ContractController {
     const { subcontractId } = req.body;
 
     if (!subcontractId) {
-      res.status(400).json({
-        success: false,
-        message: 'Subcontract ID is required',
-      });
-      return;
+      throw new ValidationError('Subcontract ID is required', 'subcontractId');
     }
 
     await this.addSubcontractUseCase.execute(id, subcontractId);
@@ -449,8 +442,7 @@ export class ContractController {
     const { colaboratorId } = req.body;
 
     if (!colaboratorId) {
-      res.status(400).json({ success: false, message: 'Colaborator ID is required' });
-      return;
+      throw new ValidationError('Colaborator ID is required', 'colaboratorId');
     }
 
     await this.addColaboratorToContractUseCase.execute(id, colaboratorId);
