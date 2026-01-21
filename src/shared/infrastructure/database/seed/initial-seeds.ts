@@ -22,7 +22,6 @@ const adminSections = [
   'permission',
   'role',
   'user',
-  'company',
   'area',
   'division',
 ];
