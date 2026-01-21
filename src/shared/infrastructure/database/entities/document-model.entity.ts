@@ -11,11 +11,15 @@ import {
 import { FamilyEntity } from './family.entity';
 import { DocumentTypeEntity } from './document-type.entity';
 import { DocumentSubtypeEntity } from './document-subtype.entity';
+import { GroupEntity } from './group.entity';
 
 @Entity('document_models')
 export class DocumentModelEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column({ name: 'group_id', type: 'int' })
+  groupId!: number;
 
   @Column({ name: 'family_id', type: 'varchar', length: 36 })
   familyId!: string;
@@ -31,6 +35,10 @@ export class DocumentModelEntity {
 
   @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
   requiredForColaborator!: boolean;
+
+  @ManyToOne(() => GroupEntity)
+  @JoinColumn({ name: 'group_id' })
+  group?: GroupEntity;
 
   @ManyToOne(() => FamilyEntity)
   @JoinColumn({ name: 'family_id' })

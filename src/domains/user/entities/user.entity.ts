@@ -167,9 +167,9 @@ export class User {
   }
 
   public can(permissionNames: string | string[], all?: boolean): boolean {
-    const userPermissions = this.getPermissionNames(true);
+    const userPermissions = this.getPermissionNames();
     return all
-      ? toArray(permissionNames).every(permission => userPermissions.includes(permission))
-      : toArray(permissionNames).some(permission => userPermissions.includes(permission));
+      ? toArray(permissionNames).every(permission => userPermissions.has(permission))
+      : toArray(permissionNames).some(permission => userPermissions.has(permission));
   }
 }

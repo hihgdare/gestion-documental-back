@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { CompanyController } from '../controllers/company/company.controller';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
-import { assignGroup, changeGroup } from '@shared/middleware/group.middleware';
+import { assignGroup, changeGroup, getByGroup } from '@shared/middleware/group.middleware';
 
 export const createCompanyRoutes = (controller: CompanyController) => {
   const router = Router();
@@ -17,6 +17,7 @@ export const createCompanyRoutes = (controller: CompanyController) => {
 
   router.get('/',
     authorize('company:read'),
+    getByGroup(),
     controller.findAll,
   );
 
