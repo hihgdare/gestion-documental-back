@@ -27,12 +27,16 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     return this.toDomain(colaboratorEntity);
   }
 
-  async findAll(filters?: { contractId?: string }): Promise<Colaborator[]> {
+  async findAll(groupId?: number, filters?: { contractId?: string }): Promise<Colaborator[]> {
     const query = this.repository
       .createQueryBuilder('colaborator')
       .leftJoinAndSelect('colaborator.contracts', 'contracts')
       .where('colaborator.deleted_at IS NULL')
       .orderBy('colaborator.createdAt', 'DESC');
+
+    if (groupId) {
+      query.andWhere('colaborator.group_id = :groupId', { groupId });
+    }
 
     if (filters?.contractId && filters.contractId !== 'undefined' && filters.contractId !== 'null' && filters.contractId.trim() !== '') {
       query.andWhere('contracts.id = :contractId', { contractId: filters.contractId });
@@ -243,6 +247,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       telefonoEmergencia: entity.telefonoEmergencia,
       profesion: entity.profesion,
       cargo: entity.cargo,
+      groupId: entity.groupId,
       status: entity.status as ColaboratorStatus,
       createdAt:
         entity.createdAt instanceof Date
@@ -286,6 +291,7 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
       telefonoEmergencia: colaborator.telefonoEmergencia,
       profesion: colaborator.profesion,
       cargo: colaborator.cargo,
+      groupId: colaborator.groupId,
       status: colaborator.status,
       createdAt: colaborator.createdAt,
       updatedAt: colaborator.updatedAt,

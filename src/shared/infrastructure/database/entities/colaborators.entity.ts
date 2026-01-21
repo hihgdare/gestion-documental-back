@@ -92,6 +92,10 @@ export class ColaboratorEntity {
   @Column({ type: 'varchar', length: 100 })
   cargo!: string;
 
+  @Column({ type: 'integer', name: 'group_id' })
+  @Index('IDX_colaborators_group_id')
+  groupId!: number;
+
   @EnumColumn({
     enum: ['activo', 'inactivo', 'suspendido', 'terminado'],
     default: 'activo',

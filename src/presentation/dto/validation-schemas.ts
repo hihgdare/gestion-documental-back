@@ -113,6 +113,7 @@ export const createColaboratorSchema = Joi.object({
   telefonoEmergencia: Joi.string().min(7).max(20).optional(),
   profesion: Joi.string().min(2).max(100).required(),
   cargo: Joi.string().min(2).max(100).required(),
+  groupId: Joi.number().integer().positive().required(),
   contractIds: Joi.array().items(Joi.string().uuid()).min(1).required().messages({
     'array.min': 'At least one contract is required',
     'any.required': 'Contracts are required',
@@ -154,6 +155,8 @@ export const updateColaboratorSchema = Joi.object({
   // Profesional
   profesion: Joi.string().min(2).max(100).optional(),
   cargo: Joi.string().min(2).max(100).optional(),
+  // Grupo
+  groupId: Joi.number().integer().positive().optional(),
 }).min(1);
 
 export const createDocumentTypeSchema = Joi.object({
