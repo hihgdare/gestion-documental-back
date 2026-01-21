@@ -5,7 +5,7 @@ import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
 import { GetAuthenticatedUserPermissionsUseCase } from '@domains/user/use-cases/get-authenticated-user-permissions.use-case';
 import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
-import { ValidationError } from '@shared/domain/errors';
+import { UnauthorizedError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 // Extend the Request type to include the user property
@@ -239,13 +239,7 @@ export class AuthController {
         }
       }
 
-      if (!token) {
-        res.status(401).json({
-          success: false,
-          message: 'No token found',
-        });
-        return;
-      }
+      if (!token) throw new UnauthorizedError('No token found');
 
       res.status(200).json({
         success: true,

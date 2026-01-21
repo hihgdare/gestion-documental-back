@@ -65,17 +65,16 @@ export const changeGroup = (handlers?: GroupIdHandlers & {
  * Si no tiene los permisos, y no tiene un grupo asignado, devuelve error de autorización.
  */
 export const getByGroup = () => (req: Request, _res: Response, next: NextFunction) => {
-  const user = req.user as User;
-  if (!user) {
-    throw new UnauthorizedError();
-  }
+  const user = req.user;
+  if (!user) throw new UnauthorizedError();
 
-  const groupId = req.groupId;
-  if (!groupId && !user.can('admin:groups')) {
-    throw new ForbiddenError('Prohibido: Es necesario que el usuario elija un grupo para consultar este recurso.');
-  }
+  // Acceso directo si el usuario tiene el permiso admin:groups.
+  if (user.can('admin:groups')) return next();
 
-  return next();
+  // Continua si el usuario tiene un grupo asignado.
+  if (req.groupId) return next();
+
+  throw new ForbiddenError('Prohibido: Es necesario pertenecer a un grupo para consultar este recurso.');
 };
 
 function init(req: Request, handlers?: GroupIdHandlers) {
