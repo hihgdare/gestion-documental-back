@@ -23,13 +23,17 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return this.toDomain(documentEntity);
   }
 
-  async findAll(filters?: {
+  async findAll(groupId?: number, filters?: {
     contractId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
     status?: DocumentStatus | DocumentStatus[];
   }): Promise<Document[]> {
     const where: any = { deletedAt: IsNull() };
+
+    if (groupId !== undefined) {
+      where.groupId = groupId;
+    }
 
     if (filters?.contractId) {
       where.contractId = filters.contractId;
@@ -239,6 +243,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       requiredForContract: entity.requiredForContract,
       requiredForColaborator: entity.requiredForColaborator,
       comment: entity.comment,
+      groupId: entity.groupId,
       createdBy: entity.createdBy,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -261,6 +266,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       requiredForContract: document.requiredForContract,
       requiredForColaborator: document.requiredForColaborator,
       comment: document.comment || undefined,
+      groupId: document.groupId,
       createdBy: document.createdBy || undefined,
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,

@@ -3,7 +3,7 @@ import { Colaborator } from '../entities/colaborator.entity';
 import { ColaboratorStatus, DocumentType } from '../value-objects/colaborator-enums';
 
 export interface ColaboratorRepository extends Repository<Colaborator> {
-  findAll(filters?: { contractId?: string }): Promise<Colaborator[]>;
+  findAll(groupId?: number, filters?: { contractId?: string }): Promise<Colaborator[]>;
   findByNumeroDocumento(numeroDocumento: string): Promise<Colaborator | null>;
   findByEmail(email: string): Promise<Colaborator | null>;
   findByNombre(nombre: string): Promise<Colaborator[]>;

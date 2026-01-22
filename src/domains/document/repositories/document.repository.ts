@@ -3,7 +3,7 @@ import { DocumentStatus } from '../value-objects/document-enums';
 
 export interface DocumentRepository {
   findById(id: string): Promise<Document | null>;
-  findAll(filters?: {
+  findAll(groupId?: number, filters?: {
     contractId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;

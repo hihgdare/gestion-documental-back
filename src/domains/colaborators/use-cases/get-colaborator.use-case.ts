@@ -15,8 +15,8 @@ export class GetColaboratorUseCase {
     return colaborator;
   }
 
-  public async getAll(filters?: { contractId?: string }): Promise<Colaborator[]> {
-    return await this.colaboratorRepository.findAll(filters);
+  public async getAll(groupId?: number, filters?: { contractId?: string }): Promise<Colaborator[]> {
+    return await this.colaboratorRepository.findAll(groupId, filters);
   }
 
   public async getByDocumentNumber(numeroDocumento: string): Promise<Colaborator> {

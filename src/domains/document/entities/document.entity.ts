@@ -22,6 +22,7 @@ export interface DocumentProps {
   status?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  groupId: number;
   createdBy?: string;
   comment?: string | null;
   deletedAt?: Date | null;
@@ -48,6 +49,7 @@ export class Document {
   status: DocumentStatus;
   requiredForContract: boolean;
   requiredForColaborator: boolean;
+  groupId: number;
   createdBy: string | null;
   comment: string | null;
   deletedAt: Date | null;
@@ -119,6 +121,10 @@ export class Document {
 
     if (props.comment && props.comment.trim().length > 1000) {
       throw new ValidationError('El comentario no puede exceder 1000 caracteres');
+    }
+
+    if (!props.groupId) {
+      throw new ValidationError('Group ID is required', 'groupId');
     }
   }
 
@@ -225,6 +231,12 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public changeGroup(groupId: number): void {
+    if (!groupId) throw new ValidationError('Group ID is required', 'groupId');
+    this.groupId = groupId;
+    this.updatedAt = new Date();
+  }
+
   public softDelete(deletedBy: string): void {
     this.deletedAt = new Date();
     this.deletedBy = deletedBy;
@@ -308,6 +320,7 @@ export class Document {
       status: this.status,
       requiredForContract: this.requiredForContract,
       requiredForColaborator: this.requiredForColaborator,
+      groupId: this.groupId,
       createdBy: this.createdBy,
       comment: this.comment,
       deletedAt: DateTimeUtils.toString(this.deletedAt, true),

@@ -18,8 +18,8 @@ export class GetContractByIdUseCase {
 export class GetAllContractsUseCase {
   constructor(private readonly contractRepository: ContractRepository) {}
 
-  public async execute(): Promise<Contract[]> {
-    return await this.contractRepository.findAll();
+  public async execute(groupId?: number): Promise<Contract[]> {
+    return await this.contractRepository.findAll(groupId);
   }
 }
 

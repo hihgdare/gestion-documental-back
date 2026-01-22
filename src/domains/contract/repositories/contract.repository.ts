@@ -17,7 +17,7 @@ export interface ContractRepository {
   findExpiredContracts(): Promise<Contract[]>;
   findContractsEndingBefore(date: Date): Promise<Contract[]>;
   findById(id: string): Promise<Contract | null>;
-  findAll(): Promise<Contract[]>;
+  findAll(groupId?: number): Promise<Contract[]>;
   save(contract: CreateContractProps): Promise<Contract>;
   update(contract: UpdateContractProps): Promise<Contract>;
   delete(id: string): Promise<void>;

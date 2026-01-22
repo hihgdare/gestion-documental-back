@@ -2,6 +2,7 @@ import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositori
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmColaboratorRepository } from '@shared/infrastructure/repositories/typeorm-colaborator.repository';
 import { TypeOrmColaboratorGroupRepository } from '@shared/infrastructure/repositories/typeorm-colaborator-group.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { TypeOrmContractRepository } from '@shared/infrastructure/repositories/typeorm-contract.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
@@ -24,7 +25,8 @@ export async function runSampleSeeds(): Promise<void> {
   const typeRepo = new TypeOrmDocumentTypeRepository();
   const subtypeRepo = new TypeOrmDocumentSubtypeRepository();
   const colaboratorRepo = new TypeOrmColaboratorRepository();
-  const groupRepo = new TypeOrmColaboratorGroupRepository();
+  const colaboratorGroupRepo = new TypeOrmColaboratorGroupRepository();
+  const groupRepo = new TypeOrmGroupRepository();
   const contractRepo = new TypeOrmContractRepository();
 
   const typeNames = ['Personal', 'Legal', 'Operacional'];
@@ -53,6 +55,15 @@ export async function runSampleSeeds(): Promise<void> {
     subtypes.push(saved.id);
   }
 
+  /* Create Group */
+  let testGroup = await groupRepo.findById(1);
+  if (!testGroup) {
+    testGroup = await groupRepo.save({
+      name: 'Grupo de Pruebas',
+      description: 'Grupo de pruebas',
+    });
+  }
+
   /* Create Contracts */
   const today = new Date();
   const contractsData = [
@@ -68,6 +79,7 @@ export async function runSampleSeeds(): Promise<void> {
       endDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       contractType: ContractType.CONSULTORIA,
       jornadaTrabajo: JornadaTrabajo.COMPLETA,
+      groupId: 1,
     },
     {
       rutSociedad: '98.765.432-1',
@@ -81,6 +93,7 @@ export async function runSampleSeeds(): Promise<void> {
       endDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       contractType: ContractType.HONORARIOS,
       jornadaTrabajo: JornadaTrabajo.PARCIAL,
+      groupId: 1,
     },
     {
       rutSociedad: '77.777.777-7',
@@ -94,6 +107,7 @@ export async function runSampleSeeds(): Promise<void> {
       endDate: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       contractType: ContractType.OBRA_FAENA,
       jornadaTrabajo: JornadaTrabajo.TURNO,
+      groupId: 1,
     },
   ];
 
@@ -127,6 +141,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56922222222',
       profesion: 'Ingeniero',
       cargo: 'Analista',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -148,6 +163,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56944444444',
       profesion: 'Abogada',
       cargo: 'Consultora',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -169,6 +185,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56966666666',
       profesion: 'Técnico',
       cargo: 'Operario',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -190,6 +207,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56988888888',
       profesion: 'Diseñadora',
       cargo: 'UX',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -211,6 +229,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56900000000',
       profesion: 'Desarrollador',
       cargo: 'Backend',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -232,6 +251,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56913131313',
       profesion: 'Analista',
       cargo: 'QA',
+      groupId: 1,
     },
     {
       tipoDocumento: ColabDocType.RUT,
@@ -253,6 +273,7 @@ export async function runSampleSeeds(): Promise<void> {
       telefonoEmergencia: '+56934343434',
       profesion: 'Project Manager',
       cargo: 'PM',
+      groupId: 1,
     },
   ] satisfies ColaboratorProps[];
 
@@ -271,16 +292,16 @@ export async function runSampleSeeds(): Promise<void> {
     colaboratorIds.push(saved.id);
   }
 
-  /* Create Groups */
+  /* Create Colaborator Groups */
   const groupNames = ['Equipo A', 'Equipo B', 'Equipo C'];
   const groups: { id: number; name: string; description?: string }[] = [];
   let groupIndex = 0;
   for (const name of groupNames) {
-    let found = await groupRepo.findByName(name);
+    let found = await colaboratorGroupRepo.findByName(name);
     if (!found) {
       // Assign specific contract based on index rotation
       const assignedContractId = contractIds[groupIndex % contractIds.length];
-      const created = await groupRepo.save({
+      const created = await colaboratorGroupRepo.save({
         name,
         description: 'Grupo de prueba',
         colaborators: [] as any,
@@ -299,9 +320,9 @@ export async function runSampleSeeds(): Promise<void> {
     const groupBColabs = [cids[1], cids[3], cids[4], cids[6]];
     const groupCColabs = [cids[2], cids[3], cids[5], cids[6]];
 
-    await groupRepo.update({ id: A.id, colaborators: groupAColabs.map(id => ({ id } as any)) });
-    await groupRepo.update({ id: B.id, colaborators: groupBColabs.map(id => ({ id } as any)) });
-    await groupRepo.update({ id: C.id, colaborators: groupCColabs.map(id => ({ id } as any)) });
+    await colaboratorGroupRepo.update({ id: A.id, colaborators: groupAColabs.map(id => ({ id } as any)) });
+    await colaboratorGroupRepo.update({ id: B.id, colaborators: groupBColabs.map(id => ({ id } as any)) });
+    await colaboratorGroupRepo.update({ id: C.id, colaborators: groupCColabs.map(id => ({ id } as any)) });
   }
 
   /* Create Documents with different statuses */
@@ -355,6 +376,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: true,
       requiredForColaborator: false,
       createdBy: createdById,
+      groupId: 1,
     },
     {
       name: 'Documento en Revisión',
@@ -369,6 +391,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: false,
       requiredForColaborator: true,
       createdBy: createdById,
+      groupId: 1,
       testFile: 'test-document-1.pdf',
     },
     {
@@ -384,6 +407,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: true,
       requiredForColaborator: true,
       createdBy: createdById,
+      groupId: 1,
       testFile: 'test-document-2.pdf',
     },
     {
@@ -399,6 +423,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: false,
       requiredForColaborator: false,
       createdBy: createdById,
+      groupId: 1,
       comment: 'Rechazado por incumplir requisitos',
       testFile: 'test-document-3.pdf',
     },
@@ -415,6 +440,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: true,
       requiredForColaborator: false,
       createdBy: createdById,
+      groupId: 1,
       comment: 'Favor revisar las firmas y volver a enviar',
       testFile: 'test-image-1.jpg',
     },
@@ -431,6 +457,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: false,
       requiredForColaborator: true,
       createdBy: createdById,
+      groupId: 1,
       testFile: 'test-image-2.png',
     },
     {
@@ -446,6 +473,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: false,
       requiredForColaborator: false,
       createdBy: createdById,
+      groupId: 1,
       testFile: 'test-document-1.pdf',
     },
     {
@@ -461,6 +489,7 @@ export async function runSampleSeeds(): Promise<void> {
       requiredForContract: true,
       requiredForColaborator: true,
       createdBy: createdById,
+      groupId: 1,
       testFile: 'test-document-2.pdf',
     },
   ];
@@ -469,7 +498,7 @@ export async function runSampleSeeds(): Promise<void> {
     const { testFile, ...documentProps } = docData as any;
 
     // Check if document already exists by name
-    const existing = await documentRepo.findAll({ contractId: documentProps.contractId });
+    const existing = await documentRepo.findAll(undefined, { contractId: documentProps.contractId });
     if (existing.some(d => d.name === documentProps.name)) {
       // console.log(`  ⏭️  Documento "${documentProps.name}" ya existe, omitiendo...`);
       continue;

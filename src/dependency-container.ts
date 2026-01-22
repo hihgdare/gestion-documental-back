@@ -456,7 +456,7 @@ export class DependencyContainer {
 
 
     // Initialize Document use cases
-    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository, this.groupRepository);
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
@@ -464,7 +464,7 @@ export class DependencyContainer {
     this.getDocumentsByColaboratorIdUseCase = new GetDocumentsByColaboratorIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
-    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository, this.groupRepository);
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.approveDocumentUseCase = new ApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
@@ -476,11 +476,12 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.contractRepository,
+      this.colaboratorRepository,
     );
 
 
     // Initialize Contract use cases
-    this.createContractUseCase = new CreateContractUseCase(this.contractRepository);
+    this.createContractUseCase = new CreateContractUseCase(this.contractRepository, this.groupRepository);
     this.getContractByIdUseCase = new GetContractByIdUseCase(this.contractRepository);
     this.getAllContractsUseCase = new GetAllContractsUseCase(this.contractRepository);
     this.getContractsByRutSociedadUseCase = new GetContractsByRutSociedadUseCase(this.contractRepository);
@@ -492,7 +493,7 @@ export class DependencyContainer {
     this.getActiveContractsUseCase = new GetActiveContractsUseCase(this.contractRepository);
     this.getExpiredContractsUseCase = new GetExpiredContractsUseCase(this.contractRepository);
     this.getContractsEndingBeforeUseCase = new GetContractsEndingBeforeUseCase(this.contractRepository);
-    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository);
+    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository, this.groupRepository);
     this.activateContractUseCase = new ActivateContractUseCase(this.contractRepository);
     this.suspendContractUseCase = new SuspendContractUseCase(this.contractRepository);
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
@@ -523,9 +524,9 @@ export class DependencyContainer {
     this.getContractColaboratorsUseCase = new GetContractColaboratorsUseCase(this.contractRepository);
 
     // Initialize Colaborator use cases
-    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository);
+    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
     this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
-    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository);
+    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
     this.deleteColaboratorUseCase = new DeleteColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorContractsUseCase = new UpdateColaboratorContractsUseCase(this.colaboratorRepository);
     this.getContractsByColaboratorUseCase = new GetContractsByColaboratorUseCase(this.contractRepository);
@@ -698,6 +699,7 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.contractRepository,
+      this.colaboratorRepository,
     );
 
     this.familyController = new FamilyController(

@@ -4,6 +4,7 @@ import { Document, DocumentProps } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { ValidationError } from '@shared/domain/errors';
 
 export interface AssignDocumentsToGroupRequest {
@@ -30,6 +31,7 @@ export class AssignDocumentsToGroupUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly contractRepository: ContractRepository,
+    private readonly colaboratorRepository: ColaboratorRepository,
   ) {}
 
   public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
@@ -46,6 +48,12 @@ export class AssignDocumentsToGroupUseCase {
     const skipped: string[] = [];
 
     for (const colaboratorId of request.colaboratorIds) {
+      const colaborator = await this.colaboratorRepository.findById(colaboratorId);
+      if (!colaborator) {
+        skipped.push(colaboratorId);
+        continue;
+      }
+
       const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
         request.documentTypeId,
         request.documentSubtypeId,
@@ -67,8 +75,7 @@ export class AssignDocumentsToGroupUseCase {
         contractId: request.contractId,
         createdBy: request.createdBy,
         requiredForContract: request.requiredForContract,
-        requiredForColaborator: request.requiredForColaborator,
-      };
+        requiredForColaborator: request.requiredForColaborator,        groupId: colaborator.groupId      };
       const doc = Document.create(props);
       const saved = await this.documentRepository.save(doc);
       created.push(saved);

@@ -20,6 +20,7 @@ import { UserEntity } from './user.entity';
 @Entity('documents')
 @Index('IDX_documents_status', ['status'])
 @Index('IDX_documents_deleted_at', ['deletedAt'])
+@Index('IDX_documents_group_id', ['groupId'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -76,6 +77,9 @@ export class DocumentEntity {
 
   @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
   requiredForColaborator!: boolean;
+
+  @Column({ name: 'group_id', type: 'integer' })
+  groupId!: number;
 
   @Column({ name: 'created_by', type: 'varchar', length: 36, nullable: true })
   createdBy?: string;

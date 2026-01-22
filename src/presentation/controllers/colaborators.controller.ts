@@ -49,6 +49,7 @@ export class ColaboratorController {
 
   public getAllColaborators = asyncHandler(async (req: Request, res: Response) => {
     const { filter } = req.query;
+    const groupId = req.groupId;
     const filters: any = {};
     if (filter && typeof filter === 'object') {
       const contractId = (filter as any).contractId;
@@ -57,7 +58,7 @@ export class ColaboratorController {
       }
     }
 
-    const colaborators = await this.getColaboratorUseCase.getAll(Object.keys(filters).length > 0 ? filters : undefined);
+    const colaborators = await this.getColaboratorUseCase.getAll(groupId, Object.keys(filters).length > 0 ? filters : undefined);
     res.status(200).json({
       success: true,
       data: colaborators.map((colaborator: any) => toColaboratorResponseDto(colaborator)),

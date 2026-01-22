@@ -11,4 +11,5 @@ export interface UpdateDocumentDto {
   comment?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  groupId?: number;
 }

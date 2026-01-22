@@ -2,6 +2,7 @@ import { DocumentRepository } from '@domains/document/repositories/document.repo
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { IFamilyRepository } from '../repositories/family.repository.interface';
 import { Document, DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentHistoryProps } from '@domains/document/entities/document-history.entity';
@@ -28,6 +29,7 @@ export class AssignDocumentsFromFamilyUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly contractRepository: ContractRepository,
+    private readonly colaboratorRepository: ColaboratorRepository,
   ) {}
 
   public async execute(request: AssignDocumentsFromFamilyRequest): Promise<AssignDocumentsFromFamilyResult> {
@@ -59,6 +61,12 @@ export class AssignDocumentsFromFamilyUseCase {
 
     // Para cada colaborador, crear un documento por cada modelo
     for (const colaboratorId of request.colaboratorIds) {
+      const colaborator = await this.colaboratorRepository.findById(colaboratorId);
+      if (!colaborator) {
+        skipped.push(colaboratorId);
+        continue;
+      }
+
       for (const model of models) {
         // Verificar si ya existe un documento con esta combinación
         const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
@@ -86,6 +94,7 @@ export class AssignDocumentsFromFamilyUseCase {
           createdBy: request.createdBy,
           requiredForContract: model.requiredForContract,
           requiredForColaborator: model.requiredForColaborator,
+          groupId: colaborator.groupId,
         };
 
         const doc = Document.create(props);

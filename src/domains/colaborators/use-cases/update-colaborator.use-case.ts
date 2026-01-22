@@ -1,7 +1,8 @@
 import { ColaboratorRepository } from '../repositories/colaborator.repository';
 import { Colaborator } from '../entities/colaborator.entity';
-import { NotFoundError, ConflictError } from '@shared/domain/errors';
+import { NotFoundError, ConflictError, ValidationError } from '@shared/domain/errors';
 import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-enums';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export interface UpdateColaboratorRequest {
   id: string;
@@ -32,10 +33,15 @@ export interface UpdateColaboratorRequest {
   // Profesional
   profesion?: string;
   cargo?: string;
+  // Grupo
+  groupId?: number;
 }
 
 export class UpdateColaboratorUseCase {
-  constructor(private readonly colaboratorRepository: ColaboratorRepository) {}
+  constructor(
+    private readonly colaboratorRepository: ColaboratorRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
   public async execute(request: UpdateColaboratorRequest): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(request.id);
@@ -130,6 +136,15 @@ export class UpdateColaboratorUseCase {
     // Update cargo if provided
     if (request.cargo) {
       colaborator.updateCargo(request.cargo);
+    }
+
+    // Update group if provided
+    if (request.groupId !== undefined && request.groupId !== colaborator.groupId) {
+      const group = await this.groupRepository.findById(request.groupId);
+      if (!group) {
+        throw new ValidationError('Group not found', 'groupId');
+      }
+      colaborator.changeGroup(request.groupId);
     }
 
     return await this.colaboratorRepository.update(colaborator);

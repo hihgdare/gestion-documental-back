@@ -31,6 +31,7 @@ export interface ColaboratorProps {
   telefonoEmergencia?: string;
   profesion: string;
   cargo: string;
+  groupId: number;
   status?: ColaboratorStatus;
   createdAt?: Date;
   updatedAt?: Date;
@@ -63,6 +64,7 @@ export interface ColaboratorJson {
   telefonoEmergencia?: string;
   profesion: string;
   cargo: string;
+  groupId: number;
   status: ColaboratorStatus;
   isActive: boolean;
   contractIds?: string[];
@@ -95,6 +97,7 @@ export class Colaborator extends BaseEntity {
     private _telefonoEmergencia: string | undefined,
     private _profesion: string,
     private _cargo: string,
+    private _groupId: number,
     private _status: ColaboratorStatus,
     public createdAt: Date,
     public updatedAt: Date,
@@ -136,6 +139,7 @@ export class Colaborator extends BaseEntity {
       props.telefonoEmergencia?.trim(),
       props.profesion.trim(),
       props.cargo.trim(),
+      props.groupId,
       status,
       props.createdAt || new Date(),
       props.updatedAt || new Date(),
@@ -170,6 +174,7 @@ export class Colaborator extends BaseEntity {
       props.telefonoEmergencia,
       props.profesion,
       props.cargo,
+      props.groupId,
       status,
       props.createdAt! instanceof Date ? props.createdAt! : new Date(props.createdAt!),
       props.updatedAt! instanceof Date ? props.updatedAt! : new Date(props.updatedAt!),
@@ -220,6 +225,9 @@ export class Colaborator extends BaseEntity {
     }
     if (!props.cargo?.trim()) {
       throw new ValidationError('Cargo is required', 'cargo');
+    }
+    if (!props.groupId) {
+      throw new ValidationError('Group ID is required', 'groupId');
     }
   }
 
@@ -355,6 +363,10 @@ export class Colaborator extends BaseEntity {
     return this._status;
   }
 
+  public get groupId(): number {
+    return this._groupId;
+  }
+
   // Business methods
   public getNombreCompleto(): string {
     if (this._apellidoMaterno) {
@@ -395,6 +407,12 @@ export class Colaborator extends BaseEntity {
 
   public terminate(): void {
     this._status = ColaboratorStatus.TERMINATED;
+  }
+
+  public changeGroup(groupId: number): void {
+    if (!groupId) throw new ValidationError('Group ID is required', 'groupId');
+    this._groupId = groupId;
+    this.updatedAt = new Date();
   }
 
   public updateContactInfo(telefono: string, email: string): void {
@@ -542,6 +560,7 @@ export class Colaborator extends BaseEntity {
       telefonoEmergencia: this._telefonoEmergencia,
       profesion: this._profesion,
       cargo: this._cargo,
+      groupId: this._groupId,
       status: this._status,
       isActive: this.isActive(),
       contractIds: this.contractIds,

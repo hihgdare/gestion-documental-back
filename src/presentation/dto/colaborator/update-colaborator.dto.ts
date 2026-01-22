@@ -26,4 +26,6 @@ export interface UpdateColaboratorDto {
   // Profesional
   profesion?: string;
   cargo?: string;
+  // Grupo
+  groupId?: number;
 }

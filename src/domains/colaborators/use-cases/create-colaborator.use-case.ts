@@ -1,7 +1,8 @@
 import { ColaboratorRepository } from '../repositories/colaborator.repository';
 import { Colaborator, ColaboratorProps } from '../entities/colaborator.entity';
 import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-enums';
-import { ConflictError } from '@shared/domain/errors';
+import { ConflictError, ValidationError } from '@shared/domain/errors';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export interface CreateColaboratorRequest {
   tipoDocumento: DocumentType;
@@ -25,11 +26,15 @@ export interface CreateColaboratorRequest {
   telefonoEmergencia?: string;
   profesion: string;
   cargo: string;
+  groupId: number;
   contractIds: string[];
 }
 
 export class CreateColaboratorUseCase {
-  constructor(private readonly colaboratorRepository: ColaboratorRepository) {}
+  constructor(
+    private readonly colaboratorRepository: ColaboratorRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
   public async execute(request: CreateColaboratorRequest): Promise<Colaborator> {
     // Check if document number already exists
@@ -42,6 +47,12 @@ export class CreateColaboratorUseCase {
     const existingByEmail = await this.colaboratorRepository.findByEmail(request.email);
     if (existingByEmail) {
       throw new ConflictError('Colaborator with this email already exists');
+    }
+
+    // Validate group exists
+    const group = await this.groupRepository.findById(request.groupId);
+    if (!group) {
+      throw new ValidationError('Group not found', 'groupId');
     }
 
     const colaboratorProps: ColaboratorProps = {
