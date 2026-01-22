@@ -75,7 +75,7 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
   }
 
   const basePermissionNames = adminSections.flatMap(m => crudActions.map(a => `${m}:${a}`));
-  const permissionNames = [...basePermissionNames, ...otherPermissions];
+  const permissionNames = [...new Set([...basePermissionNames, ...otherPermissions])];
 
   const currentPermissions = await permissionRepository.findAll();
   const existingNames = new Set(currentPermissions.map(p => p.name));

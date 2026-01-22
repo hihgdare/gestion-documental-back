@@ -12,11 +12,29 @@ import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/co
 import { Document } from '@domains/document/entities/document.entity';
 import { File } from '@domains/file/entities/file.entity';
 import { DocumentType as ColabDocType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
-import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { ContractType, JornadaTrabajo, ContractStatus } from '@domains/contract/value-objects/contract-enums';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
 import { StorageType } from '@domains/file/value-objects/storage-type';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
+import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
+import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
+import { TypeOrmAreaRepository } from '@shared/infrastructure/repositories/typeorm-area.repository';
+import { TypeOrmDivisionRepository } from '@shared/infrastructure/repositories/typeorm-division.repository';
+import { TypeOrmCompanyRepository } from '@shared/infrastructure/repositories/typeorm-company.repository';
+import { TypeOrmFamilyRepository } from '@shared/infrastructure/repositories/typeorm-family.repository';
+import { TypeOrmDocumentModelRepository } from '@shared/infrastructure/repositories/typeorm-document-model.repository';
+import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
+import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
+import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
+import { Area } from '@domains/area/entities/area.entity';
+import { Division } from '@domains/division/entities/division.entity';
+import { Company } from '@domains/company/entities/company.entity';
+import { Contract } from '@domains/contract/entities/contract.entity';
+import { Family } from '@domains/family/entities/family.entity';
+import { DocumentModel } from '@domains/document-model/entities/document-model.entity';
 
 export async function runSampleSeeds(): Promise<void> {
   if (process.env.NODE_ENV !== 'development') return;
@@ -54,44 +72,46 @@ export async function runSampleSeeds(): Promise<void> {
   }
 
   /* Create Contracts */
-  const today = new Date();
+  const now = new Date();
+  const key = now.toISOString().slice(0, 19).replace(/[^\dT]/g, '').replace('T', '-');
+  const today = now.toISOString().split('T');
   const contractsData = [
     {
       rutSociedad: '12.345.678-5',
-      nombreColaborador: 'Empresa X',
+      nombreColaborador: 'Colaborador S1',
       administradorContratoMandante: 'Admin Mandante',
       administradorContratoEmpresa: 'Admin Empresa',
       rutAdministradorContrato: '23.456.789-6',
-      contractNumber: `CN-DEV-${Date.now()}-1`,
+      contractNumber: `CN-${key}-S1`,
       nombreMandante: 'Mandante SA',
-      startDate: today.toISOString().slice(0, 10),
-      endDate: new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      startDate: today[0],
+      endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       contractType: ContractType.CONSULTORIA,
       jornadaTrabajo: JornadaTrabajo.COMPLETA,
     },
     {
       rutSociedad: '98.765.432-1',
-      nombreColaborador: 'Empresa Y',
+      nombreColaborador: 'Colaborador S2',
       administradorContratoMandante: 'Admin Mandante',
       administradorContratoEmpresa: 'Admin Empresa',
       rutAdministradorContrato: '65.432.109-8',
-      contractNumber: `CN-DEV-${Date.now()}-2`,
+      contractNumber: `CN-${key}-S2`,
       nombreMandante: 'Mandante SPA',
-      startDate: today.toISOString().slice(0, 10),
-      endDate: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      startDate: today[0],
+      endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       contractType: ContractType.HONORARIOS,
       jornadaTrabajo: JornadaTrabajo.PARCIAL,
     },
     {
       rutSociedad: '77.777.777-7',
-      nombreColaborador: 'Empresa Z',
+      nombreColaborador: 'Colaborador S3',
       administradorContratoMandante: 'Admin Mandante',
       administradorContratoEmpresa: 'Admin Empresa',
       rutAdministradorContrato: '11.111.111-1',
-      contractNumber: `CN-DEV-${Date.now()}-3`,
+      contractNumber: `CN-${key}-S3`,
       nombreMandante: 'Mandante Ltda',
-      startDate: today.toISOString().slice(0, 10),
-      endDate: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      startDate: today[0],
+      endDate: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       contractType: ContractType.OBRA_FAENA,
       jornadaTrabajo: JornadaTrabajo.TURNO,
     },
@@ -350,8 +370,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[0], colaboratorIds[1]],
       description: 'Documento de prueba en estado borrador',
       status: DocumentStatus.DRAFT,
-      issuedDate: today,
-      expirationDate: new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000),
+      issuedDate: now,
+      expirationDate: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
       requiredForContract: true,
       requiredForColaborator: false,
       createdBy: createdById,
@@ -364,8 +384,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[2], colaboratorIds[3]],
       description: 'Documento de prueba en estado de revisión',
       status: DocumentStatus.IN_REVIEW,
-      issuedDate: today,
-      expirationDate: new Date(today.getTime() + 180 * 24 * 60 * 60 * 1000),
+      issuedDate: now,
+      expirationDate: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000),
       requiredForContract: false,
       requiredForColaborator: true,
       createdBy: createdById,
@@ -379,8 +399,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[4], colaboratorIds[5]],
       description: 'Documento de prueba aprobado',
       status: DocumentStatus.APPROVED,
-      issuedDate: today,
-      expirationDate: new Date(today.getTime() + 730 * 24 * 60 * 60 * 1000),
+      issuedDate: now,
+      expirationDate: new Date(now.getTime() + 730 * 24 * 60 * 60 * 1000),
       requiredForContract: true,
       requiredForColaborator: true,
       createdBy: createdById,
@@ -394,8 +414,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[6]],
       description: 'Documento de prueba rechazado',
       status: DocumentStatus.REJECTED,
-      issuedDate: today,
-      expirationDate: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000),
+      issuedDate: now,
+      expirationDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
       requiredForContract: false,
       requiredForColaborator: false,
       createdBy: createdById,
@@ -410,8 +430,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[0], colaboratorIds[3]],
       description: 'Documento rechazado con comentarios para corrección',
       status: DocumentStatus.REJECTED_WITH_COMMENTS,
-      issuedDate: today,
-      expirationDate: new Date(today.getTime() + 120 * 24 * 60 * 60 * 1000),
+      issuedDate: now,
+      expirationDate: new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000),
       requiredForContract: true,
       requiredForColaborator: false,
       createdBy: createdById,
@@ -426,8 +446,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[1], colaboratorIds[4]],
       description: 'Documento que ya ha expirado',
       status: DocumentStatus.EXPIRED,
-      issuedDate: new Date(today.getTime() - 400 * 24 * 60 * 60 * 1000),
-      expirationDate: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000),
+      issuedDate: new Date(now.getTime() - 400 * 24 * 60 * 60 * 1000),
+      expirationDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
       requiredForContract: false,
       requiredForColaborator: true,
       createdBy: createdById,
@@ -441,8 +461,8 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[2], colaboratorIds[5]],
       description: 'Documento marcado como obsoleto',
       status: DocumentStatus.OBSOLETE,
-      issuedDate: new Date(today.getTime() - 200 * 24 * 60 * 60 * 1000),
-      expirationDate: new Date(today.getTime() + 100 * 24 * 60 * 60 * 1000),
+      issuedDate: new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000),
+      expirationDate: new Date(now.getTime() + 100 * 24 * 60 * 60 * 1000),
       requiredForContract: false,
       requiredForColaborator: false,
       createdBy: createdById,
@@ -456,7 +476,7 @@ export async function runSampleSeeds(): Promise<void> {
       colaboratorIds: [colaboratorIds[3], colaboratorIds[6]],
       description: 'Documento archivado para registro histórico',
       status: DocumentStatus.ARCHIVED,
-      issuedDate: new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000),
+      issuedDate: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
       expirationDate: null,
       requiredForContract: true,
       requiredForColaborator: true,
@@ -497,6 +517,233 @@ export async function runSampleSeeds(): Promise<void> {
       }
     } else {
       // console.log(`  ✅ Documento "${documentProps.name}" creado (sin archivo)`);
+    }
+  }
+
+  await runRequestedSeeds();
+}
+
+async function runRequestedSeeds(): Promise<void> {
+  const userRepository = new TypeOrmUserRepository();
+  const roleRepository = new TypeOrmRoleRepository();
+  const permissionRepository = new TypeOrmPermissionRepository();
+  const groupRepository = new TypeOrmGroupRepository();
+  const areaRepository = new TypeOrmAreaRepository();
+  const divisionRepository = new TypeOrmDivisionRepository();
+  const companyRepository = new TypeOrmCompanyRepository();
+  const contractRepository = new TypeOrmContractRepository();
+  const documentTypeRepository = new TypeOrmDocumentTypeRepository();
+  const documentSubtypeRepository = new TypeOrmDocumentSubtypeRepository();
+  const familyRepository = new TypeOrmFamilyRepository();
+  const documentModelRepository = new TypeOrmDocumentModelRepository();
+  const colaboratorRepository = new TypeOrmColaboratorRepository();
+
+  const saveRoleUseCase = new SaveRoleUseCase(roleRepository);
+  const assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(roleRepository, permissionRepository);
+  const createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
+
+  // 1. Create 'propietario' role
+  const ownerRoleName = 'propietario';
+  let ownerRole = await roleRepository.findByName(ownerRoleName);
+  if (!ownerRole) {
+    ownerRole = await saveRoleUseCase.execute({ name: ownerRoleName, description: 'Propietario' });
+    const allPermissions = await permissionRepository.findAll();
+    const ownerPermissionIds = allPermissions
+      .filter(p => !['admin:groups', 'user:change:group'].includes(p.name))
+      .map(p => p.id!);
+
+    if (ownerRole.id && ownerPermissionIds.length > 0) {
+      await assignPermissionsToRoleUseCase.execute({ roleId: ownerRole.id, permissionIds: ownerPermissionIds });
+    }
+  }
+
+  // 2. Create Groups and related entities
+  for (let i = 1; i <= 2; i++) {
+    const groupName = `Group S${i}`;
+    let group = await groupRepository.findByName(groupName);
+    if (!group) {
+      group = await groupRepository.save({ name: groupName, description: `Description for ${groupName}` });
+    }
+
+    if (!group || !group.id) continue;
+
+    // Users
+    for (let u = 1; u <= 2; u++) {
+      const email = `userS${i}-${u}@example.com`;
+      const existingUser = await userRepository.findByEmail(email);
+      if (!existingUser) {
+        await createUserUseCase.execute({
+          email,
+          firstName: `User S${i}`,
+          lastName: `${u}`,
+          password: 'Password123!',
+          roleIds: ownerRole?.id ? [ownerRole.id] : [],
+          groupId: group.id,
+        });
+      }
+    }
+
+    // Areas
+    const areas: Area[] = [];
+    for (let a = 1; a <= 2; a++) {
+      const areaName = `Area S${i}-${a}`;
+      let area = (await areaRepository.findAll()).find(ar => ar.name === areaName);
+      if (!area) {
+        area = await areaRepository.create(new Area({
+          name: areaName,
+          description: `Description for ${areaName}`,
+          groupId: group.id,
+        }));
+      }
+      areas.push(area);
+
+      // Divisions per Area
+      for (let d = 1; d <= 2; d++) {
+        const divisionName = `Division S${i}-${a}-${d}`;
+        const division = (await divisionRepository.findAll()).find(div => div.name === divisionName);
+        if (!division) {
+          await divisionRepository.create(new Division({
+            name: divisionName,
+            description: `Description for ${divisionName}`,
+            groupId: group.id,
+            areaId: area.id!,
+          }));
+        }
+      }
+    }
+
+    // Companies
+    for (let c = 1; c <= 2; c++) {
+      const companyName = `Company S${i}-${c}`;
+      const taxId = `11.111.11${i}-${c}`; // Simple tax ID
+      if (!(await companyRepository.existsByTaxId(taxId))) {
+        await companyRepository.save(new Company({
+          name: companyName,
+          taxId: taxId,
+          groupId: group.id,
+        }));
+      }
+    }
+
+    // Contracts
+    const contracts: Contract[] = [];
+    for (let cn = 1; cn <= 2; cn++) {
+      const contractNumber = `CNT-S${i}-${cn}`;
+      if (!(await contractRepository.existsByContractNumber(contractNumber))) {
+        // Pick an area and division
+        const area = areas[(cn - 1) % areas.length];
+        const divisions = await divisionRepository.findAll();
+        const division = divisions.find(d => d.areaId === area.id);
+
+        if (!division) continue;
+
+        const contract = await contractRepository.save(new Contract({
+          rutSociedad: `77.777.77${i}-${cn}`,
+          nombreColaborador: `Colaborador Contract S${i}-${cn}`,
+          startDate: new Date(),
+          endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+          contractType: ContractType.INDEFINIDO,
+          administradorContratoMandante: `Admin Mandante S${i}-${cn}`,
+          administradorContratoEmpresa: `Admin Empresa S${i}-${cn}`,
+          rutAdministradorContrato: `12.345.67${i}-${cn}`,
+          contractNumber: contractNumber,
+          nombreMandante: `Mandante S${i}-${cn}`,
+          divisionId: division.id!,
+          areaId: area.id,
+          jornadaTrabajo: JornadaTrabajo.COMPLETA,
+          status: ContractStatus.ACTIVE,
+          dotacionPersonal: 10,
+          dotacionVehiculos: 2,
+        }));
+        contracts.push(contract);
+      } else {
+        const contract = await contractRepository.findByContractNumber(contractNumber);
+        if (contract) contracts.push(contract);
+      }
+    }
+
+    // Colaborators
+    for (let col = 1; col <= 4; col++) {
+      const docNumber = `10.000.00${i}-${col}`;
+      const existingCol = await colaboratorRepository.findByNumeroDocumento(docNumber);
+      if (!existingCol) {
+        const colaborator = Colaborator.create({
+          tipoDocumento: ColabDocType.RUT,
+          numeroDocumento: docNumber,
+          nombre: `Colaborator S${i}`,
+          apellidoPaterno: `Paterno ${col}`,
+          apellidoMaterno: `Materno ${col}`,
+          nacionalidad: 'CL',
+          sexo: Gender.MASCULINO,
+          estadoCivil: CivilStatus.SOLTERO,
+          fechaNacimiento: new Date('1990-01-01'),
+          paisResidencia: 'CL',
+          region: 'Metropolitana',
+          comuna: 'Santiago',
+          direccionResidencia: `Direccion S${i}-${col}`,
+          telefono: `+5691234567${col}`,
+          email: `colaboratorS${i}-${col}@example.com`,
+          profesion: 'Developer',
+          cargo: 'Senior',
+          contractIds: contracts.map(c => c.id),
+        });
+        await colaboratorRepository.save(colaborator);
+      }
+    }
+
+    // Document Types and Subtypes
+    const docTypes: DocTypeDomain[] = [];
+    for (let dt = 1; dt <= 2; dt++) {
+      const typeName = `DocType S${i}-${dt}`;
+      let docType = await documentTypeRepository.findByName(typeName);
+      if (!docType) {
+        docType = await documentTypeRepository.save(DocTypeDomain.create({ name: typeName }));
+      }
+      docTypes.push(docType);
+
+      for (let dst = 1; dst <= 2; dst++) {
+        const subtypeName = `DocSubtype S${i}-${dt}-${dst}`;
+        if (!(await documentSubtypeRepository.existsByNameAndDocumentTypeId(subtypeName, docType.id))) {
+          await documentSubtypeRepository.save(DocumentSubtype.create({
+            name: subtypeName,
+            documentTypeId: docType.id,
+          }));
+        }
+      }
+    }
+
+    // Families and Models
+    for (let f = 1; f <= 2; f++) {
+      const familyName = `Family S${i}-${f}`;
+      let family = await familyRepository.findByName(familyName);
+      if (!family) {
+        family = await familyRepository.create(Family.create({ name: familyName }));
+      }
+
+      // 3 Models per family
+      for (let m = 1; m <= 3; m++) {
+        // Alternate mandatory fields
+        const requiredForContract = m % 2 !== 0;
+        const requiredForColaborator = m % 2 === 0;
+
+        // Pick a type and subtype
+        const docType = docTypes[(m - 1) % docTypes.length];
+        const subtypes = await documentSubtypeRepository.findByDocumentTypeId(docType.id);
+        const subtype = subtypes[0];
+
+        const existingModel = await documentModelRepository.findByFamilyTypeSubtype(family.id, docType.id, subtype.id, group.id);
+
+        if (!existingModel) {
+          await documentModelRepository.create(DocumentModel.create({
+            groupId: group.id,
+            familyId: family.id,
+            documentTypeId: docType.id,
+            documentSubtypeId: subtype.id,
+            requiredForContract,
+            requiredForColaborator,
+          }));
+        }
+      }
     }
   }
 }
