@@ -20,6 +20,7 @@ export class GetAllDocumentsUseCase {
 
   public async execute(filters?: {
     contractId?: string;
+    colaboratorId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
     status?: DocumentStatus | DocumentStatus[];

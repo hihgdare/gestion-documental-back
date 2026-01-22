@@ -25,33 +25,41 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findAll(filters?: {
     contractId?: string;
+    colaboratorId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
     status?: DocumentStatus | DocumentStatus[];
   }): Promise<Document[]> {
-    const where: any = { deletedAt: IsNull() };
+    const query = this.repository
+      .createQueryBuilder('document')
+      .leftJoinAndSelect('document.contract', 'contract')
+      .leftJoinAndSelect('document.documentType', 'documentType')
+      .leftJoinAndSelect('document.documentSubtype', 'documentSubtype')
+      .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .where('document.deletedAt IS NULL');
 
     if (filters?.contractId) {
-      where.contractId = filters.contractId;
+      query.andWhere('document.contractId = :contractId', { contractId: filters.contractId });
+    }
+
+    if (filters?.colaboratorId) {
+      query.andWhere('colaborators.id = :colaboratorId', { colaboratorId: filters.colaboratorId });
     }
 
     if (filters?.requiredForContract !== undefined) {
-      where.requiredForContract = filters.requiredForContract;
+      query.andWhere('document.requiredForContract = :requiredForContract', { requiredForContract: filters.requiredForContract });
     }
 
     if (filters?.requiredForColaborator !== undefined) {
-      where.requiredForColaborator = filters.requiredForColaborator;
+      query.andWhere('document.requiredForColaborator = :requiredForColaborator', { requiredForColaborator: filters.requiredForColaborator });
     }
 
     if (filters?.status) {
-      where.status = Array.isArray(filters.status) ? In(filters.status) : filters.status;
+      const status = Array.isArray(filters.status) ? filters.status : [filters.status];
+      query.andWhere('document.status IN (:...status)', { status });
     }
 
-    const documentEntities = await this.repository.find({
-      where,
-      relations: ['contract', 'documentType', 'documentSubtype', 'colaborators'],
-      order: { createdAt: 'DESC' },
-    });
+    const documentEntities = await query.orderBy('document.createdAt', 'DESC').getMany();
     return documentEntities.map(entity => this.toDomain(entity));
   }
 

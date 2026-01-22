@@ -134,12 +134,14 @@ export class DocumentController {
 
     const filterObj: any = filter || {};
     const contractId = filterObj.contractId;
+    const colaboratorId = filterObj.colaboratorId;
     const requiredForContract = filterObj.requiredForContract === 'true' ? true : undefined;
     const requiredForColaborator = filterObj.requiredForColaborator === 'true' ? true : undefined;
     const status = filterObj.status;
 
     const documents = await this.getAllDocumentsUseCase.execute({
       contractId,
+      colaboratorId,
       requiredForContract,
       requiredForColaborator,
       status,
