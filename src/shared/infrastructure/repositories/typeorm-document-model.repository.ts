@@ -12,9 +12,12 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
     this.repository = AppDataSource.getRepository(DocumentModelEntity);
   }
 
-  async findAll(): Promise<DocumentModel[]> {
+  async findAll(groupId?: number): Promise<DocumentModel[]> {
+    const where: any = { deletedAt: IsNull() };
+    if (groupId) where.groupId = groupId;
+
     const entities = await this.repository.find({
-      where: { deletedAt: IsNull() },
+      where,
       relations: ['documentType', 'documentSubtype'],
       order: { createdAt: 'DESC' },
     });
@@ -30,9 +33,12 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
     return this.toDomain(entity);
   }
 
-  async findByFamilyId(familyId: string): Promise<DocumentModel[]> {
+  async findByFamilyId(familyId: string, groupId?: number): Promise<DocumentModel[]> {
+    const where: any = { familyId, deletedAt: IsNull() };
+    if (groupId) where.groupId = groupId;
+
     const entities = await this.repository.find({
-      where: { familyId, deletedAt: IsNull() },
+      where,
       relations: ['documentType', 'documentSubtype'],
       order: { createdAt: 'DESC' },
     });
@@ -43,14 +49,18 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
     familyId: string,
     documentTypeId: string,
     documentSubtypeId: string,
+    groupId?: number,
   ): Promise<DocumentModel | null> {
+    const where: any = {
+      familyId,
+      documentTypeId,
+      documentSubtypeId,
+      deletedAt: IsNull(),
+    };
+    if (groupId) where.groupId = groupId;
+
     const entity = await this.repository.findOne({
-      where: {
-        familyId,
-        documentTypeId,
-        documentSubtypeId,
-        deletedAt: IsNull(),
-      },
+      where,
       relations: ['documentType', 'documentSubtype'],
     });
     if (!entity) return null;
@@ -58,7 +68,7 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
   }
 
   async create(documentModel: DocumentModel): Promise<DocumentModel> {
-    const entity = this.toEntity(documentModel);
+    const entity = this.toEntity(documentModel) as DocumentModelEntity;
     const savedEntity = await this.repository.save(entity);
     const createdEntity = await this.repository.findOne({
       where: { id: savedEntity.id },
@@ -95,6 +105,7 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
   private toDomain(entity: DocumentModelEntity): DocumentModel {
     const props: DocumentModelProps = {
       id: entity.id,
+      groupId: entity.groupId,
       familyId: entity.familyId,
       documentTypeId: entity.documentTypeId,
       documentSubtypeId: entity.documentSubtypeId,
@@ -112,6 +123,7 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
   private toEntity(documentModel: DocumentModel): Partial<DocumentModelEntity> {
     return {
       id: documentModel.id,
+      groupId: documentModel.groupId,
       familyId: documentModel.familyId,
       documentTypeId: documentModel.documentTypeId,
       documentSubtypeId: documentModel.documentSubtypeId,

@@ -29,6 +29,7 @@ import { createAreaRoutes } from '@presentation/routes/area.routes';
 import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seed/initial-seeds';
+import { RouteError } from '@shared/domain/errors';
 
 export class App {
   private app: Application;
@@ -199,15 +200,8 @@ export class App {
     this.app.use('/api/auth', createAuthRoutes(authController));
 
     // 404 handler for undefined routes
-    this.app.use('*', (req: Request, res: Response) => {
-      res.status(404).json({
-        error: {
-          message: `Route ${req.originalUrl} not found`,
-          code: 'ROUTE_NOT_FOUND',
-          timestamp: new Date().toISOString(),
-          path: req.originalUrl,
-        },
-      });
+    this.app.use('*', (req: Request, _res: Response) => {
+      throw new RouteError(req.originalUrl);
     });
   }
 

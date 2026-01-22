@@ -37,7 +37,8 @@ export class DocumentModelController {
   });
 
   public getAllDocumentModels = asyncHandler(async (req: Request, res: Response) => {
-    const documentModels = await this.getAllDocumentModelsUseCase.execute();
+    const groupId = req.groupId;
+    const documentModels = await this.getAllDocumentModelsUseCase.execute(groupId);
     res.status(200).json({
       success: true,
       data: documentModels.map(model => model.toJSON()),
@@ -47,7 +48,8 @@ export class DocumentModelController {
 
   public getDocumentModelsByFamilyId = asyncHandler(async (req: Request, res: Response) => {
     const { familyId } = req.params;
-    const documentModels = await this.getDocumentModelsByFamilyIdUseCase.execute(familyId);
+    const groupId = req.groupId;
+    const documentModels = await this.getDocumentModelsByFamilyIdUseCase.execute(familyId, groupId);
     res.status(200).json({
       success: true,
       data: documentModels.map(model => model.toJSON()),

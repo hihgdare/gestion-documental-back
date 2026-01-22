@@ -3,6 +3,7 @@ import { ValidationError } from '@shared/domain/errors';
 
 export interface DocumentModelProps {
   id?: string;
+  groupId: number;
   familyId: string;
   documentTypeId: string;
   documentSubtypeId: string;
@@ -17,6 +18,7 @@ export interface DocumentModelProps {
 
 export class DocumentModel {
   id: string;
+  groupId: number;
   familyId: string;
   documentTypeId: string;
   documentSubtypeId: string;
@@ -33,6 +35,7 @@ export class DocumentModel {
 
     EntityUtils.assign(this as DocumentModel, props, {
       id: 'uuid',
+      groupId: (value: number) => value,
       requiredForContract: (value?: boolean) => value ?? false,
       requiredForColaborator: (value?: boolean) => value ?? false,
       createdAt: 'date',
@@ -46,6 +49,10 @@ export class DocumentModel {
   }
 
   private static validateRequired(props: DocumentModelProps): void {
+    if (!props.groupId) {
+      throw new ValidationError('El ID del grupo es requerido');
+    }
+
     if (!props.familyId || props.familyId.trim().length === 0) {
       throw new ValidationError('El ID de la familia es requerido');
     }
@@ -60,11 +67,19 @@ export class DocumentModel {
   }
 
   public update(props: {
+    groupId?: number;
     documentTypeId?: string;
     documentSubtypeId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
   }): void {
+    if (props.groupId !== undefined) {
+      if (!props.groupId) {
+        throw new ValidationError('El ID del grupo es requerido');
+      }
+      this.groupId = props.groupId;
+    }
+
     if (props.documentTypeId !== undefined) {
       if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
         throw new ValidationError('El ID del tipo de documento es requerido');
@@ -103,6 +118,7 @@ export class DocumentModel {
   public toJSON() {
     return {
       id: this.id,
+      groupId: this.groupId,
       familyId: this.familyId,
       documentTypeId: this.documentTypeId,
       documentSubtypeId: this.documentSubtypeId,

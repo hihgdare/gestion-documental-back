@@ -158,7 +158,7 @@ describe('Auth Routes', () => {
         .set('x-enable-rbac', 'true');
 
       expect(response.status).toBe(401);
-      expect(response.body.message).toBe('Unauthorized: No token provided');
+      expect(response.body.message).toContain('No token provided');
     });
 
     it('should return 401 for invalid token', async () => {
@@ -168,7 +168,7 @@ describe('Auth Routes', () => {
         .set('Authorization', 'Bearer invalidtoken');
 
       expect(response.status).toBe(401);
-      expect(response.body.message).toBe('Unauthorized: Invalid token');
+      expect(response.body.message).toContain('Invalid token');
     });
   });
 });

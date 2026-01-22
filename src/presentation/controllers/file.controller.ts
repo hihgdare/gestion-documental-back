@@ -5,6 +5,7 @@ import { Bucket } from '@shared/utils/Bucket';
 import FileUtils from '@shared/utils/FileUtils';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { File } from '@domains/file/entities/file.entity';
+import { NotFoundError, ServerError, ValidationError } from '@shared/domain/errors';
 
 const STORAGE = (process.env.FILE_STORAGE || 'local').toLowerCase();
 
@@ -25,8 +26,7 @@ export class FileController {
     };
 
     if (!filename || !contentBase64) {
-      res.status(400).json({ success: false, message: 'filename y contentBase64 son requeridos' });
-      return;
+      throw new ValidationError('file required', { fields: ['filename', 'contentBase64'] });
     }
 
     // Save file locally using FileUtils utility
@@ -44,8 +44,7 @@ export class FileController {
       const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
       if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
-        res.status(500).json({ success: false, message: 'S3 configuration incomplete' });
-        return;
+        throw new ServerError('S3 configuration incomplete');
       }
 
       const bucket = new Bucket({
@@ -84,17 +83,11 @@ export class FileController {
   async getFileById(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
-    if (!id) {
-      res.status(400).json({ success: false, message: 'File ID is required' });
-      return;
-    }
+    if (!id) throw new ValidationError('File ID is reqiuired', 'id');
 
     const file = await this.fileRepo.findById(id);
 
-    if (!file) {
-      res.status(404).json({ success: false, message: 'File not found' });
-      return;
-    }
+    if (!file) throw new NotFoundError('File');
 
     res.status(200).json({ success: true, data: file });
   }
@@ -102,17 +95,11 @@ export class FileController {
   async download(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
-    if (!id) {
-      res.status(400).json({ success: false, message: 'File ID is required' });
-      return;
-    }
+    if (!id) throw new ValidationError('File ID is required', 'id');
 
     const file = await this.fileRepo.findById(id);
 
-    if (!file) {
-      res.status(404).json({ success: false, message: 'File not found' });
-      return;
-    }
+    if (!file) throw new NotFoundError('File');
 
     try {
       if (file.storage === 's3') {
@@ -123,8 +110,7 @@ export class FileController {
         const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
         if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
-          res.status(500).json({ success: false, message: 'S3 configuration incomplete' });
-          return;
+          throw new ServerError('S3 configuration incomplete');
         }
 
         const bucket = new Bucket({
@@ -159,10 +145,7 @@ export class FileController {
         });
       } else {
         // Download from local storage
-        if (!fs.existsSync(file.path)) {
-          res.status(404).json({ success: false, message: 'File not found on disk' });
-          return;
-        }
+        if (!fs.existsSync(file.path)) throw new NotFoundError('Local file');
 
         res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
@@ -172,24 +155,18 @@ export class FileController {
       }
     } catch (error) {
       console.error('Error downloading file:', error);
-      res.status(500).json({ success: false, message: 'Error downloading file' });
+      throw new ServerError('Error downloading file');
     }
   }
 
   async preview(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
 
-    if (!id) {
-      res.status(400).json({ success: false, message: 'File ID is required' });
-      return;
-    }
+    if (!id) throw new ValidationError('File ID is required', 'id');
 
     const file = await this.fileRepo.findById(id);
 
-    if (!file) {
-      res.status(404).json({ success: false, message: 'File not found' });
-      return;
-    }
+    if (!file) throw new NotFoundError('File');
 
     try {
       if (file.storage === 's3') {
@@ -200,8 +177,7 @@ export class FileController {
         const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
         if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
-          res.status(500).json({ success: false, message: 'S3 configuration incomplete' });
-          return;
+          throw new ServerError('S3 configuration incomplete');
         }
 
         const bucket = new Bucket({
@@ -236,10 +212,7 @@ export class FileController {
         });
       } else {
         // Preview from local storage
-        if (!fs.existsSync(file.path)) {
-          res.status(404).json({ success: false, message: 'File not found on disk' });
-          return;
-        }
+        if (!fs.existsSync(file.path)) throw new NotFoundError('Local file');
 
         res.setHeader('Content-Type', file.mimeType || 'application/pdf');
         res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
@@ -249,7 +222,7 @@ export class FileController {
       }
     } catch (error) {
       console.error('Error previewing file:', error);
-      res.status(500).json({ success: false, message: 'Error previewing file' });
+      throw new ServerError('Error previewing file');
     }
   }
 }
