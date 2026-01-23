@@ -1,15 +1,26 @@
 import { IFamilyRepository } from '../repositories/family.repository.interface';
 import { Family, FamilyProps } from '../entities/family.entity';
-import { ConflictError } from '@shared/domain/errors';
+import { ConflictError, NotFoundError } from '@shared/domain/errors';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export interface CreateFamilyRequest {
   name: string;
+  groupId: number;
 }
 
 export class CreateFamilyUseCase {
-  constructor(private readonly familyRepository: IFamilyRepository) {}
+  constructor(
+    private readonly familyRepository: IFamilyRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
   public async execute(request: CreateFamilyRequest): Promise<Family> {
+    // Validate group exists
+    const group = await this.groupRepository.findById(request.groupId);
+    if (!group) {
+      throw new NotFoundError('Group not found');
+    }
+
     // Check if family already exists with the same name
     const existingFamily = await this.familyRepository.findByName(request.name);
     if (existingFamily) {
@@ -19,6 +30,7 @@ export class CreateFamilyUseCase {
     // Create family
     const familyProps: FamilyProps = {
       name: request.name,
+      groupId: request.groupId,
     };
 
     const family = Family.create(familyProps);

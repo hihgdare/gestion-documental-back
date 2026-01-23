@@ -17,7 +17,7 @@ export class GetFamilyByIdUseCase {
 export class GetAllFamiliesUseCase {
   constructor(private readonly familyRepository: IFamilyRepository) {}
 
-  public async execute(): Promise<Family[]> {
-    return await this.familyRepository.findAll();
+  public async execute(groupId?: number): Promise<Family[]> {
+    return await this.familyRepository.findAll(groupId);
   }
 }

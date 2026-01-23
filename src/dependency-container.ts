@@ -688,10 +688,10 @@ export class DependencyContainer {
     );
 
     // Initialize Family use cases
-    this.createFamilyUseCase = new CreateFamilyUseCase(this.familyRepository);
+    this.createFamilyUseCase = new CreateFamilyUseCase(this.familyRepository, this.groupRepository);
     this.getFamilyByIdUseCase = new GetFamilyByIdUseCase(this.familyRepository);
     this.getAllFamiliesUseCase = new GetAllFamiliesUseCase(this.familyRepository);
-    this.updateFamilyUseCase = new UpdateFamilyUseCase(this.familyRepository);
+    this.updateFamilyUseCase = new UpdateFamilyUseCase(this.familyRepository, this.groupRepository);
     this.deleteFamilyUseCase = new DeleteFamilyUseCase(this.familyRepository);
     this.assignDocumentsFromFamilyUseCase = new AssignDocumentsFromFamilyUseCase(
       this.familyRepository,

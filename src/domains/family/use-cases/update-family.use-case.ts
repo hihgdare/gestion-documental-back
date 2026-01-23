@@ -1,18 +1,32 @@
 import { IFamilyRepository } from '../repositories/family.repository.interface';
 import { Family } from '../entities/family.entity';
 import { NotFoundError, ConflictError } from '@shared/domain/errors';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
 
 export interface UpdateFamilyRequest {
   name: string;
+  groupId?: number;
 }
 
 export class UpdateFamilyUseCase {
-  constructor(private readonly familyRepository: IFamilyRepository) {}
+  constructor(
+    private readonly familyRepository: IFamilyRepository,
+    private readonly groupRepository: GroupRepository,
+  ) {}
 
   public async execute(id: string, request: UpdateFamilyRequest): Promise<Family> {
     const family = await this.familyRepository.findById(id);
     if (!family) {
       throw new NotFoundError('Familia no encontrada');
+    }
+
+    // Validate group if changing
+    if (request.groupId && request.groupId !== family.groupId) {
+      const group = await this.groupRepository.findById(request.groupId);
+      if (!group) {
+        throw new NotFoundError('Group not found');
+      }
+      family.changeGroup(request.groupId);
     }
 
     // Check if another family already exists with the same name
