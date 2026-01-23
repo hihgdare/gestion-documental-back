@@ -5,6 +5,7 @@ export interface DocumentRepository {
   findById(id: string): Promise<Document | null>;
   findAll(groupId?: number, filters?: {
     contractId?: string;
+    colaboratorId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
     status?: DocumentStatus | DocumentStatus[];
