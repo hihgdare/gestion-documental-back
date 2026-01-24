@@ -1,6 +1,7 @@
 @baseUrl = http://localhost:3000/api
 @module = documents
 @colaboratorId = e1cb717d-7503-47f2-bf2c-99a09875c9be
+@userId = random
 @contractId = 809af4e2-fcc4-4789-b981-60141a0d1e78
 @templateId = 112f7e56-505f-4295-a28a-759ec5340d1a
 @issuedDate = 2025-01-01
@@ -11,7 +12,7 @@
 # @name create_document
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
-Authorization: Bearer skip-token
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "templateId": "{{ templateId }}",
@@ -33,6 +34,7 @@ Authorization: Bearer skip-token
 
 POST {{baseUrl}}/{{types}}
 Content-Type: application/json
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "name": "Type for Doc"
@@ -44,6 +46,7 @@ Content-Type: application/json
 
 POST {{baseUrl}}/{{subtypes}}
 Content-Type: application/json
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "name": "Subtype for Doc",
@@ -56,6 +59,7 @@ Content-Type: application/json
 
 POST {{baseUrl}}/{{templates}}
 Content-Type: application/json
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "name": "Template for Doc",
@@ -69,6 +73,7 @@ Content-Type: application/json
 
 POST {{baseUrl}}/{{colabs}}
 Content-Type: application/json
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "tipoDocumento": "rut",
@@ -95,6 +100,7 @@ Content-Type: application/json
 
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "templateId": "{{ templateId }}",
@@ -118,6 +124,7 @@ GET {{baseUrl}}/{{module}}/by-colaborator/{{ colaboratorId }}
 
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "name": "Documento manual editado",
@@ -127,4 +134,4 @@ Content-Type: application/json
 ###
 
 DELETE {{baseUrl}}/{{module}}/{{id}}
-
+Authorization: Bearer user-id:{{ userId }}

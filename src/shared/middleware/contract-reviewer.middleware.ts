@@ -1,22 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-import { User } from '@domains/user/entities/user.entity';
 import { CheckUserCanReviewContractUseCase } from '@domains/contract/use-cases/check-user-can-review-contract.use-case';
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { ForbiddenError, NotFoundError, ServerError, UnauthorizedError, ValidationError } from '@shared/domain/errors';
-
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: User;
-    contractId?: string;
-  }
-}
 
 export function createContractReviewerMiddleware(
   checkUserCanReviewContractUseCase: CheckUserCanReviewContractUseCase,
   documentRepository?: DocumentRepository,
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user;
+    const user = req.auth.user;
     if (!user) throw new UnauthorizedError();
 
     try {
@@ -55,7 +47,7 @@ export function createContractReviewerMiddleware(
       }
 
       // Guardar el contractId en el request para uso posterior
-      req.contractId = contractId;
+      req.auth.contractId = contractId;
       next();
     } catch (_error) {
       throw new ServerError('Error checking reviewer status');

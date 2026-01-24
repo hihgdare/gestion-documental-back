@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -9,14 +9,15 @@ import { DependencyContainer } from '@/dependency-container';
 describe('DocumentModelController', () => {
   let appInstance: App;
   let app: Application;
-  let authToken: string;
   let dependencyContainer: DependencyContainer;
   let familyId: string;
   let documentTypeId: string;
   let documentSubtypeId: string;
+  let userId: string;
+  let groupId: number;
 
   beforeAll(async () => {
-    process.env.ENABLE_RBAC = 'false';
+    process.env.ENABLE_RBAC = 'true';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
@@ -25,32 +26,64 @@ describe('DocumentModelController', () => {
     await dependencyContainer.initialize();
   });
 
+  afterAll(async () => {
+    await appInstance.close();
+  });
+
   beforeEach(async () => {
     await clearDatabase(AppDataSource);
 
     const createUserUseCase = dependencyContainer.getCreateUserUseCase();
     const roleRepository = dependencyContainer.getRoleRepository();
+    const groupRepository = dependencyContainer.getGroupRepository();
+    const permissionRepository = dependencyContainer.getPermissionRepository();
 
-    const defaultRole = await roleRepository.save({ name: 'default.role', description: 'Default role for tests' });
+    // Create Group
+    const group = await groupRepository.save({ name: 'Test Group' });
+    groupId = group.id!;
+
+    // Create Permissions
+    const permissionData = [
+      { name: 'document-model:create', description: 'Create document models' },
+      { name: 'document-model:read', description: 'Read document models' },
+      { name: 'document-model:update', description: 'Update document models' },
+      { name: 'document-model:delete', description: 'Delete document models' },
+      { name: 'family:create', description: 'Create families' },
+      { name: 'family:read', description: 'Read families' },
+      { name: 'document-type:create', description: 'Create document types' },
+      { name: 'document-type:read', description: 'Read document types' },
+      { name: 'document-subtype:create', description: 'Create document subtypes' },
+      { name: 'document-subtype:read', description: 'Read document subtypes' },
+    ];
+
+    const permissions = [];
+    for (const p of permissionData) {
+      permissions.push(await permissionRepository.save(p));
+    }
+
+    // Create Role with Permissions
+    const defaultRole = await roleRepository.save({
+      name: 'default.role',
+      description: 'Default role for tests',
+      permissions: permissions,
+    });
 
     const createdUser = await createUserUseCase.execute({
       email: 'test@example.com',
       firstName: 'Test',
       lastName: 'User',
       password: 'password123',
-      roleIds: [defaultRole.id],
+      roleIds: [defaultRole.id!],
+      groupId: groupId,
     });
 
-    const loginResponse = await supertest(app)
-      .post('/api/auth/login')
-      .send({ email: createdUser.email.toString(), password: 'password123' });
-
-    authToken = loginResponse.body.data.token;
+    userId = createdUser.id;
 
     // Create family
     const familyResponse = await supertest(app)
       .post('/api/families')
-      .set('Authorization', `Bearer ${authToken}`)
+      .set('Authorization', `Bearer user-id:${userId}`)
+      .set('Cookie', [`groupId=${groupId}`])
       .send({ name: 'Test Family' });
 
     familyId = familyResponse.body.data.id;
@@ -58,7 +91,8 @@ describe('DocumentModelController', () => {
     // Create document type
     const typeResponse = await supertest(app)
       .post('/api/documents/types')
-      .set('Authorization', `Bearer ${authToken}`)
+      .set('Authorization', `Bearer user-id:${userId}`)
+      .set('Cookie', [`groupId=${groupId}`])
       .send({ name: 'Test Type' });
 
     documentTypeId = typeResponse.body.data.id;
@@ -66,7 +100,8 @@ describe('DocumentModelController', () => {
     // Create document subtype
     const subtypeResponse = await supertest(app)
       .post('/api/documents/subtypes')
-      .set('Authorization', `Bearer ${authToken}`)
+      .set('Authorization', `Bearer user-id:${userId}`)
+      .set('Cookie', [`groupId=${groupId}`])
       .send({ name: 'Test Subtype', documentTypeId });
 
     documentSubtypeId = subtypeResponse.body.data.id;
@@ -76,7 +111,8 @@ describe('DocumentModelController', () => {
     it('should create a new document model', async () => {
       const response = await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({
           familyId,
           documentTypeId,
@@ -97,7 +133,8 @@ describe('DocumentModelController', () => {
     it('should return 404 if family not found', async () => {
       const response = await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({
           familyId: '00000000-0000-0000-0000-000000000000',
           documentTypeId,
@@ -112,12 +149,14 @@ describe('DocumentModelController', () => {
     it('should return all document models', async () => {
       await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({ familyId, documentTypeId, documentSubtypeId });
 
       const response = await supertest(app)
         .get('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`]);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -129,14 +168,16 @@ describe('DocumentModelController', () => {
     it('should return a document model by id', async () => {
       const createResponse = await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({ familyId, documentTypeId, documentSubtypeId });
 
       const modelId = createResponse.body.data.id;
 
       const response = await supertest(app)
         .get(`/api/document-models/${modelId}`)
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`]);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -148,12 +189,14 @@ describe('DocumentModelController', () => {
     it('should return document models by family id', async () => {
       await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({ familyId, documentTypeId, documentSubtypeId });
 
       const response = await supertest(app)
         .get(`/api/document-models/family/${familyId}`)
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`]);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -166,7 +209,8 @@ describe('DocumentModelController', () => {
     it('should update a document model', async () => {
       const createResponse = await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({
           familyId,
           documentTypeId,
@@ -179,7 +223,8 @@ describe('DocumentModelController', () => {
 
       const response = await supertest(app)
         .put(`/api/document-models/${modelId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({
           requiredForContract: true,
           requiredForColaborator: true,
@@ -196,21 +241,24 @@ describe('DocumentModelController', () => {
     it('should soft delete a document model', async () => {
       const createResponse = await supertest(app)
         .post('/api/document-models')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
         .send({ familyId, documentTypeId, documentSubtypeId });
 
       const modelId = createResponse.body.data.id;
 
       const deleteResponse = await supertest(app)
         .delete(`/api/document-models/${modelId}`)
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`]);
 
       expect(deleteResponse.status).toBe(200);
       expect(deleteResponse.body.success).toBe(true);
 
       const getResponse = await supertest(app)
         .get(`/api/document-models/${modelId}`)
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`]);
 
       expect(getResponse.status).toBe(404);
     });

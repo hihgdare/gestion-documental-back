@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -7,12 +7,15 @@ import { ColaboratorGroup } from '@domains/colaborator-group/entities/colaborato
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { DependencyContainer } from '@/dependency-container';
 import { getUserEffectivePermissions, clearPermissionCache } from '@shared/security/authorization';
+import { User } from '@domains/user/entities/user.entity';
 
 describe('ColaboratorGroupController', () => {
   let appInstance: App;
   let app: Application;
   let authToken: string;
+  let user: User;
   let dependencyContainer: DependencyContainer;
+  let groupId: number;
 
   beforeAll(async () => {
     process.env.ENABLE_RBAC = 'true';
@@ -24,10 +27,13 @@ describe('ColaboratorGroupController', () => {
     await dependencyContainer.initialize();
   });
 
+  afterAll(async () => {
+    await appInstance.close();
+  });
+
   beforeEach(async () => {
     await clearDatabase(AppDataSource);
 
-    const userRepository = dependencyContainer.getUserRepository();
     const roleRepository = dependencyContainer.getRoleRepository();
     const permissionRepository = dependencyContainer.getPermissionRepository();
     const createUserUseCase = dependencyContainer.getCreateUserUseCase();
@@ -61,21 +67,22 @@ describe('ColaboratorGroupController', () => {
     const updatedRole = await roleRepository.findById(defaultRole.id);
     expect(updatedRole?.permissions.map(p => p.name)).toEqual(permissionNames);
 
-    const createdUser = await createUserUseCase.execute({
+    const groupRepository = dependencyContainer.getGroupRepository();
+    const group = await groupRepository.save({ name: 'Test Group', description: 'Group for testing' });
+    groupId = group.id!;
+
+    user = await createUserUseCase.execute({
       email: 'test@example.com',
       firstName: 'Test',
       lastName: 'User',
       password: 'password123',
       roleIds: [defaultRole.id],
+      groupId,
     });
-
-    const fetchedUser = await userRepository.findById(createdUser.id);
-    expect(fetchedUser).not.toBeNull();
-    expect(fetchedUser?.email.toString()).toBe('test@example.com');
 
     const loginResponse = await supertest(app)
       .post('/api/auth/login')
-      .send({ email: createdUser.email.toString(), password: 'password123' });
+      .send({ email: user.email.toString(), password: 'password123' });
 
     expect(loginResponse.status).toBe(200);
     expect(loginResponse.body.success).toBe(true);
@@ -84,8 +91,8 @@ describe('ColaboratorGroupController', () => {
 
     authToken = loginResponse.body.data.token;
 
-    clearPermissionCache(createdUser.id);
-    const perms = await getUserEffectivePermissions(createdUser.id);
+    clearPermissionCache(user.id);
+    const perms = await getUserEffectivePermissions(user.id);
     expect(perms.has('colaborator-group:create')).toBe(true);
     expect(perms.has('colaborator-group:read')).toBe(true);
     expect(perms.has('colaborator-group:update')).toBe(true);
@@ -112,6 +119,7 @@ describe('ColaboratorGroupController', () => {
         status: 'active',
         startDate: new Date(),
         endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        groupId,
       } as any);
       contractId = contract.id;
       groupDto = { name: 'test.group', description: 'A test colaborator group', contractId };
@@ -122,7 +130,7 @@ describe('ColaboratorGroupController', () => {
 
       const response = await supertest(app)
         .post('/api/colaborator-groups')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(groupDto);
 
 

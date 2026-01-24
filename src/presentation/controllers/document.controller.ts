@@ -80,7 +80,7 @@ export class DocumentController {
       comment,
       requiredForContract,
       requiredForColaborator,
-      createdBy: req.user?.id,
+      createdBy: req.auth?.user?.id,
     });
 
     const createdDtos = result.created.map((d: Document) => this.toResponseDto(d));
@@ -111,7 +111,7 @@ export class DocumentController {
       requiredForContract: dto.requiredForContract,
       requiredForColaborator: dto.requiredForColaborator,
       groupId: dto.groupId,
-      createdBy: req.user?.id,
+      createdBy: req.auth.user?.id,
     });
 
     res.status(201).json({
@@ -140,7 +140,7 @@ export class DocumentController {
     const requiredForColaborator = filterObj.requiredForColaborator === 'true' ? true : undefined;
     const status = filterObj.status;
 
-    const documents = await this.getAllDocumentsUseCase.execute(req.groupId, {
+    const documents = await this.getAllDocumentsUseCase.execute(req.auth.groupId, {
       contractId,
       colaboratorId,
       requiredForContract,
@@ -254,7 +254,7 @@ export class DocumentController {
       documentUrl: dto.documentUrl,
       requiredForContract: dto.requiredForContract,
       requiredForColaborator: dto.requiredForColaborator,
-      updatedBy: req.user?.id,
+      updatedBy: req.auth.user?.id,
       comment: dto.comment,
     });
 
@@ -276,7 +276,7 @@ export class DocumentController {
 
   sendToReview = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.sendToReviewDocumentUseCase.execute(id, req.user?.id || 'system');
+    await this.sendToReviewDocumentUseCase.execute(id, req.auth.user?.id || 'system');
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -290,7 +290,7 @@ export class DocumentController {
 
   approveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.approveDocumentUseCase.execute(id, req.user?.id || 'system');
+    await this.approveDocumentUseCase.execute(id, req.auth.user?.id || 'system');
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -304,7 +304,7 @@ export class DocumentController {
 
   rejectDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    await this.rejectDocumentUseCase.execute(id, req.user?.id || 'system');
+    await this.rejectDocumentUseCase.execute(id, req.auth.user?.id || 'system');
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);
@@ -324,7 +324,7 @@ export class DocumentController {
       throw new ValidationError('Los comentarios son obligatorios', { comments });
     }
 
-    await this.rejectDocumentWithCommentsUseCase.execute(id, req.user?.id || 'system', comments);
+    await this.rejectDocumentWithCommentsUseCase.execute(id, req.auth.user?.id || 'system', comments);
 
     // Obtener el documento actualizado
     const document = await this.getDocumentByIdUseCase.execute(id);

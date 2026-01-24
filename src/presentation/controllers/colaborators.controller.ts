@@ -49,7 +49,7 @@ export class ColaboratorController {
 
   public getAllColaborators = asyncHandler(async (req: Request, res: Response) => {
     const { filter } = req.query;
-    const groupId = req.groupId;
+    const { groupId } = req.auth;
     const filters: any = {};
     if (filter && typeof filter === 'object') {
       const contractId = (filter as any).contractId;

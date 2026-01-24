@@ -62,10 +62,10 @@ export class CompanyController {
   };
 
   public findAll = async (req: Request, res: Response) => {
-    // Si el usuario tiene un grupo seleccionado (req.groupId), solo listamos las de ese grupo
+    // Si el usuario tiene un grupo seleccionado (req.auth.groupId), solo listamos las de ese grupo
     // Si no, y tiene permisos de admin, podría listar todas o filtrar por query param.
     // Por requerimiento nos enfocamos en usuarios con grupo asignado.
-    const groupId = req.groupId;
+    const groupId = req.auth?.groupId;
     const companies = await this.listCompaniesUseCase.execute(groupId);
 
     res.status(200).json({

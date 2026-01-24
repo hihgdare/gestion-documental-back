@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -17,6 +17,10 @@ describe('PermissionController', () => {
     app = appInstance.getApp();
   });
 
+  afterAll(async () => {
+    await appInstance.close();
+  });
+
   beforeEach(async () => {
     await clearDatabase(AppDataSource);
   });
@@ -29,6 +33,7 @@ describe('PermissionController', () => {
 
       const response = await supertest(app)
         .post('/api/permissions')
+        .set('Authorization', 'Bearer user-id:random')
         .send(permissionDto);
 
       expect(response.status).toBe(201);
@@ -45,6 +50,7 @@ describe('PermissionController', () => {
       // Create permission for this test
       const createResponse = await supertest(app)
         .post('/api/permissions')
+        .set('Authorization', 'Bearer user-id:random')
         .send(permissionDto);
       const idToUpdate = createResponse.body.data.id;
 
@@ -52,6 +58,7 @@ describe('PermissionController', () => {
 
       const response = await supertest(app)
         .put(`/api/permissions/${idToUpdate}`)
+        .set('Authorization', 'Bearer user-id:random')
         .send(updateDto);
 
       expect(response.status).toBe(200);
@@ -68,11 +75,13 @@ describe('PermissionController', () => {
       // Create the permission first
       await supertest(app)
         .post('/api/permissions')
+        .set('Authorization', 'Bearer user-id:random')
         .send(permissionDto);
 
       // Then try to create it again, expecting 409
       const response = await supertest(app)
         .post('/api/permissions')
+        .set('Authorization', 'Bearer user-id:random')
         .send(permissionDto);
 
       expect(response.status).toBe(409);
@@ -83,11 +92,13 @@ describe('PermissionController', () => {
       // Create permission for this test
       const createResponse = await supertest(app)
         .post('/api/permissions')
+        .set('Authorization', 'Bearer user-id:random')
         .send(permissionDto);
       const idToDelete = createResponse.body.data.id;
 
       const response = await supertest(app)
-        .delete(`/api/permissions/${idToDelete}`);
+        .delete(`/api/permissions/${idToDelete}`)
+        .set('Authorization', 'Bearer user-id:random');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -99,6 +110,7 @@ describe('PermissionController', () => {
 
       const response = await supertest(app)
         .post('/api/permissions')
+        .set('Authorization', 'Bearer user-id:random')
         .send(invalidDto);
 
       expect(response.status).toBe(400);

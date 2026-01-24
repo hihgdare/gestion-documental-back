@@ -41,8 +41,8 @@ export class UserEntity {
   })
   roles?: RoleEntity[];
 
-  @ManyToMany(() => GroupEntity, (group: any) => group.users)
-  groups?: any[];
+  @ManyToMany(() => GroupEntity, (group) => group.users)
+  groups?: GroupEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

@@ -17,9 +17,10 @@ export class TypeOrmRoleRepository implements RoleRepository {
   }
 
   async assignPermissionsToRole(roleId: number, permissionIds: number[]): Promise<void> {
-    await this.repository.update(roleId, {
-      permissions: await this.permissionRepository.findBy({ id: In(permissionIds) }),
-    });
+    const role = await this.repository.findOne({ where: { id: roleId } });
+    if (!role) throw new NotFoundError('Role not found');
+    role.permissions = await this.permissionRepository.findBy({ id: In(permissionIds) });
+    await this.repository.save(role);
   }
 
   async findAll(): Promise<Role[]> {

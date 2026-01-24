@@ -1,14 +1,16 @@
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 
 type Mode = 'development' | 'production' | 'test';
-type DbType = 'mysql' | 'postgres' | 'sqlite' | 'better-sqlite3' | 'sqljs';
+type DbType = 'mariadb' | 'mysql' | 'postgres' | 'sqljs' | 'sql.js' | 'better-sqlite3' | 'sqlite';
 
 export const AppDataSource = initializeDataSource();
 
 export function initializeDataSource(): DataSource {
+  const debug = process.env.DEBUG === 'true';
   const mode = (process.env.NODE_ENV || 'production') as Mode;
-  const type = process.env.DB_TYPE as DbType;
-  const options = {
+  const type = ((mode === 'test' && process.env.TEST_DB_TYPE) || process.env.DB_TYPE || 'mysql') as DbType;
+  if (debug) console.log('Starting database connection...', { mode, type });
+  const createDataSource = (options: DataSourceOptions) => new DataSource({
     logging: mode !== 'production' && process.env.SHOW_DB_QUERY === 'true',
     synchronize: mode !== 'production' && process.env.DB_SYNCHRONIZE !== 'false',
     entities: [
@@ -21,23 +23,24 @@ export function initializeDataSource(): DataSource {
     subscribers: [
       'src/shared/infrastructure/database/subscribers/*.ts',
     ],
-  };
-
-  if (type === 'sqljs') {
-    return new DataSource({
-      ...options,
-      type,
+    ...options,
+  });
+  if (type === 'sqljs' || type === 'sql.js') {
+    return createDataSource({
+      type: 'sqljs',
       location: ':memory:', // use in-memory database
       autoSave: false, // disable auto-save
       synchronize: true,
     });
   } else if (type === 'sqlite' || type === 'better-sqlite3') {
     const database = process.env.DB_DATABASE || ':memory:';
-    if (database === ':memory:') options.synchronize = true;
-    return new DataSource({ ...options, type: 'better-sqlite3', database });
+    return createDataSource({
+      type: 'better-sqlite3',
+      database,
+      synchronize: database === ':memory:',
+    });
   } else {
-    return new DataSource({
-      ...options,
+    return createDataSource({
       type,
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '3306'),
