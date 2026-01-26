@@ -10,6 +10,7 @@ export interface CreateDocumentModelRequest {
   documentSubtypeId: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  requiredExpirationDate?: boolean;
 }
 
 export class CreateDocumentModelUseCase {
@@ -46,6 +47,7 @@ export class CreateDocumentModelUseCase {
       documentSubtypeId: request.documentSubtypeId,
       requiredForContract: request.requiredForContract,
       requiredForColaborator: request.requiredForColaborator,
+      requiredExpirationDate: request.requiredExpirationDate,
     };
 
     const documentModel = DocumentModel.create(documentModelProps);

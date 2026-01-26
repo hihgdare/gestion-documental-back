@@ -39,12 +39,6 @@ async function init(req: Request): Promise<void> {
   const token = req.auth?.token;
   if (!token) throw new UnauthorizedError('No token provided');
 
-  // Si no es producción y estamos utilizando "skip-token", obtenemos el ID de usuario desde la cabecera.
-  if (token === 'skip-token' && process.env.NODE_ENV !== 'production') {
-    const id = req.headers['x-user-id'];
-    return loadUser(req, Array.isArray(id) ? id[0] : id);
-  }
-
   // Support for user-id: bypass token
   if (process.env.NODE_ENV !== 'production' && token.startsWith('user-id:')) {
     const userId = token.split('user-id:')[1];

@@ -36,6 +36,9 @@ export class DocumentModelEntity {
   @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
   requiredForColaborator!: boolean;
 
+  @Column({ name: 'required_expiration_date', type: 'boolean', default: false })
+  requiredExpirationDate!: boolean;
+
   @ManyToOne(() => GroupEntity)
   @JoinColumn({ name: 'group_id' })
   group?: GroupEntity;

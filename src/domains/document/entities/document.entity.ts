@@ -22,6 +22,7 @@ export interface DocumentProps {
   status?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  requiredExpirationDate?: boolean;
   groupId: number;
   createdBy?: string;
   comment?: string | null;
@@ -49,6 +50,7 @@ export class Document {
   status: DocumentStatus;
   requiredForContract: boolean;
   requiredForColaborator: boolean;
+  requiredExpirationDate: boolean;
   groupId: number;
   createdBy: string | null;
   comment: string | null;
@@ -69,6 +71,7 @@ export class Document {
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
       requiredForContract: (required?: boolean) => required ?? false,
       requiredForColaborator: (required?: boolean) => required ?? false,
+      requiredExpirationDate: (required?: boolean) => required ?? false,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
       deletedAt: 'dateNullable',
@@ -113,6 +116,9 @@ export class Document {
       if (!props.issuedDate) {
         throw new ValidationError('La fecha de emisión es requerida cuando se suministra el archivo');
       }
+      if (props.requiredExpirationDate && !props.expirationDate) {
+        throw new ValidationError('La fecha de expiración es requerida para este documento');
+      }
     }
 
     if (props.description && props.description.trim().length > 1000) {
@@ -154,6 +160,15 @@ export class Document {
 
   public updateDates(issuedDate?: Date | null, expirationDate?: Date | null): void {
     Document.validateDates(issuedDate, expirationDate);
+
+    if (this.documentUrl && this.documentUrl.trim().length > 0) {
+      if (!issuedDate) {
+        throw new ValidationError('La fecha de emisión es requerida cuando se suministra el archivo');
+      }
+      if (this.requiredExpirationDate && !expirationDate) {
+        throw new ValidationError('La fecha de expiración es requerida para este documento');
+      }
+    }
 
     this.issuedDate = issuedDate || null;
     this.expirationDate = expirationDate || null;
@@ -228,6 +243,11 @@ export class Document {
 
   public updateRequiredForColaborator(required: boolean): void {
     this.requiredForColaborator = required;
+    this.updatedAt = new Date();
+  }
+
+  public updateRequiredExpirationDate(required: boolean): void {
+    this.requiredExpirationDate = required;
     this.updatedAt = new Date();
   }
 
@@ -320,6 +340,7 @@ export class Document {
       status: this.status,
       requiredForContract: this.requiredForContract,
       requiredForColaborator: this.requiredForColaborator,
+      requiredExpirationDate: this.requiredExpirationDate,
       groupId: this.groupId,
       createdBy: this.createdBy,
       comment: this.comment,

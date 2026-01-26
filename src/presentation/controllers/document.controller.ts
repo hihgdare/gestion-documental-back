@@ -110,6 +110,7 @@ export class DocumentController {
       documentUrl: dto.documentUrl,
       requiredForContract: dto.requiredForContract,
       requiredForColaborator: dto.requiredForColaborator,
+      requiredExpirationDate: dto.requiredExpirationDate,
       groupId: dto.groupId,
       createdBy: req.auth.user?.id,
     });
@@ -252,8 +253,6 @@ export class DocumentController {
       contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
-      requiredForContract: dto.requiredForContract,
-      requiredForColaborator: dto.requiredForColaborator,
       updatedBy: req.auth.user?.id,
       comment: dto.comment,
     });
@@ -356,6 +355,7 @@ export class DocumentController {
       status: json.status,
       requiredForContract: json.requiredForContract,
       requiredForColaborator: json.requiredForColaborator,
+      requiredExpirationDate: json.requiredExpirationDate,
       comment: json.comment,
       isExpired: document.isExpired(),
       daysUntilExpiration: document.daysUntilExpiration(),

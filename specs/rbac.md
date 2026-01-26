@@ -16,8 +16,7 @@
 ## Autenticación
 
 - Autenticación vía JWT en `Authorization: Bearer <token>` y cookies.
-- En desarrollo/pruebas se permite `Bearer skip-token` para flujos sin validación real.
-- En modo test existe un fallback `x-user-id` para asociar un usuario y simular autenticación sin token.
+- En desarrollo/pruebas se permite `Bearer user-id:<id>` para evitar generar un verdadero token. Esto es útil para flujos sin validación real. Se puede usar `random` para evitar tener que pasar un ID específico.
 
 ## Autorización
 

@@ -16,8 +16,6 @@ export interface UpdateDocumentRequest {
   contractId?: string;
   description?: string;
   documentUrl?: string;
-  requiredForContract?: boolean;
-  requiredForColaborator?: boolean;
   groupId?: number;
   updatedBy?: string;
   comment?: string;
@@ -70,14 +68,6 @@ export class UpdateDocumentUseCase {
 
     if (request.contractId !== undefined) {
       document.updateContractId(request.contractId);
-    }
-
-    if (request.requiredForContract !== undefined) {
-      document.updateRequiredForContract(request.requiredForContract);
-    }
-
-    if (request.requiredForColaborator !== undefined) {
-      document.updateRequiredForColaborator(request.requiredForColaborator);
     }
 
     // Update group if provided

@@ -9,7 +9,8 @@ export interface UpdateDocumentDto {
   description?: string;
   documentUrl?: string;
   comment?: string;
+  groupId?: number;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
-  groupId?: number;
+  requiredExpirationDate?: boolean;
 }

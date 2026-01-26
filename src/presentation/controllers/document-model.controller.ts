@@ -6,6 +6,7 @@ import {
   GetDocumentModelsByFamilyIdUseCase,
 } from '@domains/document-model/use-cases/get-document-model.use-case';
 import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains/document-model/use-cases/update-document-model.use-case';
+import { AssignDocumentsFromModelUseCase } from '@domains/document-model/use-cases/assign-documents-from-model.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
 
 export class DocumentModelController {
@@ -16,6 +17,7 @@ export class DocumentModelController {
     private readonly getDocumentModelsByFamilyIdUseCase: GetDocumentModelsByFamilyIdUseCase,
     private readonly updateDocumentModelUseCase: UpdateDocumentModelUseCase,
     private readonly deleteDocumentModelUseCase: DeleteDocumentModelUseCase,
+    private readonly assignDocumentsFromModelUseCase: AssignDocumentsFromModelUseCase,
   ) {}
 
   public createDocumentModel = asyncHandler(async (req: Request, res: Response) => {
@@ -73,6 +75,30 @@ export class DocumentModelController {
     res.status(200).json({
       success: true,
       message: 'Modelo de documento eliminado exitosamente',
+    });
+  });
+
+  public assignDocumentsFromModel = asyncHandler(async (req: Request, res: Response) => {
+    const { documentModelId, contractId, colaboratorIds, comment } = req.body;
+    const createdBy = (req as any).user?.id;
+
+    const result = await this.assignDocumentsFromModelUseCase.execute({
+      documentModelId,
+      contractId,
+      colaboratorIds,
+      createdBy,
+      comment,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        created: result.created.map(doc => doc.toJSON()),
+        skipped: result.skipped,
+        createdCount: result.created.length,
+        skippedCount: result.skipped.length,
+      },
+      message: 'Documentos asignados exitosamente',
     });
   });
 }

@@ -210,6 +210,7 @@ export const createDocumentSchema = Joi.object({
   documentUrl: Joi.string().optional().allow('', null),
   requiredForContract: Joi.boolean().optional().default(false),
   requiredForColaborator: Joi.boolean().optional().default(false),
+  requiredExpirationDate: Joi.boolean().optional().default(false),
   groupId: Joi.number().integer().positive().required(),
 }).unknown(true);
 
@@ -234,8 +235,6 @@ export const updateDocumentSchema = Joi.object({
   contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow(null, ''),
   documentUrl: Joi.string().optional().allow(null, ''),
-  requiredForContract: Joi.boolean().optional(),
-  requiredForColaborator: Joi.boolean().optional(),
   groupId: Joi.number().integer().positive().optional(),
 }).min(1).unknown(true); // Permitir campos desconocidos
 
@@ -363,6 +362,7 @@ export const createDocumentModelSchema = Joi.object({
   documentSubtypeId: Joi.string().uuid().required(),
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
+  requiredExpirationDate: Joi.boolean().optional().default(false),
 });
 
 export const updateDocumentModelSchema = Joi.object({
@@ -371,4 +371,5 @@ export const updateDocumentModelSchema = Joi.object({
   documentSubtypeId: Joi.string().uuid().optional(),
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
+  requiredExpirationDate: Joi.boolean().optional(),
 }).min(1);

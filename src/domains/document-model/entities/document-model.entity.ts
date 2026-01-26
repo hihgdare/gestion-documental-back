@@ -9,6 +9,7 @@ export interface DocumentModelProps {
   documentSubtypeId: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  requiredExpirationDate?: boolean;
   documentTypeName?: string;
   documentSubtypeName?: string;
   createdAt?: Date;
@@ -24,6 +25,7 @@ export class DocumentModel {
   documentSubtypeId: string;
   requiredForContract: boolean;
   requiredForColaborator: boolean;
+  requiredExpirationDate: boolean;
   documentTypeName?: string;
   documentSubtypeName?: string;
   createdAt: Date;
@@ -38,6 +40,7 @@ export class DocumentModel {
       groupId: (value: number) => value,
       requiredForContract: (value?: boolean) => value ?? false,
       requiredForColaborator: (value?: boolean) => value ?? false,
+      requiredExpirationDate: (value?: boolean) => value ?? false,
       createdAt: 'date',
       updatedAt: 'date',
       deletedAt: 'dateNullable',
@@ -72,6 +75,7 @@ export class DocumentModel {
     documentSubtypeId?: string;
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
+    requiredExpirationDate?: boolean;
   }): void {
     if (props.groupId !== undefined) {
       if (!props.groupId) {
@@ -102,6 +106,10 @@ export class DocumentModel {
       this.requiredForColaborator = props.requiredForColaborator;
     }
 
+    if (props.requiredExpirationDate !== undefined) {
+      this.requiredExpirationDate = props.requiredExpirationDate;
+    }
+
     this.updatedAt = new Date();
   }
 
@@ -124,6 +132,7 @@ export class DocumentModel {
       documentSubtypeId: this.documentSubtypeId,
       requiredForContract: this.requiredForContract,
       requiredForColaborator: this.requiredForColaborator,
+      requiredExpirationDate: this.requiredExpirationDate,
       documentTypeName: this.documentTypeName,
       documentSubtypeName: this.documentSubtypeName,
       createdAt: this.createdAt,
