@@ -5,7 +5,7 @@ import { runInitialSeedsIfEmpty } from './src/shared/infrastructure/database/see
 
 async function main() {
   const args = process.argv.slice(2);
-  const shouldClean = args.includes('--clean');
+  const shouldClean = args.includes('--clean') || args.includes('--clear');
   const onlyInit = args.includes('--init');
 
   if (process.env.NODE_ENV !== 'development') {
