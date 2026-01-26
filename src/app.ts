@@ -28,7 +28,7 @@ import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createAreaRoutes } from '@presentation/routes/area.routes';
 import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { DependencyContainer } from './dependency-container';
-import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seed/initial-seeds';
+import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seeds/initial-seeds';
 import { RouteError } from '@shared/domain/errors';
 import { authInit } from '@shared/utils/requests';
 

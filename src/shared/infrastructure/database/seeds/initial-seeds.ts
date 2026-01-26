@@ -25,7 +25,7 @@ const adminSections = [
   'area',
   'division',
 ];
-const otherPermissions = [
+const extraPermissions = [
   'admin:groups',
   'colaborator-group:assign:colaborator',
   'colaborator-group:assign:document',
@@ -36,6 +36,11 @@ const otherPermissions = [
   'user:assign:role',
   'user:change:group',
   'user:empty:group',
+];
+
+// Otros permisos que no se deben agregar a los roles de admin
+const otherPermissions = [
+  'group:owner',
 ];
 
 export async function runInitialSeedsIfEmpty(): Promise<void> {
@@ -74,18 +79,23 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
   }
 
   const basePermissionNames = adminSections.flatMap(m => crudActions.map(a => `${m}:${a}`));
-  const permissionNames = [...new Set([...basePermissionNames, ...otherPermissions])];
+  const adminPermissions = [...new Set([...basePermissionNames, ...extraPermissions])];
 
   const currentPermissions = await permissionRepository.findAll();
   const existingNames = new Set(currentPermissions.map(p => p.name));
-  for (const name of permissionNames) {
+  for (const name of adminPermissions) {
+    if (!existingNames.has(name)) {
+      await savePermissionUseCase.execute({ name, description: name });
+    }
+  }
+  for (const name of otherPermissions) {
     if (!existingNames.has(name)) {
       await savePermissionUseCase.execute({ name, description: name });
     }
   }
 
   const allPermissions = await permissionRepository.findAll();
-  const permissionIds = allPermissions.filter(p => permissionNames.includes(p.name)).map(p => p.id!).filter(Boolean);
+  const permissionIds = allPermissions.filter(p => adminPermissions.includes(p.name)).map(p => p.id!).filter(Boolean);
   if (adminRole?.id && permissionIds.length > 0) {
     await assignPermissionsToRoleUseCase.execute({ roleId: adminRole.id, permissionIds });
   }
