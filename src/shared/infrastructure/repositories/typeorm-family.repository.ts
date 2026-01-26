@@ -12,9 +12,13 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
     this.repository = AppDataSource.getRepository(FamilyEntity);
   }
 
-  async findAll(): Promise<Family[]> {
+  async findAll(groupId?: number): Promise<Family[]> {
+    const where: any = { deletedAt: IsNull() };
+    if (groupId) {
+      where.groupId = groupId;
+    }
     const entities = await this.repository.find({
-      where: { deletedAt: IsNull() },
+      where,
       order: { name: 'ASC' },
     });
     return entities.map(entity => this.toDomain(entity));
@@ -68,6 +72,7 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
     const props: FamilyProps = {
       id: entity.id,
       name: entity.name,
+      groupId: entity.groupId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
@@ -79,6 +84,7 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
     return {
       id: family.id,
       name: family.name,
+      groupId: family.groupId,
       createdAt: family.createdAt,
       updatedAt: family.updatedAt,
       deletedAt: family.deletedAt,

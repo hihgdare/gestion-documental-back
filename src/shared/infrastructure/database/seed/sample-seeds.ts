@@ -747,7 +747,7 @@ async function runRequestedSeeds(): Promise<void> {
       const familyName = `Family S${i}-${f}`;
       let family = await familyRepository.findByName(familyName);
       if (!family) {
-        family = await familyRepository.create(Family.create({ name: familyName }));
+        family = await familyRepository.create(Family.create({ name: familyName, groupId: group.id }));
       }
 
       // 3 Models per family

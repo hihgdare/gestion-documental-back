@@ -328,10 +328,12 @@ export const assignColaboratorsToGroupSchema = Joi.object({
 
 export const createFamilySchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
+  groupId: Joi.number().integer().positive().required(),
 });
 
 export const updateFamilySchema = Joi.object({
   name: Joi.string().min(2).max(100).optional(),
+  groupId: Joi.number().integer().positive().optional(),
 }).min(1);
 
 export const createCompanySchema = Joi.object({

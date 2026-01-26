@@ -1,7 +1,7 @@
 import { Family } from '../entities/family.entity';
 
 export interface IFamilyRepository {
-  findAll(): Promise<Family[]>;
+  findAll(groupId?: number): Promise<Family[]>;
   findById(id: string): Promise<Family | null>;
   findByName(name: string): Promise<Family | null>;
   create(family: Family): Promise<Family>;
