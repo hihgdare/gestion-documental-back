@@ -55,5 +55,12 @@ export const createDocumentModelRoutes = (documentModelController: DocumentModel
   // DELETE /api/document-models/:id - Delete document model
   router.delete('/:id', authorize('document-model:delete'), documentModelController.deleteDocumentModel);
 
+  // POST /api/document-models/assign-documents - Assign documents from model
+  router.post(
+    '/assign-documents',
+    authorize('document:create'),
+    documentModelController.assignDocumentsFromModel,
+  );
+
   return router;
 };

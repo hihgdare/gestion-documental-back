@@ -8,7 +8,8 @@ export interface CreateDocumentDto {
   contractId?: string;
   description?: string;
   documentUrl?: string;
+  groupId: number;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
-  groupId: number;
+  requiredExpirationDate?: boolean;
 }

@@ -1,7 +1,7 @@
 import { DocumentModel } from '../entities/document-model.entity';
 
 export interface IDocumentModelRepository {
-  findAll(groupId?: number): Promise<DocumentModel[]>;
+  findAll(groupId?: number, familyId?: string): Promise<DocumentModel[]>;
   findById(id: string): Promise<DocumentModel | null>;
   findByFamilyId(familyId: string, groupId?: number): Promise<DocumentModel[]>;
   findByFamilyTypeSubtype(

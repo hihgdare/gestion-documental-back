@@ -8,6 +8,7 @@ export interface UpdateDocumentModelRequest {
   documentSubtypeId?: string;
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
+  requiredExpirationDate?: boolean;
 }
 
 export class UpdateDocumentModelUseCase {

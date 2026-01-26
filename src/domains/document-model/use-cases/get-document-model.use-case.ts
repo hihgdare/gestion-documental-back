@@ -17,8 +17,8 @@ export class GetDocumentModelByIdUseCase {
 export class GetAllDocumentModelsUseCase {
   constructor(private readonly documentModelRepository: IDocumentModelRepository) {}
 
-  public async execute(groupId?: number): Promise<DocumentModel[]> {
-    return await this.documentModelRepository.findAll(groupId);
+  public async execute(groupId?: number, familyId?: string): Promise<DocumentModel[]> {
+    return await this.documentModelRepository.findAll(groupId, familyId);
   }
 }
 

@@ -78,6 +78,9 @@ export class DocumentEntity {
   @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
   requiredForColaborator!: boolean;
 
+  @Column({ name: 'required_expiration_date', type: 'boolean', default: false })
+  requiredExpirationDate!: boolean;
+
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;
 

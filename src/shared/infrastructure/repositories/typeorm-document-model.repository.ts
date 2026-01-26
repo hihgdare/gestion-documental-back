@@ -12,9 +12,10 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
     this.repository = AppDataSource.getRepository(DocumentModelEntity);
   }
 
-  async findAll(groupId?: number): Promise<DocumentModel[]> {
+  async findAll(groupId?: number, familyId?: string): Promise<DocumentModel[]> {
     const where: any = { deletedAt: IsNull() };
     if (groupId) where.groupId = groupId;
+    if (familyId) where.familyId = familyId;
 
     const entities = await this.repository.find({
       where,
@@ -111,6 +112,7 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
       documentSubtypeId: entity.documentSubtypeId,
       requiredForContract: entity.requiredForContract,
       requiredForColaborator: entity.requiredForColaborator,
+      requiredExpirationDate: entity.requiredExpirationDate,
       documentTypeName: entity.documentType?.name,
       documentSubtypeName: entity.documentSubtype?.name,
       createdAt: entity.createdAt,
@@ -129,6 +131,7 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
       documentSubtypeId: documentModel.documentSubtypeId,
       requiredForContract: documentModel.requiredForContract,
       requiredForColaborator: documentModel.requiredForColaborator,
+      requiredExpirationDate: documentModel.requiredExpirationDate,
       createdAt: documentModel.createdAt,
       updatedAt: documentModel.updatedAt,
       deletedAt: documentModel.deletedAt,

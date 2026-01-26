@@ -15,6 +15,8 @@ describe('DocumentModelController', () => {
   let documentSubtypeId: string;
   let userId: string;
   let groupId: number;
+  let contractId: string;
+  let colaboratorId: string;
 
   beforeAll(async () => {
     process.env.ENABLE_RBAC = 'true';
@@ -54,6 +56,9 @@ describe('DocumentModelController', () => {
       { name: 'document-type:read', description: 'Read document types' },
       { name: 'document-subtype:create', description: 'Create document subtypes' },
       { name: 'document-subtype:read', description: 'Read document subtypes' },
+      { name: 'contract:create', description: 'Create contracts' },
+      { name: 'colaborator:create', description: 'Create colaborators' },
+      { name: 'document:create', description: 'Create documents' },
     ];
 
     const permissions = [];
@@ -86,6 +91,10 @@ describe('DocumentModelController', () => {
       .set('Cookie', [`groupId=${groupId}`])
       .send({ name: 'Test Family' });
 
+    if (familyResponse.status !== 201) {
+      console.error('Family creation failed:', JSON.stringify(familyResponse.body, null, 2));
+    }
+
     familyId = familyResponse.body.data.id;
 
     // Create document type
@@ -105,6 +114,58 @@ describe('DocumentModelController', () => {
       .send({ name: 'Test Subtype', documentTypeId });
 
     documentSubtypeId = subtypeResponse.body.data.id;
+
+    // Create contract
+    const contractResponse = await supertest(app)
+      .post('/api/contracts')
+      .set('Authorization', `Bearer user-id:${userId}`)
+      .set('Cookie', [`groupId=${groupId}`])
+      .send({
+        contractNumber: 'CN-TEST-001',
+        rutSociedad: '12.345.678-5',
+        nombreColaborador: 'Juan Perez',
+        administradorContratoMandante: 'Admin Mandante',
+        administradorContratoEmpresa: 'Admin Empresa',
+        rutAdministradorContrato: '23.456.789-6',
+        nombreMandante: 'Mandante SA',
+        startDate: '2030-01-01',
+        endDate: '2030-12-31',
+        contractType: 'consultoria',
+        jornadaTrabajo: 'completa',
+      });
+
+    if (contractResponse.status !== 201) {
+      console.error('Contract creation failed:', JSON.stringify(contractResponse.body, null, 2));
+    }
+
+    contractId = contractResponse.body.data.id;
+
+    // Create colaborator
+    const colaboratorResponse = await supertest(app)
+      .post('/api/colaborators')
+      .set('Authorization', `Bearer user-id:${userId}`)
+      .set('Cookie', [`groupId=${groupId}`])
+      .send({
+        tipoDocumento: 'rut',
+        numeroDocumento: '12345678-9',
+        nombre: 'John',
+        apellidoPaterno: 'Doe',
+        nacionalidad: 'Chilean',
+        sexo: 'masculino',
+        estadoCivil: 'soltero',
+        fechaNacimiento: '1990-01-01',
+        paisResidencia: 'CL',
+        region: 'Metropolitana',
+        comuna: 'Santiago',
+        direccionResidencia: 'Calle Falsa 123',
+        email: 'john.doe@example.com',
+        telefono: '+56912345678',
+        profesion: 'Developer',
+        cargo: 'Senior Dev',
+        contractIds: [contractId],
+      });
+
+    colaboratorId = colaboratorResponse.body.data.id;
   });
 
   describe('POST /api/document-models', () => {
@@ -261,6 +322,40 @@ describe('DocumentModelController', () => {
         .set('Cookie', [`groupId=${groupId}`]);
 
       expect(getResponse.status).toBe(404);
+    });
+  });
+
+  describe('POST /api/document-models/assign-documents', () => {
+    it('should assign documents to colaborators', async () => {
+      // Create model first
+      const modelResponse = await supertest(app)
+        .post('/api/document-models')
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
+        .send({
+          familyId,
+          documentTypeId,
+          documentSubtypeId,
+          requiredForContract: true,
+          requiredForColaborator: false,
+        });
+      const modelId = modelResponse.body.data.id;
+
+      const response = await supertest(app)
+        .post('/api/document-models/assign-documents')
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .set('Cookie', [`groupId=${groupId}`])
+        .send({
+          documentModelId: modelId,
+          contractId,
+          colaboratorIds: [colaboratorId],
+          comment: 'Assignment test',
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.createdCount).toBe(1);
+      expect(response.body.data.skippedCount).toBe(0);
     });
   });
 });

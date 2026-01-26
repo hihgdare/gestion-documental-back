@@ -94,6 +94,7 @@ export class AssignDocumentsFromFamilyUseCase {
           createdBy: request.createdBy,
           requiredForContract: model.requiredForContract,
           requiredForColaborator: model.requiredForColaborator,
+          requiredExpirationDate: model.requiredExpirationDate,
           groupId: colaborator.groupId,
         };
 

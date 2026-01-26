@@ -138,6 +138,7 @@ import {
   GetDocumentModelsByFamilyIdUseCase,
 } from '@domains/document-model/use-cases/get-document-model.use-case';
 import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains/document-model/use-cases/update-document-model.use-case';
+import { AssignDocumentsFromModelUseCase } from '@domains/document-model/use-cases/assign-documents-from-model.use-case';
 
 // Company domain
 import { CreateCompanyUseCase } from '@domains/company/use-cases/create-company.use-case';
@@ -343,6 +344,7 @@ export class DependencyContainer {
   private getDocumentModelsByFamilyIdUseCase!: GetDocumentModelsByFamilyIdUseCase;
   private updateDocumentModelUseCase!: UpdateDocumentModelUseCase;
   private deleteDocumentModelUseCase!: DeleteDocumentModelUseCase;
+  private assignDocumentsFromModelUseCase!: AssignDocumentsFromModelUseCase;
 
   // Use Cases - Group
   private createGroupUseCase!: CreateGroupUseCase;
@@ -718,6 +720,13 @@ export class DependencyContainer {
     this.getDocumentModelsByFamilyIdUseCase = new GetDocumentModelsByFamilyIdUseCase(this.documentModelRepository);
     this.updateDocumentModelUseCase = new UpdateDocumentModelUseCase(this.documentModelRepository);
     this.deleteDocumentModelUseCase = new DeleteDocumentModelUseCase(this.documentModelRepository);
+    this.assignDocumentsFromModelUseCase = new AssignDocumentsFromModelUseCase(
+      this.documentModelRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.contractRepository,
+      this.colaboratorRepository,
+    );
 
     this.documentModelController = new DocumentModelController(
       this.createDocumentModelUseCase,
@@ -726,6 +735,7 @@ export class DependencyContainer {
       this.getDocumentModelsByFamilyIdUseCase,
       this.updateDocumentModelUseCase,
       this.deleteDocumentModelUseCase,
+      this.assignDocumentsFromModelUseCase,
     );
 
     // Initialize Group use cases
