@@ -21,7 +21,6 @@ import * as path from 'path';
 
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
-import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { TypeOrmAreaRepository } from '@shared/infrastructure/repositories/typeorm-area.repository';
 import { TypeOrmDivisionRepository } from '@shared/infrastructure/repositories/typeorm-division.repository';
 import { TypeOrmCompanyRepository } from '@shared/infrastructure/repositories/typeorm-company.repository';
@@ -683,6 +682,7 @@ async function runRequestedSeeds(): Promise<void> {
           status: ContractStatus.ACTIVE,
           dotacionPersonal: 10,
           dotacionVehiculos: 2,
+          groupId: group.id,
         }));
         contracts.push(contract);
       } else {
@@ -715,6 +715,7 @@ async function runRequestedSeeds(): Promise<void> {
           profesion: 'Developer',
           cargo: 'Senior',
           contractIds: contracts.map(c => c.id),
+          groupId: group.id,
         });
         await colaboratorRepository.save(colaborator);
       }
@@ -746,7 +747,7 @@ async function runRequestedSeeds(): Promise<void> {
       const familyName = `Family S${i}-${f}`;
       let family = await familyRepository.findByName(familyName);
       if (!family) {
-        family = await familyRepository.create(Family.create({ name: familyName }));
+        family = await familyRepository.create(Family.create({ name: familyName, groupId: group.id }));
       }
 
       // 3 Models per family
