@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -8,6 +8,7 @@ import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeo
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
+import { CreateGroupUseCase } from '@domains/group/use-cases/create-group.use-case';
 import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
@@ -23,15 +24,18 @@ describe('Auth Routes', () => {
   let groupRepository: TypeOrmGroupRepository;
   let permissionRepository: TypeOrmPermissionRepository;
   let createUserUseCase: CreateUserUseCase;
+  let createGroupUseCase: CreateGroupUseCase;
   let saveRoleUseCase: SaveRoleUseCase;
   let savePermissionUseCase: SavePermissionUseCase;
 
   let testUser: User;
   let testRole: Role;
   let testPermission: Permission;
+  let testGroupId: number;
   const testPassword = 'Password123!';
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'true';
     process.env.JWT_SECRET = 'testsecret'; // Use a test secret for JWT
 
     appInstance = new App();
@@ -43,8 +47,13 @@ describe('Auth Routes', () => {
     groupRepository = new TypeOrmGroupRepository();
     permissionRepository = new TypeOrmPermissionRepository();
     createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
+    createGroupUseCase = new CreateGroupUseCase(groupRepository);
     saveRoleUseCase = new SaveRoleUseCase(roleRepository);
     savePermissionUseCase = new SavePermissionUseCase(permissionRepository);
+  });
+
+  afterAll(async () => {
+    await appInstance.close();
   });
 
   beforeEach(async () => {
@@ -56,6 +65,13 @@ describe('Auth Routes', () => {
     // Create a test role and assign the permission
     testRole = await saveRoleUseCase.execute({ name: 'Test Role', description: 'Role for testing', permissions: [testPermission] });
 
+    // Create a test group
+    const group = await createGroupUseCase.execute({
+      name: 'Test Group',
+      description: 'Group for testing',
+    });
+    testGroupId = group.id!;
+
     // Create a test user
     testUser = await createUserUseCase.execute({
       email: 'test@example.com',
@@ -63,6 +79,7 @@ describe('Auth Routes', () => {
       lastName: 'User',
       password: testPassword, // Pass plain password, use case will hash it
       roleIds: [testRole.id],
+      groupId: testGroupId,
     });
   });
 
@@ -128,8 +145,7 @@ describe('Auth Routes', () => {
     it('should return a successful logout message', async () => {
       const response = await supertest(app)
         .post('/api/auth/logout')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer skip-token`);
+        .set('Authorization', `Bearer user-id:${testUser.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Logout successful');
@@ -138,15 +154,14 @@ describe('Auth Routes', () => {
 
   describe('GET /api/auth/permissions', () => {
     it('should return user permissions for an authenticated user', async () => {
-      const loginResponse = await supertest(app)
-        .post('/api/auth/login')
-        .send({ email: testUser.email.toString(), password: testPassword });
-      const token = loginResponse.body.data.token;
-
       const response = await supertest(app)
         .get('/api/auth/permissions')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer user-id:${testUser.id}`)
+        .set('Cookie', [`groupId=${testGroupId}`]);
+
+      if (response.status !== 200) {
+        console.error('Permissions test failed:', JSON.stringify(response.body, null, 2));
+      }
 
       expect(response.status).toBe(200);
       expect(response.body.data.permissions).toEqual([testPermission.name]);
@@ -154,8 +169,7 @@ describe('Auth Routes', () => {
 
     it('should return 401 for unauthenticated access', async () => {
       const response = await supertest(app)
-        .get('/api/auth/permissions')
-        .set('x-enable-rbac', 'true');
+        .get('/api/auth/permissions');
 
       expect(response.status).toBe(401);
       expect(response.body.message).toContain('No token provided');
@@ -164,11 +178,24 @@ describe('Auth Routes', () => {
     it('should return 401 for invalid token', async () => {
       const response = await supertest(app)
         .get('/api/auth/permissions')
-        .set('x-enable-rbac', 'true')
         .set('Authorization', 'Bearer invalidtoken');
 
       expect(response.status).toBe(401);
       expect(response.body.message).toContain('Invalid token');
+    });
+  });
+
+  describe('GET /api/auth/me', () => {
+    it('should return user info including permissions', async () => {
+      const response = await supertest(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer user-id:${testUser.id}`)
+        .set('Cookie', [`groupId=${testGroupId}`]);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.email).toBe(testUser.email.toString());
+      expect(response.body.data.permissions).toContain(testPermission.name);
+      expect(Array.isArray(response.body.data.permissions)).toBe(true);
     });
   });
 });

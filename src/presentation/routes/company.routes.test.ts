@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -8,12 +8,14 @@ import { DependencyContainer } from '@/dependency-container';
 describe('CompanyController', () => {
   let appInstance: App;
   let app: Application;
-  let authToken: string;
-  let adminToken: string;
   let dependencyContainer: DependencyContainer;
   let testGroupId: number;
 
+  let adminUserId: string;
+  let userId: string;
+
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'true';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
@@ -64,26 +66,20 @@ describe('CompanyController', () => {
       password: 'password123',
       roleIds: [companyRole.id!],
     });
+    userId = user.id;
 
     // Assign user to group using the use case directly
     await dependencyContainer.getAddUserToGroupUseCase().execute(testGroupId, user.id, 'group:assign:user');
 
     // Create admin user
-    await createUserUseCase.execute({
+    const adminUser = await createUserUseCase.execute({
       email: 'admin@example.com',
       firstName: 'Admin',
       lastName: 'Test',
       password: 'password123',
       roleIds: [adminRole.id!],
     });
-
-    // Login user
-    const loginRes = await supertest(app).post('/api/auth/login').send({ email: 'user@example.com', password: 'password123' });
-    authToken = loginRes.body.data.token;
-
-    // Login admin
-    const adminLoginRes = await supertest(app).post('/api/auth/login').send({ email: 'admin@example.com', password: 'password123' });
-    adminToken = adminLoginRes.body.data.token;
+    adminUserId = adminUser.id;
   });
 
   describe('/api/companies', () => {
@@ -92,8 +88,7 @@ describe('CompanyController', () => {
     it('should create a company for the users assigned group', async () => {
       const response = await supertest(app)
         .post('/api/companies')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
         .set('Cookie', [`groupId=${testGroupId}`]) // Essential for the middleware to pick it up
         .send({
           name: 'My Company',
@@ -111,8 +106,7 @@ describe('CompanyController', () => {
     it('should list companies in the assigned group', async () => {
       const response = await supertest(app)
         .get('/api/companies')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${userId}`)
         .set('Cookie', [`groupId=${testGroupId}`]);
 
       expect(response.status).toBe(200);
@@ -124,11 +118,8 @@ describe('CompanyController', () => {
     it('should update company info', async () => {
       const response = await supertest(app)
         .put(`/api/companies/${createdCompanyId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          address: 'New Address 456',
-        });
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .send({ address: 'New Address 456' });
 
       expect(response.status).toBe(200);
       expect(response.body.data.address).toBe('New Address 456');
@@ -137,11 +128,8 @@ describe('CompanyController', () => {
     it('should NOT allow changing group without proper permissions', async () => {
       const response = await supertest(app)
         .put(`/api/companies/${createdCompanyId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          groupId: 999, // Trying to change it
-        });
+        .set('Authorization', `Bearer user-id:${userId}`)
+        .send({ groupId: 999 }); // Trying to change it
 
       expect(response.status).toBe(403);
     });
@@ -152,11 +140,8 @@ describe('CompanyController', () => {
 
       const response = await supertest(app)
         .put(`/api/companies/${createdCompanyId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          groupId: group2.id,
-        });
+        .set('Authorization', `Bearer user-id:${adminUserId}`)
+        .send({ groupId: group2.id });
 
       expect(response.status).toBe(200);
       expect(response.body.data.groupId).toBe(group2.id);
@@ -165,11 +150,14 @@ describe('CompanyController', () => {
     it('should delete company', async () => {
       const response = await supertest(app)
         .delete(`/api/companies/${createdCompanyId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${userId}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
     });
+  });
+
+  afterAll(async () => {
+    await appInstance.close();
   });
 });

@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 import 'express-async-errors';
 
 import { errorHandler } from '@shared/middleware/error-handler';
-import { initializeDatabase } from '@shared/infrastructure/database/typeorm.config';
+import { initializeDatabase, AppDataSource } from '@shared/infrastructure/database/typeorm.config';
 import { createContractReviewerMiddleware } from '@shared/middleware/contract-reviewer.middleware';
 import { createUserRoutes } from '@presentation/routes/user.routes';
 import { createColaboratorRoutes } from '@presentation/routes/colaborators.routes';
@@ -30,6 +30,7 @@ import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seed/initial-seeds';
 import { RouteError } from '@shared/domain/errors';
+import { authInit } from '@shared/utils/requests';
 
 export class App {
   private app: Application;
@@ -72,8 +73,10 @@ export class App {
       credentials: true,
     }));
 
-    // Rate limiting
+    // Initial auth middleware (auth object in the request with things like clean cookies)
+    this.app.use(authInit);
 
+    // Rate limiting
     const limiter = rateLimit({
       windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '300000'), // 1 minute
       max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // limit each IP to 100 requests per windowMs
@@ -220,5 +223,11 @@ export class App {
       console.log(`📚 API documentation available at http://localhost:${port}/api`);
       console.log(`❤️  Health check available at http://localhost:${port}/health`);
     });
+  }
+
+  public async close(): Promise<void> {
+    if (AppDataSource.isInitialized) {
+      await AppDataSource.destroy();
+    }
   }
 }

@@ -18,8 +18,7 @@ export class UserController {
   ) {}
 
   public createUser = asyncHandler(async (req: Request, res: Response) => {
-    const { groupId } = req;
-    const { user: currentUser } = req;
+    const { groupId, user: currentUser } = req.auth;
 
     // Logica para asignacion de grupos:
     // 1. Si el creador tiene un grupo seleccionado, ese grupo se asigna al nuevo usuario.
@@ -30,10 +29,7 @@ export class UserController {
       throw new ForbiddenError('You must have a group selected to create users, or have the "user:empty:group" permission.');
     }
 
-    const user = await this.createUserUseCase.execute({
-      ...req.body,
-      groupId: groupId,
-    });
+    const user = await this.createUserUseCase.execute({ ...req.body, groupId });
 
     res.status(201).json({
       success: true,
@@ -52,7 +48,7 @@ export class UserController {
   });
 
   public getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-    const { groupId } = req;
+    const { groupId } = req.auth;
     const users = await this.getAllUsersUseCase.execute(groupId);
     res.status(200).json({
       success: true,

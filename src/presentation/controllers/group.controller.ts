@@ -74,7 +74,7 @@ export class GroupController {
     const { userId } = req.body;
 
     // Get user permissions from request (set by auth middleware)
-    const userPermissions = (req as any).userPermissions || [];
+    const userPermissions = req.auth?.permissions || [];
     const permission = userPermissions.includes('user:change:group')
       ? 'user:change:group'
       : 'group:assign:user';
@@ -100,12 +100,13 @@ export class GroupController {
     const { groupId } = req.body;
 
     // Get user permissions from request (set by auth middleware)
-    const userPermissions = (req as any).userPermissions || [];
+    const userPermissions = req.auth?.permissions || [];
     const permission = userPermissions.includes('user:change:group')
       ? 'user:change:group'
       : 'group:assign:user';
 
-    await this.assignGroupToUserUseCase.execute(userId, groupId, permission);
+    await this.addUserToGroupUseCase.execute(groupId, userId, permission);
+
     res.status(200).json({
       success: true,
       message: 'Group assigned to user successfully',

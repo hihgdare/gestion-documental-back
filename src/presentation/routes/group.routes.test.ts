@@ -1,19 +1,21 @@
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { DependencyContainer } from '@/dependency-container';
 import { getUserEffectivePermissions, clearPermissionCache } from '@shared/security/authorization';
+import { User } from '@domains/user/entities/user.entity';
 
 describe('GroupController', () => {
   let appInstance: App;
   let app: Application;
-  let authToken: string;
-  let authTokenUserChange: string;
+  let createdUser: User;
+  let createdUserChange: User;
   let dependencyContainer: DependencyContainer;
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'true';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
@@ -87,7 +89,7 @@ describe('GroupController', () => {
     });
 
     // Create test user with group:assign:user permission
-    const createdUser = await createUserUseCase.execute({
+    createdUser = await createUserUseCase.execute({
       email: 'test.group@example.com',
       firstName: 'Test',
       lastName: 'Group',
@@ -96,7 +98,7 @@ describe('GroupController', () => {
     });
 
     // Create test user with user:change:group permission
-    const createdUserChange = await createUserUseCase.execute({
+    createdUserChange = await createUserUseCase.execute({
       email: 'test.user@example.com',
       firstName: 'Test',
       lastName: 'User',
@@ -104,31 +106,19 @@ describe('GroupController', () => {
       roleIds: [roleUserChange.id],
     });
 
-    // Log in the test user with group:assign:user
-    const loginResponse = await supertest(app)
-      .post('/api/auth/login')
-      .send({ email: createdUser.email.toString(), password: 'password123' });
-
-    expect(loginResponse.status).toBe(200);
-    authToken = loginResponse.body.data.token;
-
     clearPermissionCache(createdUser.id);
     const perms = await getUserEffectivePermissions(createdUser.id);
     expect(perms.has('group:create')).toBe(true);
     expect(perms.has('group:assign:user')).toBe(true);
 
-    // Log in the test user with user:change:group
-    const loginResponseUserChange = await supertest(app)
-      .post('/api/auth/login')
-      .send({ email: createdUserChange.email.toString(), password: 'password123' });
-
-    expect(loginResponseUserChange.status).toBe(200);
-    authTokenUserChange = loginResponseUserChange.body.data.token;
-
     clearPermissionCache(createdUserChange.id);
     const permsUserChange = await getUserEffectivePermissions(createdUserChange.id);
     expect(permsUserChange.has('group:create')).toBe(true);
     expect(permsUserChange.has('user:change:group')).toBe(true);
+  });
+
+  afterAll(async () => {
+    await appInstance.close();
   });
 
   describe('/api/groups', () => {
@@ -141,8 +131,7 @@ describe('GroupController', () => {
     it('should create a new group and return 201', async () => {
       const response = await supertest(app)
         .post('/api/groups')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(groupDto);
 
       expect(response.status).toBe(201);
@@ -159,8 +148,7 @@ describe('GroupController', () => {
     it('should create a second group for testing user assignment', async () => {
       const response = await supertest(app)
         .post('/api/groups')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(group2Dto);
 
       expect(response.status).toBe(201);
@@ -170,8 +158,7 @@ describe('GroupController', () => {
     it('should get all groups and return 200', async () => {
       const response = await supertest(app)
         .get('/api/groups')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -182,8 +169,7 @@ describe('GroupController', () => {
     it('should get a group by ID and return 200', async () => {
       const response = await supertest(app)
         .get(`/api/groups/${createdGroupId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -199,8 +185,7 @@ describe('GroupController', () => {
 
       const response = await supertest(app)
         .put(`/api/groups/${createdGroupId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(updateData);
 
       expect(response.status).toBe(200);
@@ -216,8 +201,7 @@ describe('GroupController', () => {
     it('should return 409 if group name already exists', async () => {
       const response = await supertest(app)
         .post('/api/groups')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send({ name: 'Updated Group' });
 
       expect(response.status).toBe(409);
@@ -229,8 +213,7 @@ describe('GroupController', () => {
 
       const response = await supertest(app)
         .post('/api/groups')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(invalidDto);
 
       expect(response.status).toBe(400);
@@ -261,8 +244,7 @@ describe('GroupController', () => {
       it('should add a user to a group and return 200', async () => {
         const response = await supertest(app)
           .post(`/api/groups/${createdGroupId}/users`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`)
+          .set('Authorization', `Bearer user-id:${createdUser.id}`)
           .send({ userId: testUserId });
 
         expect(response.status).toBe(200);
@@ -273,8 +255,7 @@ describe('GroupController', () => {
       it('should return 409 when trying to add user to another group with group:assign:user permission', async () => {
         const response = await supertest(app)
           .post(`/api/groups/${createdGroup2Id}/users`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`)
+          .set('Authorization', `Bearer user-id:${createdUser.id}`)
           .send({ userId: testUserId });
 
         expect(response.status).toBe(409);
@@ -285,8 +266,7 @@ describe('GroupController', () => {
       it('should allow changing user group with user:change:group permission', async () => {
         const response = await supertest(app)
           .post(`/api/groups/${createdGroup2Id}/users`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authTokenUserChange}`)
+          .set('Authorization', `Bearer user-id:${createdUserChange.id}`)
           .send({ userId: testUserId });
 
         expect(response.status).toBe(200);
@@ -296,13 +276,11 @@ describe('GroupController', () => {
         // Verify user was moved from first group to second group
         const group1Response = await supertest(app)
           .get(`/api/groups/${createdGroupId}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`);
+          .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
         const group2Response = await supertest(app)
           .get(`/api/groups/${createdGroup2Id}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`);
+          .set('Authorization', `Bearer user-id:${createdUserChange.id}`);
 
         expect(group1Response.body.data.users).toBeArray();
         expect(group1Response.body.data.users.length).toBe(0);
@@ -314,8 +292,7 @@ describe('GroupController', () => {
       it('should remove a user from a group and return 200', async () => {
         const response = await supertest(app)
           .delete(`/api/groups/${createdGroup2Id}/users/${testUserId}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`);
+          .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
@@ -324,8 +301,7 @@ describe('GroupController', () => {
         // Verify user was removed
         const groupResponse = await supertest(app)
           .get(`/api/groups/${createdGroup2Id}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`);
+          .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
         expect(groupResponse.body.data.users).toBeArray();
         expect(groupResponse.body.data.users.length).toBe(0);
@@ -336,8 +312,7 @@ describe('GroupController', () => {
       it('should assign a group to a user and return 200', async () => {
         const response = await supertest(app)
           .post(`/api/groups/assign-to-user/${testUserId}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`)
+          .set('Authorization', `Bearer user-id:${createdUser.id}`)
           .send({ groupId: createdGroupId });
 
         expect(response.status).toBe(200);
@@ -347,8 +322,7 @@ describe('GroupController', () => {
         // Verify user is in the group
         const groupResponse = await supertest(app)
           .get(`/api/groups/${createdGroupId}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`);
+          .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
         expect(groupResponse.body.data.users).toBeArray();
         expect(groupResponse.body.data.users.length).toBe(1);
@@ -358,8 +332,7 @@ describe('GroupController', () => {
       it('should return 409 when trying to assign another group with group:assign:user permission', async () => {
         const response = await supertest(app)
           .post(`/api/groups/assign-to-user/${testUserId}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`)
+          .set('Authorization', `Bearer user-id:${createdUser.id}`)
           .send({ groupId: createdGroup2Id });
 
         expect(response.status).toBe(409);
@@ -369,8 +342,7 @@ describe('GroupController', () => {
       it('should allow changing group with user:change:group permission', async () => {
         const response = await supertest(app)
           .post(`/api/groups/assign-to-user/${testUserId}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authTokenUserChange}`)
+          .set('Authorization', `Bearer user-id:${createdUserChange.id}`)
           .send({ groupId: createdGroup2Id });
 
         expect(response.status).toBe(200);
@@ -379,8 +351,7 @@ describe('GroupController', () => {
         // Verify user moved to new group
         const group2Response = await supertest(app)
           .get(`/api/groups/${createdGroup2Id}`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`);
+          .set('Authorization', `Bearer user-id:${createdUserChange.id}`);
 
         expect(group2Response.body.data.users).toBeArray();
         expect(group2Response.body.data.users.length).toBe(1);
@@ -391,8 +362,7 @@ describe('GroupController', () => {
     it('should delete a group and return 200', async () => {
       const response = await supertest(app)
         .delete(`/api/groups/${createdGroupId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -402,8 +372,7 @@ describe('GroupController', () => {
     it('should return 404 when getting deleted group', async () => {
       const response = await supertest(app)
         .get(`/api/groups/${createdGroupId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
       expect(response.status).toBe(404);
       expect(response.body.error.code).toBe('NOT_FOUND');

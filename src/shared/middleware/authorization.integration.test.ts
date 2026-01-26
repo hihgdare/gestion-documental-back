@@ -47,7 +47,7 @@ describe('Authorization RBAC', () => {
 
     const res = await supertest(app).get('/api/roles')
       .set('x-enable-rbac', 'true')
-      .set('x-user-id', user.id);
+      .set('Authorization', `Bearer user-id:${user.id}`);
     expect(res.status).toBe(200);
   });
 
@@ -68,7 +68,7 @@ describe('Authorization RBAC', () => {
 
     const res = await supertest(app).get('/api/roles')
       .set('x-enable-rbac', 'true')
-      .set('x-user-id', user.id);
+      .set('Authorization', `Bearer user-id:${user.id}`);
     expect(res.status).toBe(403);
   });
 
@@ -105,7 +105,7 @@ describe('Authorization RBAC', () => {
 
     const res = await supertest(app).get('/api/roles')
       .set('x-enable-rbac', 'true')
-      .set('x-user-id', user.id);
+      .set('Authorization', `Bearer user-id:${user.id}`);
     expect(res.status).toBe(200);
   });
 });

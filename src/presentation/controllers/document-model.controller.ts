@@ -37,7 +37,7 @@ export class DocumentModelController {
   });
 
   public getAllDocumentModels = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = req.groupId;
+    const groupId = req.auth?.groupId;
     const documentModels = await this.getAllDocumentModelsUseCase.execute(groupId);
     res.status(200).json({
       success: true,
@@ -48,7 +48,7 @@ export class DocumentModelController {
 
   public getDocumentModelsByFamilyId = asyncHandler(async (req: Request, res: Response) => {
     const { familyId } = req.params;
-    const groupId = req.groupId;
+    const { groupId } = req.auth;
     const documentModels = await this.getDocumentModelsByFamilyIdUseCase.execute(familyId, groupId);
     res.status(200).json({
       success: true,

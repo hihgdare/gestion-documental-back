@@ -31,7 +31,7 @@ Los grupos actúan como un mecanismo de partición de datos (multi-tenancy lógi
 
 ### Autenticación (`auth.middleware.ts`)
 
-El middleware de autenticación verifica si existe una cookie `groupId`. Si el usuario pertenece a ese grupo, establece `req.groupId`.
+El middleware de autenticación verifica si existe una cookie `groupId`. Si el usuario pertenece a ese grupo, establece `req.auth.groupId`.
 
 ### Middlewares de Grupo (`group.middleware.ts`)
 
@@ -43,7 +43,7 @@ Utilizado principalmente en rutas de creación (`POST`).
 
 - **Lógica**:
   1. Si el usuario es `admin:groups` y envía `groupId` en el body, se usa ese valor.
-  2. Si no es admin o no envió el valor, se intenta usar `req.groupId` (el grupo seleccionado en sesión).
+  2. Si no es admin o no envió el valor, se intenta usar `req.auth.groupId` (el grupo seleccionado en sesión).
   3. Si no hay grupo disponible (ni en body ni en sesión):
      - Admin: Lanza `ValidationError` (El ID es requerido).
      - Usuario: Lanza `ForbiddenError` (Prohibida la creación si no tiene grupo).
@@ -82,7 +82,7 @@ router.put('/:id',
 router.get('/',
   authorize('company:read'),
   getByGroup(), // Se valida si el usuario puede consultar esta api
-  controller.findAll, // El filtrado se hace dentro usando req.groupId
+  controller.findAll, // El filtrado se hace dentro usando req.auth.groupId
 );
 ```
 
@@ -98,11 +98,11 @@ router.get('/',
   };
   ```
 - **List (FindAll)**:
-  Utiliza `req.groupId` (proviene de la sesión/auth) para filtrar.
+  Utiliza `req.auth.groupId` (proviene de la sesión/auth) para filtrar.
 
   ```typescript
   public findAll = async (req: Request, res: Response) => {
-    const groupId = req.groupId; // undefined si es admin viendo todo
+    const groupId = req.auth.groupId; // undefined si es admin viendo todo
     const companies = await this.listCompaniesUseCase.execute(groupId);
     // ...
   };

@@ -1,19 +1,19 @@
 @baseUrl = http://localhost:3000/api
 @module = contracts
-@token = skip-token
+@userId = random
 
 ###
 
 # @name get-all
 GET {{baseUrl}}/{{module}}
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 ###
 
 # @name create
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "startDate": "2025-11-25",
@@ -41,14 +41,14 @@ Authorization: Bearer {{token}}
 
 # @name get
 GET {{baseUrl}}/{{module}}/{{id}}
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 ###
 
 # @name update
 PUT {{baseUrl}}/{{module}}/{{id}}
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "nombreColaborador": "WillemF",
@@ -68,7 +68,7 @@ Authorization: Bearer {{token}}
 # Create a second contract to use as subcontract
 POST {{baseUrl}}/{{module}}
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "startDate": "2025-11-25",
@@ -98,7 +98,7 @@ Authorization: Bearer {{token}}
 # Add subcontract relationship
 POST {{baseUrl}}/{{module}}/{{id}}/subcontracts
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "subcontractId": "{{subcontractId}}"
@@ -109,14 +109,14 @@ Authorization: Bearer {{token}}
 # @name get-subcontracts
 # Get all subcontracts of a contract
 GET {{baseUrl}}/{{module}}/{{id}}/subcontracts
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 ###
 
 # @name remove-subcontract
 # Remove subcontract relationship
 DELETE {{baseUrl}}/{{module}}/{{id}}/subcontracts/{{subcontractId}}
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 ###
 
@@ -124,7 +124,7 @@ Authorization: Bearer {{token}}
 # Test validation: Try to add contract to itself (should fail with 400)
 POST {{baseUrl}}/{{module}}/{{id}}/subcontracts
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 {
   "subcontractId": "{{id}}"
@@ -136,7 +136,7 @@ Authorization: Bearer {{token}}
 # Test validation: Try to add subcontract without ID (should fail with 400)
 POST {{baseUrl}}/{{module}}/{{id}}/subcontracts
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer user-id:{{ userId }}
 
 {
 }

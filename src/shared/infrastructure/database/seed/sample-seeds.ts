@@ -682,7 +682,7 @@ async function runRequestedSeeds(): Promise<void> {
           status: ContractStatus.ACTIVE,
           dotacionPersonal: 10,
           dotacionVehiculos: 2,
-          groupId: group.id,
+          groupId: group.id!,
         }));
         contracts.push(contract);
       } else {
@@ -715,7 +715,7 @@ async function runRequestedSeeds(): Promise<void> {
           profesion: 'Developer',
           cargo: 'Senior',
           contractIds: contracts.map(c => c.id),
-          groupId: group.id,
+          groupId: group.id!,
         });
         await colaboratorRepository.save(colaborator);
       }

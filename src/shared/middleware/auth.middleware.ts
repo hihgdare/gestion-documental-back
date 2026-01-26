@@ -1,64 +1,64 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { UserRepository } from '@domains/user/repositories/user.repository';
-import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
-import { User } from '@domains/user/entities/user.entity';
-import { getToken, isRbacEnabled, parseCookies } from '@shared/utils/requests';
+import { isRbacEnabled, loadUser } from '@shared/utils/requests';
 import { UnauthorizedError } from '@shared/domain/errors';
 
-// Extend the Request type to include the user property
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: User;
-    token?: string;
-    groupId?: number;
+export async function auth(req: Request, res: Response, next: NextFunction) {
+  await init(req);
+  const session = req.auth!;
+  const cookies = session.cookies!;
+  const user = session.user;
+
+  // Get groupId from cookie
+  if (user) {
+    if (cookies?.groupId) {
+      const groupId = parseInt(decodeURIComponent(cookies.groupId.trim()));
+      const belongsToGroup = user.groups?.some(g => g.id === groupId);
+      if (belongsToGroup) {
+        session.groupId = groupId;
+      }
+    } else if (user.groups && user.groups.length > 0) {
+      session.groupId = user.groups[0].id;
+    }
   }
+
+  return next();
 }
 
-export async function auth(req: Request, res: Response, next: NextFunction) {
-  if (!isRbacEnabled(req)) return next();
+async function init(req: Request): Promise<void> {
+  if (!isRbacEnabled(req)) {
+    // Si RBAC está deshabilitado, intentar cargar un usuario al azar, pero si no hay usuarios, continuar sin usuario
+    try {
+      return await loadUser(req, "random");
+    } catch {
+      // Si no hay usuarios disponibles, continuar sin usuario
+      return;
+    }
+  }
+  // Buscamos el token
+  const token = req.auth?.token;
+  if (!token) throw new UnauthorizedError('No token provided');
 
+  // Si no es producción y estamos utilizando "skip-token", obtenemos el ID de usuario desde la cabecera.
+  if (token === 'skip-token' && process.env.NODE_ENV !== 'production') {
+    const id = req.headers['x-user-id'];
+    return loadUser(req, Array.isArray(id) ? id[0] : id);
+  }
+
+  // Support for user-id: bypass token
+  if (process.env.NODE_ENV !== 'production' && token.startsWith('user-id:')) {
+    const userId = token.split('user-id:')[1];
+    return loadUser(req, userId);
+  }
+
+  // Si es un token normal, lo decodificamos para obtener el ID de usuario.
   try {
-    const userRepository: UserRepository = new TypeOrmUserRepository();
-    const cookies = parseCookies(req);
-    const token = getToken(req.headers, cookies);
-    if (token) {
-      req.token = token;
-      if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && token === 'skip-token') {
-        return next();
-      }
-      const decodedToken: any = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey');
-      const user = await userRepository.findById(decodedToken.userId);
-      if (!user) throw new UnauthorizedError('User not found');
-      req.user = user;
-
-      // Get groupId from cookie
-      if (cookies?.groupId) {
-        const groupId = parseInt(decodeURIComponent(cookies.groupId.trim()));
-        const belongsToGroup = user.groups?.some(g => g.id === groupId);
-        if (belongsToGroup) {
-          req.groupId = groupId;
-        }
-      }
-
-      return next();
-    }
-
-    if (process.env.NODE_ENV === 'test') {
-      const userIdHeader = req.headers['x-user-id'];
-      if (typeof userIdHeader === 'string' && userIdHeader.trim()) {
-        const user = await userRepository.findById(userIdHeader.trim());
-        if (!user) throw new UnauthorizedError('User not found');
-        req.user = user;
-        return next();
-      }
-    }
-
-    throw new UnauthorizedError('No token provided');
+    const { userId } = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey') as { userId?: string };
+    return loadUser(req, userId);
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       throw new UnauthorizedError('Invalid token');
     }
-    next(error);
+    throw error;
   }
 }

@@ -136,7 +136,7 @@ export class ContractController {
   });
 
   public getAllContracts = asyncHandler(async (req: Request, res: Response) => {
-    const contracts = await this.getAllContractsUseCase.execute(req.groupId);
+    const contracts = await this.getAllContractsUseCase.execute(req.auth.groupId);
     res.status(200).json({
       success: true,
       data: contracts.map((contract: Contract) => this.toResponseDto(contract)),

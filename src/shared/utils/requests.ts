@@ -1,4 +1,28 @@
-import { Request } from 'express';
+import { User } from '@domains/user/entities/user.entity';
+import { UserRepository } from '@domains/user/repositories/user.repository';
+import { UnauthorizedError } from '@shared/domain/errors';
+import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
+import { NextFunction, Request, Response } from 'express';
+import { randomElement } from './array';
+
+// Extend the Request type to include the user property
+declare module 'express-serve-static-core' {
+  interface Request {
+    auth: Auth;
+  }
+}
+
+export interface Auth {
+  cookies?: Cookies;
+  token?: string;
+  user?: User;
+  userId?: string;
+  permissions?: string[];
+  groupId?: number;
+  contractId?: string;
+}
+
+export type Cookies = Record<string, string>;
 
 function getHeader(headers: Request['headers'] | undefined, headerName: string): string | undefined {
   const value = headers?.[headerName];
@@ -6,17 +30,17 @@ function getHeader(headers: Request['headers'] | undefined, headerName: string):
   return value?.toLowerCase();
 }
 
-function getHeaderToken(headers?: Request['headers']): string | null {
+function getHeaderToken(headers?: Request['headers']): string | undefined {
   const authHeader = headers?.authorization;
-  if (!authHeader || typeof authHeader !== 'string') return null;
+  if (!authHeader || typeof authHeader !== 'string') return undefined;
   if (authHeader.startsWith('Bearer ')) {
     return authHeader.split(' ')[1];
   }
-  return null;
+  return undefined;
 }
 
-export const getToken = (headers?: Request['headers'], cookies?: Record<string, string>): string | null => (
-  cookies?.token || getHeaderToken(headers)
+export const getToken = (req: Request): string | undefined => (
+  req.auth?.cookies?.token ?? getHeaderToken(req.headers)
 );
 
 /**
@@ -32,14 +56,44 @@ export function isRbacEnabled(req: Request): boolean {
   return enable ? enable === 'true' : process.env.ENABLE_RBAC === 'true';
 }
 
-export function parseCookies(req: Request): Record<string, string> | undefined {
+export function parseCookies(req: Request): Cookies {
   const cookieHeader = req.headers.cookie;
-  if (!cookieHeader || typeof cookieHeader !== 'string') return undefined;
+  const cookies: Cookies = {};
+  if (!cookieHeader || typeof cookieHeader !== 'string') return cookies;
   const pairs = cookieHeader.split(';');
-  const cookies: Record<string, string> = {};
   pairs.forEach(pair => {
     const [key, value] = pair.trim().split('=');
     cookies[key] = value;
   });
-  return Object.keys(cookies).length > 0 ? cookies : undefined;
+  return cookies;
+}
+
+export function authInit(req: Request, _res: Response, next: NextFunction): void {
+  req.auth ??= {};
+
+  req.auth.cookies = parseCookies(req);
+  req.auth.token = req.auth?.cookies?.token ?? getHeaderToken(req.headers);
+  if (process.env.NODE_ENV !== 'production' && req.auth.token?.startsWith('user-id:')) {
+    req.auth.userId = req.auth.token.split('user-id:')[1];
+  }
+
+  return next();
+}
+
+export async function loadUser(req: Request, id?: string): Promise<void> {
+  if (req.auth.userId) {
+    id = req.auth.userId;
+  }
+  if (!id) throw new UnauthorizedError('User not found');
+
+  const userRepository: UserRepository = new TypeOrmUserRepository();
+  if (id === "random") {
+    const user = await userRepository.findAll().then(randomElement);
+    if (!user) throw new UnauthorizedError('No users available');
+    req.auth!.user = user;
+  } else {
+    const user = await userRepository.findById(id);
+    if (!user) throw new UnauthorizedError('User not found');
+    req.auth!.user = user;
+  }
 }
