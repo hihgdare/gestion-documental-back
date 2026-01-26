@@ -12,9 +12,10 @@ export class TypeOrmDocumentModelRepository implements IDocumentModelRepository 
     this.repository = AppDataSource.getRepository(DocumentModelEntity);
   }
 
-  async findAll(groupId?: number): Promise<DocumentModel[]> {
+  async findAll(groupId?: number, familyId?: string): Promise<DocumentModel[]> {
     const where: any = { deletedAt: IsNull() };
     if (groupId) where.groupId = groupId;
+    if (familyId) where.familyId = familyId;
 
     const entities = await this.repository.find({
       where,

@@ -40,7 +40,8 @@ export class DocumentModelController {
 
   public getAllDocumentModels = asyncHandler(async (req: Request, res: Response) => {
     const groupId = req.auth?.groupId;
-    const documentModels = await this.getAllDocumentModelsUseCase.execute(groupId);
+    const { familyId } = req.query;
+    const documentModels = await this.getAllDocumentModelsUseCase.execute(groupId, familyId as string);
     res.status(200).json({
       success: true,
       data: documentModels.map(model => model.toJSON()),
