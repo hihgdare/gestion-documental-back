@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -10,27 +10,81 @@ import { DependencyContainer } from '@/dependency-container';
 import { ColaboratorStatus, DocumentType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
+import { User } from '@domains/user/entities/user.entity';
 
 describe('ContractController', () => {
   let appInstance: App;
   let app: Application;
   let colaboratorRepository: ColaboratorRepository;
   let createColaboratorUseCase: CreateColaboratorUseCase;
+  let dependencyContainer: DependencyContainer;
+  let user: User;
+  let testGroupId: number;
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'true';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
 
-    const dependencyContainer = new DependencyContainer();
+    dependencyContainer = new DependencyContainer();
     await dependencyContainer.initialize();
     colaboratorRepository = dependencyContainer.getColaboratorRepository();
     const groupRepository = dependencyContainer.getGroupRepository();
     createColaboratorUseCase = new CreateColaboratorUseCase(colaboratorRepository, groupRepository);
   });
 
+  afterAll(async () => {
+    await appInstance.close();
+  });
+
   beforeEach(async () => {
     await clearDatabase(AppDataSource);
+
+    // Create a dummy user for authentication
+    const createUserUseCase = dependencyContainer.getCreateUserUseCase();
+    const roleRepository = dependencyContainer.getRoleRepository();
+    const permissionRepository = dependencyContainer.getPermissionRepository();
+    const assignPermissionsToRoleUseCase = dependencyContainer.getAssignPermissionsToRoleUseCase();
+
+    // Create permissions
+    const permissions = [
+      'contract:create', 'contract:read', 'contract:update', 'contract:delete',
+      'contract:assign:reviewer',
+      'colaborator:create', 'colaborator:read',
+      'document:create', 'document:read',
+    ];
+
+    const permissionIds = [];
+    for (const name of permissions) {
+      const p = await permissionRepository.save({ name, description: `Permission ${name}` });
+      permissionIds.push(p.id!);
+    }
+
+    // Create admin role (just in case)
+    const adminRole = await roleRepository.save({
+      name: 'admin.role',
+      description: 'Admin role',
+    });
+
+    await assignPermissionsToRoleUseCase.execute({
+      roleId: adminRole.id!,
+      permissionIds,
+    });
+
+    // Create a group for contracts
+    const groupRepository = dependencyContainer.getGroupRepository();
+    const group = await groupRepository.save({ name: 'Test Group' });
+    testGroupId = group.id!;
+
+    user = await createUserUseCase.execute({
+      email: 'admin@example.com',
+      firstName: 'Admin',
+      lastName: 'User',
+      password: 'password123',
+      roleIds: [adminRole.id!],
+      groupId: testGroupId,
+    });
   });
 
   let id = 1;
@@ -60,14 +114,18 @@ describe('ContractController', () => {
       area: 'Area Test',
       descripcionServicio: 'Servicio de prueba',
       nombreProyecto: 'Proyecto Test',
+      groupId: 0, // Placeholder
     };
+
+    beforeEach(() => {
+      baseContractDto.groupId = testGroupId;
+    });
 
     it('should create a new contract and return 201', async () => {
       baseContractDto.contractNumber = getNewId();
       const response = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       expect(response.status).toBe(201);
@@ -87,8 +145,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const createResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const createdId = createResponse.body.data.id as string;
@@ -102,8 +159,7 @@ describe('ContractController', () => {
 
       const updateResponse = await supertest(app)
         .put(`/api/contracts/${createdId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           startDate,
           endDate: newEndDate,
@@ -126,23 +182,20 @@ describe('ContractController', () => {
 
     it('should get contract by id and return 200', async () => {
       baseContractDto.contractNumber = getNewId();
-
       const createResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
-      const id = createResponse.body.data.id;
+      const contractId = createResponse.body.data.id;
 
       const response = await supertest(app)
-        .get(`/api/contracts/${id}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .get(`/api/contracts/${contractId}`)
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.id).toBe(id);
+      expect(response.body.data.id).toBe(contractId);
       expect(response.body.body).not.toBeDefined();
       expect(response.body.data.startDate).toBe(startDate);
       expect(response.body.data.endDate).toBe(endDate);
@@ -153,15 +206,13 @@ describe('ContractController', () => {
       // Create the contract first
       await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       // Try to create another contract with the same contract number
       const response = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       expect(response.status).toBe(409);
@@ -173,16 +224,14 @@ describe('ContractController', () => {
       // Create contract first
       const createResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const contractId = createResponse.body.data.id;
 
       const response = await supertest(app)
         .delete(`/api/contracts/${contractId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -194,8 +243,7 @@ describe('ContractController', () => {
 
       const response = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(invalidDto);
 
       expect(response.status).toBe(400);
@@ -219,15 +267,19 @@ describe('ContractController', () => {
       endDate,
       contractType: ContractType.CONSULTORIA,
       jornadaTrabajo: JornadaTrabajo.COMPLETA,
+      groupId: 0, // Placeholder
     };
+
+    beforeEach(() => {
+      baseContractDto.groupId = testGroupId;
+    });
 
     it('should add a subcontract to a contract', async () => {
       // Create parent contract
       baseContractDto.contractNumber = getNewId();
       const parentResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const parentId = parentResponse.body.data.id;
@@ -236,8 +288,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const subcontractResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const subcontractId = subcontractResponse.body.data.id;
@@ -245,8 +296,7 @@ describe('ContractController', () => {
       // Add subcontract relationship
       const response = await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ subcontractId });
 
       expect(response.status).toBe(200);
@@ -259,8 +309,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const parentResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const parentId = parentResponse.body.data.id;
@@ -269,8 +318,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const sub1Response = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const sub1Id = sub1Response.body.data.id;
@@ -278,8 +326,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const sub2Response = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const sub2Id = sub2Response.body.data.id;
@@ -287,21 +334,18 @@ describe('ContractController', () => {
       // Add subcontract relationships
       await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ subcontractId: sub1Id });
 
       await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ subcontractId: sub2Id });
 
       // Get all subcontracts
       const response = await supertest(app)
         .get(`/api/contracts/${parentId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -317,8 +361,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const parentResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const parentId = parentResponse.body.data.id;
@@ -327,8 +370,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const subcontractResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const subcontractId = subcontractResponse.body.data.id;
@@ -336,15 +378,13 @@ describe('ContractController', () => {
       // Add subcontract relationship
       await supertest(app)
         .post(`/api/contracts/${parentId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ subcontractId });
 
       // Remove subcontract relationship
       const response = await supertest(app)
         .delete(`/api/contracts/${parentId}/subcontracts/${subcontractId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -353,8 +393,7 @@ describe('ContractController', () => {
       // Verify it was removed
       const getResponse = await supertest(app)
         .get(`/api/contracts/${parentId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(getResponse.body.count).toBe(0);
     });
@@ -364,8 +403,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const contractResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const contractId = contractResponse.body.data.id;
@@ -373,8 +411,7 @@ describe('ContractController', () => {
       // Try to add itself as subcontract
       const response = await supertest(app)
         .post(`/api/contracts/${contractId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ subcontractId: contractId });
 
       expect(response.status).toBe(400);
@@ -386,8 +423,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const contractResponse = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
 
       const contractId = contractResponse.body.data.id;
@@ -395,8 +431,7 @@ describe('ContractController', () => {
       // Try to add subcontract without subcontractId
       const response = await supertest(app)
         .post(`/api/contracts/${contractId}/subcontracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({});
 
       expect(response.status).toBe(400);
@@ -423,7 +458,12 @@ describe('ContractController', () => {
       endDate,
       contractType: ContractType.CONSULTORIA,
       jornadaTrabajo: JornadaTrabajo.COMPLETA,
+      groupId: 0, // Placeholder
     };
+
+    beforeEach(() => {
+      baseContractDto.groupId = testGroupId;
+    });
 
     const colaboratorDto = {
       tipoDocumento: DocumentType.RUT,
@@ -450,8 +490,7 @@ describe('ContractController', () => {
       baseContractDto.contractNumber = getNewId();
       const contractRes = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(baseContractDto);
       contractId = contractRes.body.data.id;
 
@@ -459,8 +498,7 @@ describe('ContractController', () => {
       const otherContractDto = { ...baseContractDto, contractNumber: getNewId() };
       const otherContractRes = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send(otherContractDto);
       const otherContractId = otherContractRes.body.data.id;
 
@@ -468,7 +506,7 @@ describe('ContractController', () => {
       const colaborator = await createColaboratorUseCase.execute({
         ...colaboratorDto,
         contractIds: [otherContractId],
-        groupId: 1,
+        groupId: testGroupId,
       });
       colaboratorId = colaborator.id;
     });
@@ -476,8 +514,7 @@ describe('ContractController', () => {
     it('should add a colaborator to a contract', async () => {
       const response = await supertest(app)
         .post(`/api/contracts/${contractId}/colaborators`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ colaboratorId });
 
       expect(response.status).toBe(200);
@@ -489,14 +526,12 @@ describe('ContractController', () => {
       // Add first
       await supertest(app)
         .post(`/api/contracts/${contractId}/colaborators`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ colaboratorId });
 
       const response = await supertest(app)
         .get(`/api/contracts/${contractId}/colaborators`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -508,14 +543,12 @@ describe('ContractController', () => {
       // Add first
       await supertest(app)
         .post(`/api/contracts/${contractId}/colaborators`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ colaboratorId });
 
       const response = await supertest(app)
         .delete(`/api/contracts/${contractId}/colaborators/${colaboratorId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -524,8 +557,7 @@ describe('ContractController', () => {
       // Verify removal
       const getResponse = await supertest(app)
         .get(`/api/contracts/${contractId}/colaborators`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token');
+        .set('Authorization', `Bearer user-id:${user.id}`);
 
       expect(getResponse.body.count).toBe(0);
     });
@@ -533,8 +565,7 @@ describe('ContractController', () => {
     it('should return 400 if colaboratorId is missing', async () => {
       const response = await supertest(app)
         .post(`/api/contracts/${contractId}/colaborators`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({});
 
       expect(response.status).toBe(400);

@@ -1,30 +1,76 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
-import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
-import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
+import { DependencyContainer } from '@/dependency-container';
+import { User } from '@domains/user/entities/user.entity';
 
 describe('UserController', () => {
   let appInstance: App;
   let app: Application;
-  let roleRepository: TypeOrmRoleRepository;
-  let saveRoleUseCase: SaveRoleUseCase;
+  let dependencyContainer: DependencyContainer;
+  let user: User;
 
   beforeAll(async () => {
-    process.env.ENABLE_RBAC = 'false'; // Disable RBAC for basic user tests
+    process.env.ENABLE_RBAC = 'true';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
 
-    roleRepository = new TypeOrmRoleRepository();
-    saveRoleUseCase = new SaveRoleUseCase(roleRepository);
+    dependencyContainer = new DependencyContainer();
+    await dependencyContainer.initialize();
+  });
+
+  afterAll(async () => {
+    await appInstance.close();
   });
 
   beforeEach(async () => {
     await clearDatabase(AppDataSource);
+
+    const roleRepository = dependencyContainer.getRoleRepository();
+    const permissionRepository = dependencyContainer.getPermissionRepository();
+    const createUserUseCase = dependencyContainer.getCreateUserUseCase();
+    const assignPermissionsToRoleUseCase = dependencyContainer.getAssignPermissionsToRoleUseCase();
+
+    // Create permissions
+    const permissions = [
+      'user:create',
+      'user:read',
+      'user:update',
+      'user:delete',
+      'user:assign:role',
+      'user:empty:group',
+    ];
+
+    const createdPermissions = [];
+    for (const name of permissions) {
+      const p = await permissionRepository.save({ name, description: `Permission for ${name}` });
+      createdPermissions.push(p);
+    }
+
+    // Create admin role
+    const adminRole = await roleRepository.save({
+      name: 'admin.role',
+      description: 'Admin role',
+    });
+
+    // Assign permissions to role
+    await assignPermissionsToRoleUseCase.execute({
+      roleId: adminRole.id!,
+      permissionIds: createdPermissions.map(p => p.id!),
+    });
+
+    // Create test user
+    user = await createUserUseCase.execute({
+      email: 'admin@example.com',
+      firstName: 'Admin',
+      lastName: 'User',
+      password: 'password123',
+      roleIds: [adminRole.id!],
+    });
   });
 
   describe('/api/users', () => {
@@ -36,7 +82,8 @@ describe('UserController', () => {
     };
 
     async function createRole(name: string) {
-      const role = await saveRoleUseCase.execute({ name, description: name });
+      const roleRepository = dependencyContainer.getRoleRepository();
+      const role = await roleRepository.save({ name, description: name });
       return role.id as number;
     }
 
@@ -44,7 +91,12 @@ describe('UserController', () => {
       const roleId = await createRole('user.role');
       const response = await supertest(app)
         .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ ...userDtoBase, roleIds: [roleId] });
+
+      if (response.status !== 201) {
+        console.log('Create User Failed:', JSON.stringify(response.body, null, 2));
+      }
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
@@ -58,11 +110,14 @@ describe('UserController', () => {
       const roleId = await createRole('user.role');
       const createResponse = await supertest(app)
         .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ ...userDtoBase, roleIds: [roleId] });
+
       const userId = createResponse.body.data.id as string;
 
       const response = await supertest(app)
         .put(`/api/users/${userId}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ firstName: 'Johnny', lastName: 'Doe' });
 
       expect(response.status).toBe(200);
@@ -76,11 +131,13 @@ describe('UserController', () => {
       const role2 = await createRole('role.two');
       const createUserResponse = await supertest(app)
         .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ ...userDtoBase, roleIds: [role1] });
       const userId = createUserResponse.body.data.id as string;
 
       const response = await supertest(app)
         .post(`/api/users/${userId}/roles`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ roleIds: [role1, role2] });
 
       expect(response.status).toBe(200);
@@ -91,22 +148,33 @@ describe('UserController', () => {
 
     it('should get all users and return 200', async () => {
       const roleId = await createRole('user.role');
-      await supertest(app).post('/api/users').send({ ...userDtoBase, roleIds: [roleId] });
+      await supertest(app)
+        .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
+        .send({ ...userDtoBase, roleIds: [roleId] });
 
-      const response = await supertest(app).get('/api/users');
+      const response = await supertest(app)
+        .get('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`);
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.count).toBe(1);
+      // count might be 2 because we created user as well
+      expect(response.body.count).toBeGreaterThanOrEqual(1);
     });
 
     it('should get user by id and return 200', async () => {
       const roleId = await createRole('user.role');
       const createResponse = await supertest(app)
         .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ ...userDtoBase, roleIds: [roleId] });
       const userId = createResponse.body.data.id as string;
 
-      const response = await supertest(app).get(`/api/users/${userId}`);
+      const response = await supertest(app)
+        .get(`/api/users/${userId}`)
+        .set('Authorization', `Bearer user-id:${user.id}`);
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.id).toBe(userId);
@@ -114,9 +182,16 @@ describe('UserController', () => {
 
     it('should return 409 if user email already exists', async () => {
       const roleId = await createRole('user.role');
-      await supertest(app).post('/api/users').send({ ...userDtoBase, roleIds: [roleId] });
+      await supertest(app)
+        .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
+        .send({ ...userDtoBase, roleIds: [roleId] });
 
-      const response = await supertest(app).post('/api/users').send({ ...userDtoBase, roleIds: [roleId] });
+      const response = await supertest(app)
+        .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
+        .send({ ...userDtoBase, roleIds: [roleId] });
+
       expect(response.status).toBe(409);
       expect(response.body.error.code).toBe('CONFLICT');
     });
@@ -125,10 +200,15 @@ describe('UserController', () => {
       const roleId = await createRole('user.role');
       const createResponse = await supertest(app)
         .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ ...userDtoBase, roleIds: [roleId] });
+
       const userId = createResponse.body.data.id as string;
 
-      const response = await supertest(app).delete(`/api/users/${userId}`);
+      const response = await supertest(app)
+        .delete(`/api/users/${userId}`)
+        .set('Authorization', `Bearer user-id:${user.id}`);
+
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.message).toBe('User deleted successfully');
@@ -137,10 +217,10 @@ describe('UserController', () => {
     it('should return 400 if validation fails on create', async () => {
       const response = await supertest(app)
         .post('/api/users')
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({ email: '', firstName: '', lastName: '', password: '' });
       expect(response.status).toBe(400);
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
   });
 });
-

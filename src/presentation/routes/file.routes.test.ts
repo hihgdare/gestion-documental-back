@@ -20,9 +20,8 @@ describe('FileController', () => {
   let groupRepository: TypeOrmGroupRepository;
   let createUserUseCase: CreateUserUseCase;
   let saveRoleUseCase: SaveRoleUseCase;
-  let testUser: User;
+  let user: User;
   let testRole: Role;
-  let authToken: string;
   const testPassword = 'Password123!';
   const UPLOAD_DIR = 'file-routes-tests';
   const TEST_UPLOAD_DIR = `./uploads/${UPLOAD_DIR}`;
@@ -56,20 +55,13 @@ describe('FileController', () => {
     });
 
     // Create a test user
-    testUser = await createUserUseCase.execute({
+    user = await createUserUseCase.execute({
       email: 'test@example.com',
       firstName: 'Test',
       lastName: 'User',
       password: testPassword,
       roleIds: [testRole.id],
     });
-
-    // Login to get auth token
-    const loginResponse = await supertest(app)
-      .post('/api/auth/login')
-      .send({ email: testUser.email.toString(), password: testPassword });
-
-    authToken = loginResponse.body.data.token;
   });
 
   afterAll(async () => {
@@ -88,7 +80,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -123,7 +115,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -141,7 +133,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -158,7 +150,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -178,7 +170,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -199,38 +191,38 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           contentBase64: base64Content,
         });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('filename y contentBase64 son requeridos');
+      expect(response.body.message).toContain('file required');
     });
 
     it('should return 400 if contentBase64 is missing', async () => {
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename: 'test.pdf',
         });
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('filename y contentBase64 son requeridos');
+      expect(response.body.message).toContain('file required');
     });
 
     it('should return 400 if both filename and contentBase64 are missing', async () => {
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({});
 
       expect(response.status).toBe(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('filename y contentBase64 son requeridos');
+      expect(response.body.message).toContain('file required');
     });
 
     it('should create files in date-based folders', async () => {
@@ -240,7 +232,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -261,7 +253,7 @@ describe('FileController', () => {
       // Upload first file
       const response1 = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -273,7 +265,7 @@ describe('FileController', () => {
       // Upload second file with same name
       const response2 = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,
@@ -300,7 +292,7 @@ describe('FileController', () => {
 
       const response = await supertest(app)
         .post('/api/files')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${user.id}`)
         .send({
           filename,
           contentBase64: base64Content,

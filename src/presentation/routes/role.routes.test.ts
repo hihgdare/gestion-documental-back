@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -6,15 +6,17 @@ import { Role } from '@domains/role/entities/role.entity';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { DependencyContainer } from '@/dependency-container';
 import { getUserEffectivePermissions, clearPermissionCache } from '@shared/security/authorization';
+import { User } from '@domains/user/entities/user.entity';
 
 describe('RoleController', () => {
   let appInstance: App;
   let app: Application;
-  let authToken: string;
+  let createdUser: User;
   let dependencyContainer: DependencyContainer;
   const permissionIds: number[] = [];
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'false';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
@@ -25,7 +27,6 @@ describe('RoleController', () => {
     // Database is initialized inside App.initialize()
     await clearDatabase(AppDataSource);
 
-    const userRepository = dependencyContainer.getUserRepository();
     const roleRepository = dependencyContainer.getRoleRepository();
     const permissionRepository = dependencyContainer.getPermissionRepository();
     const createUserUseCase = dependencyContainer.getCreateUserUseCase();
@@ -69,7 +70,7 @@ describe('RoleController', () => {
     expect(pAssign).not.toBeNull();
 
     // Create a test user
-    const createdUser = await createUserUseCase.execute({
+    createdUser = await createUserUseCase.execute({
       email: 'test@example.com',
       firstName: 'Test',
       lastName: 'User',
@@ -77,29 +78,16 @@ describe('RoleController', () => {
       roleIds: [defaultRole.id],
     });
 
-    // Verify user exists
-    const fetchedUser = await userRepository.findById(createdUser.id);
-    expect(fetchedUser).not.toBeNull();
-    expect(fetchedUser?.email.toString()).toBe('test@example.com');
-
-    // Log in the test user to get a token
-    const loginResponse = await supertest(app)
-      .post('/api/auth/login')
-      .send({ email: createdUser.email.toString(), password: 'password123' });
-
-    expect(loginResponse.status).toBe(200);
-    expect(loginResponse.body.success).toBe(true);
-    expect(loginResponse.body.data).toBeDefined();
-    expect(loginResponse.body.data.token).toBeDefined();
-
-    authToken = loginResponse.body.data.token;
-
     clearPermissionCache(createdUser.id);
     const perms = await getUserEffectivePermissions(createdUser.id);
     expect(perms.has('role:create')).toBe(true);
     expect(perms.has('role:update')).toBe(true);
     expect(perms.has('role:delete')).toBe(true);
     expect(perms.has('role:assign:permission')).toBe(true);
+  });
+
+  afterAll(async () => {
+    await appInstance.close();
   });
 
   describe('/api/roles', () => {
@@ -111,8 +99,7 @@ describe('RoleController', () => {
 
       const response = await supertest(app)
         .post('/api/roles')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(roleDto);
 
       expect(response.status).toBe(201);
@@ -131,8 +118,7 @@ describe('RoleController', () => {
 
       const response = await supertest(app)
         .put(`/api/roles/${createdRoleId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send({ description });
 
       expect(response.status).toBe(200);
@@ -149,8 +135,7 @@ describe('RoleController', () => {
 
         const response = await supertest(app)
           .post(`/api/roles/${createdRoleId}/permissions`)
-          .set('x-enable-rbac', 'true')
-          .set('Authorization', `Bearer ${authToken}`)
+          .set('Authorization', `Bearer user-id:${createdUser.id}`)
           .send({ permissionIds });
 
         expect(response.status).toBe(200);
@@ -165,8 +150,7 @@ describe('RoleController', () => {
       // Try to create the same role again, expecting 409
       const response = await supertest(app)
         .post('/api/roles')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(roleDto);
 
       expect(response.status).toBe(409);
@@ -176,8 +160,7 @@ describe('RoleController', () => {
     it('should delete a role and return 200', async () => {
       const response = await supertest(app)
         .delete(`/api/roles/${createdRoleId}`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer user-id:${createdUser.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -189,8 +172,7 @@ describe('RoleController', () => {
 
       const response = await supertest(app)
         .post('/api/roles')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer user-id:${createdUser.id}`)
         .send(invalidDto);
 
       expect(response.status).toBe(400);

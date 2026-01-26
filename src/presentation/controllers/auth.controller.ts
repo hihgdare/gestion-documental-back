@@ -1,26 +1,14 @@
 import { Request, Response, NextFunction, CookieOptions } from 'express';
 import jwt from 'jsonwebtoken';
-import { User } from '@domains/user/entities/user.entity';
 import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
-import { GetAuthenticatedUserPermissionsUseCase } from '@domains/user/use-cases/get-authenticated-user-permissions.use-case';
 import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { UnauthorizedError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 
-// Extend the Request type to include the user property
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: User;
-    token?: string;
-    groupId?: number;
-  }
-}
-
 export class AuthController {
   constructor(
     private readonly loginUserUseCase: LoginUserUseCase,
-    private readonly getAuthenticatedUserPermissionsUseCase: GetAuthenticatedUserPermissionsUseCase,
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly groupRepository: GroupRepository,
@@ -95,192 +83,166 @@ export class AuthController {
     }
   }
 
-  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const { maxAge: _maxAge, ...clearOptions } = this.getCookieOptions();
-      res.clearCookie('token', clearOptions);
-      res.clearCookie('groupId', clearOptions);
+  async logout(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const { maxAge: _maxAge, ...clearOptions } = this.getCookieOptions();
+    res.clearCookie('token', clearOptions);
+    res.clearCookie('groupId', clearOptions);
 
-      res.status(200).json({
-        success: true,
-        message: 'Logout successful',
-      });
-    } catch (error) {
-      next(error);
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful',
+    });
   }
 
-  async getPermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        throw new ValidationError('User not authenticated', 'authentication');
-      }
-      const permissions = await this.getAuthenticatedUserPermissionsUseCase.execute(req.user);
-      res.status(200).json({
-        success: true,
-        data: { permissions },
-      });
-    } catch (error) {
-      next(error);
+  async getPermissions(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const user = req.auth?.user;
+    if (!user) {
+      throw new ValidationError('User not authenticated', 'authentication');
     }
+    const permissions = user.getPermissionNames(true);
+    res.status(200).json({
+      success: true,
+      data: { permissions },
+    });
   }
 
-  async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        throw new ValidationError('User not authenticated', 'authentication');
-      }
-
-      // Generate new JWT Token
-      const token = jwt.sign(
-        { userId: req.user.id, email: req.user.email.toString() },
-        process.env.JWT_SECRET || 'supersecretjwtkey',
-        { expiresIn: '1h' },
-      );
-
-      res.cookie('token', token, this.getCookieOptions());
-
-      // Auto-assign group: Find the first group the user belongs to
-      const userGroup = await this.groupRepository.findByUserId(req.user.id);
-      if (userGroup && userGroup.id) {
-        res.cookie('groupId', userGroup.id.toString(), this.getCookieOptions());
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Token refreshed successfully',
-        data: { token },
-      });
-    } catch (error) {
-      next(error);
+  async refresh(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const user = req.auth?.user;
+    if (!user) {
+      throw new ValidationError('User not authenticated', 'authentication');
     }
+
+    // Generate new JWT Token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email.toString() },
+      process.env.JWT_SECRET || 'supersecretjwtkey',
+      { expiresIn: '1h' },
+    );
+
+    res.cookie('token', token, this.getCookieOptions());
+
+    // Auto-assign group: Find the first group the user belongs to
+    const userGroup = await this.groupRepository.findByUserId(user.id);
+    if (userGroup && userGroup.id) {
+      res.cookie('groupId', userGroup.id.toString(), this.getCookieOptions());
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: { token },
+    });
   }
 
-  async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        throw new ValidationError('User not authenticated', 'authentication');
-      }
-
-      const user = await this.getUserByIdUseCase.execute(req.user.id);
-
-      const permissions = await this.getAuthenticatedUserPermissionsUseCase.execute(user);
-
-      // Get user's group
-      const userGroup = await this.groupRepository.findByUserId(user.id);
-
-      // Prepare group data without users (for privacy/permission reasons)
-      const groupData = userGroup ? {
-        id: userGroup.id,
-        name: userGroup.name,
-        description: userGroup.description,
-        createdAt: userGroup.createdAt,
-        updatedAt: userGroup.updatedAt,
-      } : null;
-
-      // Get selected group from request (set by middleware from cookie)
-      const selectedGroup = req.groupId && userGroup && userGroup.id === req.groupId
-        ? groupData
-        : null;
-
-      res.status(200).json({
-        success: true,
-        data: {
-          ...user.toJSON(),
-          permissions,
-          groups: groupData ? [groupData] : [],
-          selectedGroup,
-        },
-      });
-    } catch (error) {
-      next(error);
+  async getMe(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const user = req.auth?.user;
+    if (!user) {
+      throw new ValidationError('User not authenticated', 'authentication');
     }
+
+    const permissions = user.getPermissionNames(true);
+
+    // Get user's group
+    const userGroup = await this.groupRepository.findByUserId(user.id);
+
+    // Prepare group data without users (for privacy/permission reasons)
+    const groupData = userGroup ? {
+      id: userGroup.id,
+      name: userGroup.name,
+      description: userGroup.description,
+      createdAt: userGroup.createdAt,
+      updatedAt: userGroup.updatedAt,
+    } : null;
+
+    // Get selected group from request (set by middleware from cookie)
+    const selectedGroup = userGroup && userGroup.id === req.auth?.groupId
+      ? groupData
+      : null;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...user.toJSON(),
+        permissions,
+        groups: groupData ? [groupData] : [],
+        selectedGroup,
+      },
+    });
   }
 
-  async updateMe(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      if (!req.user) {
-        throw new ValidationError('User not authenticated', 'authentication');
-      }
-
-      const user = await this.updateUserUseCase.execute({
-        id: req.user.id,
-        ...req.body,
-      });
-
-      res.status(200).json({
-        success: true,
-        data: user.toJSON(),
-        message: 'User updated successfully',
-      });
-    } catch (error) {
-      next(error);
+  async updateMe(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const user = req.auth?.user;
+    if (!user) {
+      throw new ValidationError('User not authenticated', 'authentication');
     }
+
+    const updatedUser = await this.updateUserUseCase.execute({
+      id: user.id,
+      ...req.body,
+    });
+
+    res.status(200).json({
+      message: 'User updated successfully',
+      data: updatedUser.toJSON(),
+      success: true,
+    });
   }
 
-  async getToken(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      // Get token from cookie
-      const cookieHeader = req.headers.cookie;
-      let token: string | null = null;
+  async getToken(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    // Get token from cookie
+    const cookieHeader = req.headers.cookie;
+    let token: string | null = null;
 
-      if (cookieHeader && typeof cookieHeader === 'string') {
-        const pairs = cookieHeader.split(';');
-        const names = ['token', 'jwt', 'access_token'];
-        for (const name of names) {
-          const match = pairs.find(p => p.trim().startsWith(`${name}=`));
-          if (match) {
-            const value = match.split('=')[1];
-            if (value) {
-              token = decodeURIComponent(value.trim());
-              break;
-            }
-          }
-        }
-      }
-
-      if (!token) throw new UnauthorizedError('No token found');
-
-      res.status(200).json({
-        success: true,
-        data: { token },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getGroup(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      // Get groupId from cookie
-      const cookieHeader = req.headers.cookie;
-      let groupId: string | null = null;
-
-      if (cookieHeader && typeof cookieHeader === 'string') {
-        const pairs = cookieHeader.split(';');
-        const match = pairs.find(p => p.trim().startsWith('groupId='));
+    if (cookieHeader && typeof cookieHeader === 'string') {
+      const pairs = cookieHeader.split(';');
+      const names = ['token', 'jwt', 'access_token'];
+      for (const name of names) {
+        const match = pairs.find(p => p.trim().startsWith(`${name}=`));
         if (match) {
           const value = match.split('=')[1];
           if (value) {
-            groupId = decodeURIComponent(value.trim());
+            token = decodeURIComponent(value.trim());
+            break;
           }
         }
       }
+    }
 
-      if (!groupId) {
-        res.status(200).json({
-          success: true,
-          data: { groupId: null },
-        });
-        return;
+    if (!token) throw new UnauthorizedError('No token found');
+
+    res.status(200).json({
+      success: true,
+      data: { token },
+    });
+  }
+
+  async getGroup(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    // Get groupId from cookie
+    const cookieHeader = req.headers.cookie;
+    let groupId: string | null = null;
+
+    if (cookieHeader && typeof cookieHeader === 'string') {
+      const pairs = cookieHeader.split(';');
+      const match = pairs.find(p => p.trim().startsWith('groupId='));
+      if (match) {
+        const value = match.split('=')[1];
+        if (value) {
+          groupId = decodeURIComponent(value.trim());
+        }
       }
+    }
 
+    if (!groupId) {
       res.status(200).json({
         success: true,
-        data: { groupId: parseInt(groupId) },
+        data: { groupId: null },
       });
-    } catch (error) {
-      next(error);
+      return;
     }
+
+    res.status(200).json({
+      success: true,
+      data: { groupId: parseInt(groupId) },
+    });
   }
 }

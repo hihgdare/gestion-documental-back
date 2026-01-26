@@ -39,7 +39,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .where('document.deletedAt IS NULL');
 
     if (groupId !== undefined) {
-      where.groupId = groupId;
+      query.andWhere('document.groupId = :groupId', { groupId });
     }
 
     if (filters?.contractId) {

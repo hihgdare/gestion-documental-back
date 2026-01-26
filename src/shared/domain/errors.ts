@@ -14,8 +14,9 @@ export class DomainError extends Error {
   response(res: Response, data?: Record<string, unknown>) {
     const { message, code, status } = this;
     return res.status(status).json({
-      success: false,
+      message, // Also include message at top level for backward compatibility
       error: { message, code, ...data },
+      success: false,
     });
   }
 }

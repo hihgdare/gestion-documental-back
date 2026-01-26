@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { User } from '@domains/user/entities/user.entity';
 import { ForbiddenError, UnauthorizedError, ValidationError } from '@shared/domain/errors';
 
 type Body = Request['body'];
@@ -24,7 +23,7 @@ export const assignGroup = (handlers?: GroupIdHandlers) => (req: Request, _res: 
   }
 
   // Si el usuario tiene grupo asignado, lo almacena y continua.
-  const userGroupId = parseId(req.groupId);
+  const userGroupId = parseId(req.auth?.groupId);
   if (userGroupId) return setGroupId(userGroupId), next();
 
   // Si tiene el permiso admin:groups, devuelve error de validación.
@@ -65,23 +64,23 @@ export const changeGroup = (handlers?: GroupIdHandlers & {
  * Si no tiene los permisos, y no tiene un grupo asignado, devuelve error de autorización.
  */
 export const getByGroup = () => (req: Request, _res: Response, next: NextFunction) => {
-  const user = req.user;
+  req.auth ||= {};
+  const user = req.auth.user;
   if (!user) throw new UnauthorizedError();
 
   // Acceso directo si el usuario tiene el permiso admin:groups.
   if (user.can('admin:groups')) return next();
 
   // Continua si el usuario tiene un grupo asignado.
-  if (req.groupId) return next();
+  if (req.auth?.groupId) return next();
 
   throw new ForbiddenError('Prohibido: Es necesario pertenecer a un grupo para consultar este recurso.');
 };
 
 function init(req: Request, handlers?: GroupIdHandlers) {
-  const user = req.user as User;
-  if (!user) {
-    throw new UnauthorizedError();
-  }
+  req.auth ||= {};
+  const user = req.auth.user;
+  if (!user) throw new UnauthorizedError();
 
   req.body = req.body || {};
   const getter = handlers?.get ?? ((body: Body) => body.groupId);

@@ -1,3 +1,9 @@
+export const randomElement = <A>(array: A[]): A | undefined => {
+  if (array.length === 0) return undefined;
+  const index = Math.floor(Math.random() * array.length);
+  return array[index];
+};
+
 /** Takes a value or an array and return an array */
 export const toArray = <T>(array: T | readonly T[]): T[] => Array.isArray(array) ? array as T[] : [array as T];
 

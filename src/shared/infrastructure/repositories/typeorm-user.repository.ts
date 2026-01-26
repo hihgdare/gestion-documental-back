@@ -52,17 +52,28 @@ export class TypeOrmUserRepository implements UserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    const userEntity = await this.repository.findOne({ where: { id }, relations: ['roles', 'roles.permissions', 'groups'] });
+    const userEntity = await this.repository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role')
+      .leftJoinAndSelect('role.permissions', 'permission')
+      .leftJoinAndSelect('role.children', 'children')
+      .leftJoinAndSelect('children.permissions', 'childrenPermissions')
+      .leftJoinAndSelect('user.groups', 'group')
+      .where('user.id = :id', { id })
+      .getOne();
+
     if (!userEntity) return null;
     return UserEntity.toDomain(userEntity);
   }
 
   async findByRoleId(roleId: number): Promise<User[]> {
-    const userEntities = await this.repository.find({
-      where: { roles: { id: roleId } },
-      order: { createdAt: 'DESC' },
-      relations: ['roles', 'roles.permissions', 'groups'],
-    });
+    const userEntities = await this.repository.createQueryBuilder('user')
+      .innerJoinAndSelect('user.roles', 'role', 'role.id = :roleId', { roleId })
+      .leftJoinAndSelect('role.permissions', 'permission')
+      .leftJoinAndSelect('role.children', 'children')
+      .leftJoinAndSelect('children.permissions', 'childrenPermissions')
+      .leftJoinAndSelect('user.groups', 'group')
+      .orderBy('user.createdAt', 'DESC')
+      .getMany();
     return userEntities.map(UserEntity.toDomain);
   }
 

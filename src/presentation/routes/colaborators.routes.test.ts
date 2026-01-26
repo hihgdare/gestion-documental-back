@@ -1,5 +1,5 @@
 /// <reference types="bun" />
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'bun:test';
 import supertest from 'supertest';
 import { Application } from 'express';
 import { App } from '@/app';
@@ -7,19 +7,52 @@ import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/ty
 import { DocumentType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { DateUtils } from '@shared/utils/date';
+import { DependencyContainer } from '@/dependency-container';
 
 describe('ColaboratorController - Contracts', () => {
   let appInstance: App;
   let app: Application;
+  let dependencyContainer: DependencyContainer;
 
   beforeAll(async () => {
+    process.env.ENABLE_RBAC = 'false';
     appInstance = new App();
     await appInstance.initialize();
     app = appInstance.getApp();
+
+    dependencyContainer = new DependencyContainer();
+    await dependencyContainer.initialize();
+  });
+
+  afterAll(async () => {
+    await appInstance.close();
   });
 
   beforeEach(async () => {
     await clearDatabase(AppDataSource);
+
+    const createUserUseCase = dependencyContainer.getCreateUserUseCase();
+    const roleRepository = dependencyContainer.getRoleRepository();
+    const permissionRepository = dependencyContainer.getPermissionRepository();
+    const groupRepository = dependencyContainer.getGroupRepository();
+
+    const adminGroupsPermission = await permissionRepository.save({ name: 'admin:groups', description: 'Admin groups' });
+    const role = await roleRepository.save({
+      name: 'default',
+      description: 'desc',
+      permissions: [adminGroupsPermission],
+    });
+
+    const group = await groupRepository.save({ name: 'Default Group', description: 'Desc' });
+
+    await createUserUseCase.execute({
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      password: 'password123',
+      roleIds: [role.id!],
+      groupId: group.id,
+    });
   });
 
   let id = 1;
@@ -47,8 +80,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const contractRes = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(contractDto);
 
       const contractId = contractRes.body.data.id;
@@ -76,8 +108,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const response = await supertest(app)
         .post('/api/colaborators')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(colaboratorDto);
 
       expect(response.status).toBe(201);
@@ -108,8 +139,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const response = await supertest(app)
         .post('/api/colaborators')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(colaboratorDto);
 
       expect(response.status).toBe(400);
@@ -138,8 +168,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const response = await supertest(app)
         .post('/api/colaborators')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(colaboratorDto);
 
       expect(response.status).toBe(400);
@@ -168,8 +197,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const contract1Res = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(contract1Dto);
 
       const contract1Id = contract1Res.body.data.id;
@@ -181,8 +209,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const contract2Res = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(contract2Dto);
 
       const contract2Id = contract2Res.body.data.id;
@@ -210,8 +237,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const colaboratorRes = await supertest(app)
         .post('/api/colaborators')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(colaboratorDto);
 
       const colaboratorId = colaboratorRes.body.data.id;
@@ -219,8 +245,7 @@ describe('ColaboratorController - Contracts', () => {
       // Update to second contract
       const response = await supertest(app)
         .put(`/api/colaborators/${colaboratorId}/contracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send({ contractIds: [contract2Id] });
 
       expect(response.status).toBe(200);
@@ -249,8 +274,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const contract1Res = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(contract1Dto);
 
       const contract1Id = contract1Res.body.data.id;
@@ -262,8 +286,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const contract2Res = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(contract2Dto);
 
       const contract2Id = contract2Res.body.data.id;
@@ -291,8 +314,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const colaboratorRes = await supertest(app)
         .post('/api/colaborators')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(colaboratorDto);
 
       const colaboratorId = colaboratorRes.body.data.id;
@@ -300,8 +322,7 @@ describe('ColaboratorController - Contracts', () => {
       // Update to both contracts
       const response = await supertest(app)
         .put(`/api/colaborators/${colaboratorId}/contracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send({ contractIds: [contract1Id, contract2Id] });
 
       expect(response.status).toBe(200);
@@ -329,8 +350,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const contractRes = await supertest(app)
         .post('/api/contracts')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(contractDto);
 
       const contractId = contractRes.body.data.id;
@@ -358,8 +378,7 @@ describe('ColaboratorController - Contracts', () => {
 
       const colaboratorRes = await supertest(app)
         .post('/api/colaborators')
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send(colaboratorDto);
 
       const colaboratorId = colaboratorRes.body.data.id;
@@ -367,8 +386,7 @@ describe('ColaboratorController - Contracts', () => {
       // Try to update with empty array
       const response = await supertest(app)
         .put(`/api/colaborators/${colaboratorId}/contracts`)
-        .set('x-enable-rbac', 'true')
-        .set('Authorization', 'Bearer skip-token')
+        .set('Authorization', 'Bearer user-id:random')
         .send({ contractIds: [] });
 
       expect(response.status).toBe(400);
