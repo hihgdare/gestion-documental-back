@@ -4,7 +4,7 @@ import { GetGroupByIdUseCase } from '@domains/group/use-cases/get-group.use-case
 import { UpdateGroupUseCase, DeleteGroupUseCase } from '@domains/group/use-cases/update-group.use-case';
 import { AddUserToGroupUseCase, RemoveUserFromGroupUseCase, AssignGroupToUserUseCase } from '@domains/group/use-cases/manage-group-users.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ForbiddenError } from '@shared/domain/errors';
 
 export class GroupController {
   constructor(
@@ -19,7 +19,21 @@ export class GroupController {
   ) { }
 
   public createGroup = asyncHandler(async (req: Request, res: Response) => {
+    const { user, permissions = [] } = req.auth;
+    const { groups = [] } = user || {};
+    const permission = permissions.includes('group:create') ? 'group:create' : 'group:owner';
+
+    if (permission === 'group:owner' && groups?.length) {
+      throw new ForbiddenError('El usuario ya pertenece a un grupo');
+    }
+
     const group = await this.createGroupUseCase.execute(req.body);
+
+    // Auto asignar grupo si el usuario tiene permiso de group:owner
+    if (permission === 'group:owner' && group?.id) {
+      await this.addUserToGroupUseCase.execute(group.id, user!.id, 'group:owner');
+    }
+
     res.status(201).json({
       success: true,
       data: group.toJSON(),
@@ -31,9 +45,7 @@ export class GroupController {
     const { id } = req.params;
     const group = await this.getGroupByIdUseCase.execute(Number(id));
 
-    if (!group) {
-      throw new NotFoundError('Group', id);
-    }
+    if (!group) throw new NotFoundError('Group', id);
 
     res.status(200).json({
       success: true,

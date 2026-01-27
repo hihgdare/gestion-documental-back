@@ -12,7 +12,7 @@ export const createGroupRoutes = (groupController: GroupController): Router => {
   router.post('/assign-to-user/:userId', authorize(['group:assign:user', 'user:change:group']), groupController.assignGroupToUser);
 
   // CRUD Groups
-  router.post('/', authorize('group:create'), groupController.createGroup);
+  router.post('/', authorize(['group:create', 'group:owner']), groupController.createGroup);
   router.get('/', authorize('group:read'), groupController.getAllGroups);
   router.get('/:id', authorize('group:read'), groupController.getGroupById);
   router.put('/:id', authorize('group:update'), groupController.updateGroup);

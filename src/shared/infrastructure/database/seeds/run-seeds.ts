@@ -1,5 +1,5 @@
 import { AppDataSource } from '@shared/infrastructure/database/typeorm.config';
-import { runSampleSeeds } from '@shared/infrastructure/database/seed/sample-seeds';
+import { runSampleSeeds } from '@shared/infrastructure/database/seeds/sample-seeds';
 
 export default async function runSeeds() {
   try {
