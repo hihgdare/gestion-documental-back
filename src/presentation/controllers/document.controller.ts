@@ -52,16 +52,12 @@ export class DocumentController {
 
   assignDocumentsToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const {
-      documentTypeId,
-      documentSubtypeId,
-      contractId,
+      documentModelId,
       colaboratorIds,
       issuedDate,
       expirationDate,
       name,
       comment,
-      requiredForContract,
-      requiredForColaborator,
     } = req.body;
 
     // Lazy import to avoid circular deps in constructor if use-case not injected earlier
@@ -70,16 +66,12 @@ export class DocumentController {
     if (!useCase) throw new NotFoundError('Use case assignDocumentsToGroupUseCase');
 
     const result = await useCase.execute({
-      documentTypeId,
-      documentSubtypeId,
-      contractId,
+      documentModelId,
       colaboratorIds,
       issuedDate: issuedDate ? new Date(issuedDate) : undefined,
       expirationDate: expirationDate ? new Date(expirationDate) : undefined,
       name,
       comment,
-      requiredForContract,
-      requiredForColaborator,
       createdBy: req.auth?.user?.id,
     });
 
@@ -99,18 +91,13 @@ export class DocumentController {
     const dto: CreateDocumentDto = req.body;
 
     const document = await this.createDocumentUseCase.execute({
-      documentTypeId: dto.documentTypeId,
-      documentSubtypeId: dto.documentSubtypeId,
+      documentModelId: dto.documentModelId,
       colaboratorIds: dto.colaboratorIds,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
       expirationDate: dto.expirationDate ? new Date(dto.expirationDate) : undefined,
-      contractId: dto.contractId,
       description: dto.description,
       documentUrl: dto.documentUrl,
-      requiredForContract: dto.requiredForContract,
-      requiredForColaborator: dto.requiredForColaborator,
-      requiredExpirationDate: dto.requiredExpirationDate,
       groupId: dto.groupId,
       createdBy: req.auth.user?.id,
     });
@@ -244,8 +231,7 @@ export class DocumentController {
     const dto: UpdateDocumentDto = req.body;
 
     const document = await this.updateDocumentUseCase.execute(id, {
-      documentTypeId: dto.documentTypeId,
-      documentSubtypeId: dto.documentSubtypeId,
+      documentModelId: dto.documentModelId,
       colaboratorIds: dto.colaboratorIds,
       name: dto.name,
       issuedDate: dto.issuedDate ? new Date(dto.issuedDate) : undefined,
@@ -339,8 +325,9 @@ export class DocumentController {
     const json = document.toJSON();
     return {
       id: json.id,
-      documentTypeId: json.documentTypeId,
-      documentSubtypeId: json.documentSubtypeId,
+      documentModelId: json.documentModelId,
+      documentTypeId: json.documentTypeId || '',
+      documentSubtypeId: json.documentSubtypeId || '',
       colaboratorIds: json.colaboratorIds || [],
       documentTypeName: document.documentTypeName,
       documentSubtypeName: document.documentSubtypeName,
@@ -353,9 +340,9 @@ export class DocumentController {
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,
-      requiredForContract: json.requiredForContract,
-      requiredForColaborator: json.requiredForColaborator,
-      requiredExpirationDate: json.requiredExpirationDate,
+      requiredForContract: json.requiredForContract ?? false,
+      requiredForColaborator: json.requiredForColaborator ?? false,
+      requiredExpirationDate: json.requiredExpirationDate ?? false,
       comment: json.comment,
       isExpired: document.isExpired(),
       daysUntilExpiration: document.daysUntilExpiration(),

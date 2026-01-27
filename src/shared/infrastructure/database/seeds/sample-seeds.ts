@@ -348,6 +348,18 @@ export async function runSampleSeeds(): Promise<void> {
   const documentRepo = new TypeOrmDocumentRepository();
   const fileRepo = new TypeOrmFileRepository();
   const userRepo = new TypeOrmUserRepository();
+  const familyRepo = new TypeOrmFamilyRepository();
+  const documentModelRepo = new TypeOrmDocumentModelRepository();
+
+  // Create Default Family
+  let family = await familyRepo.findByName('Familia de Muestra');
+  if (!family && contractIds.length > 0) {
+    family = await familyRepo.create(Family.create({
+      name: 'Familia de Muestra',
+      groupId: 1,
+      contractId: contractIds[0],
+    }));
+  }
 
   // Get first user to use as createdBy
   const users = await userRepo.findAll();
@@ -514,7 +526,7 @@ export async function runSampleSeeds(): Promise<void> {
   ];
 
   for (const docData of documentsData) {
-    const { testFile, ...documentProps } = docData as any;
+    const { testFile, documentTypeId, documentSubtypeId, requiredForContract, requiredForColaborator, ...documentProps } = docData as any;
 
     // Check if document already exists by name
     const existing = await documentRepo.findAll(undefined, { contractId: documentProps.contractId });
@@ -523,8 +535,35 @@ export async function runSampleSeeds(): Promise<void> {
       continue;
     }
 
+    if (!family) {
+      console.error('Family not found, cannot create document model');
+      continue;
+    }
+
+    // Find or Create Document Model
+    let documentModel = await documentModelRepo.findByFamilyTypeSubtype(
+      family.id,
+      documentTypeId,
+      documentSubtypeId,
+      1, // groupId
+    );
+
+    if (!documentModel) {
+      documentModel = await documentModelRepo.create(DocumentModel.create({
+        familyId: family.id,
+        documentTypeId,
+        documentSubtypeId,
+        requiredForContract: requiredForContract || false,
+        requiredForColaborator: requiredForColaborator || false,
+        groupId: 1,
+      }));
+    }
+
     // Create the document
-    const document = Document.create(documentProps);
+    const document = Document.create({
+      ...documentProps,
+      documentModelId: documentModel.id,
+    });
     const savedDocument = await documentRepo.save(document);
 
     // Attach file if status is not DRAFT
@@ -723,7 +762,7 @@ async function runRequestedSeeds(): Promise<void> {
 
     // Document Types and Subtypes
     const docTypes: DocTypeDomain[] = [];
-    for (let dt = 1; dt <= 2; dt++) {
+    for (let dt = 1; dt <= 3; dt++) {
       const typeName = `DocType S${i}-${dt}`;
       let docType = await documentTypeRepository.findByName(typeName);
       if (!docType) {
@@ -731,7 +770,7 @@ async function runRequestedSeeds(): Promise<void> {
       }
       docTypes.push(docType);
 
-      for (let dst = 1; dst <= 2; dst++) {
+      for (let dst = 1; dst <= 3; dst++) {
         const subtypeName = `DocSubtype S${i}-${dt}-${dst}`;
         if (!(await documentSubtypeRepository.existsByNameAndDocumentTypeId(subtypeName, docType.id))) {
           await documentSubtypeRepository.save(DocumentSubtype.create({
@@ -759,8 +798,9 @@ async function runRequestedSeeds(): Promise<void> {
       // 3 Models per family
       for (let m = 1; m <= 3; m++) {
         // Alternate mandatory fields
-        const requiredForContract = m % 2 !== 0;
-        const requiredForColaborator = m % 2 === 0;
+        const requiredExpirationDate = m % 3 === 0;
+        const requiredForContract = m % 3 === 1;
+        const requiredForColaborator = m % 3 === 2;
 
         // Pick a type and subtype
         const docType = docTypes[(m - 1) % docTypes.length];
@@ -775,6 +815,7 @@ async function runRequestedSeeds(): Promise<void> {
             familyId: family.id,
             documentTypeId: docType.id,
             documentSubtypeId: subtype.id,
+            requiredExpirationDate,
             requiredForContract,
             requiredForColaborator,
           }));

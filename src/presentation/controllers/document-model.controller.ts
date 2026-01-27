@@ -80,12 +80,11 @@ export class DocumentModelController {
   });
 
   public assignDocumentsFromModel = asyncHandler(async (req: Request, res: Response) => {
-    const { documentModelId, contractId, colaboratorIds, comment } = req.body;
+    const { documentModelId, colaboratorIds, comment } = req.body;
     const createdBy = (req as any).user?.id;
 
     const result = await this.assignDocumentsFromModelUseCase.execute({
       documentModelId,
-      contractId,
       colaboratorIds,
       createdBy,
       comment,

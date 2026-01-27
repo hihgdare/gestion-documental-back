@@ -11,8 +11,7 @@ import {
   JoinTable,
   Index,
 } from 'typeorm';
-import { DocumentTypeEntity } from './document-type.entity';
-import { DocumentSubtypeEntity } from './document-subtype.entity';
+import { DocumentModelEntity } from './document-model.entity';
 import { ContractEntity } from './contract.entity';
 import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
@@ -25,19 +24,12 @@ export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
-  documentTypeId!: string;
+  @Column({ name: 'document_model_id', type: 'varchar', length: 36 })
+  documentModelId!: string;
 
-  @ManyToOne(() => DocumentTypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_type_id' })
-  documentType!: DocumentTypeEntity;
-
-  @Column({ name: 'document_subtype_id', type: 'varchar', length: 36 })
-  documentSubtypeId!: string;
-
-  @ManyToOne(() => DocumentSubtypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_subtype_id' })
-  documentSubtype!: DocumentSubtypeEntity;
+  @ManyToOne(() => DocumentModelEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'document_model_id' })
+  documentModel!: DocumentModelEntity;
 
   @ManyToMany(() => ColaboratorEntity)
   @JoinTable({
@@ -71,15 +63,6 @@ export class DocumentEntity {
 
   @Column({ type: 'varchar', length: 50, default: 'draft' })
   status!: string;
-
-  @Column({ name: 'required_for_contract', type: 'boolean', default: false })
-  requiredForContract!: boolean;
-
-  @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
-  requiredForColaborator!: boolean;
-
-  @Column({ name: 'required_expiration_date', type: 'boolean', default: false })
-  requiredExpirationDate!: boolean;
 
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;

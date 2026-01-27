@@ -71,9 +71,8 @@ export class AssignDocumentsFromFamilyUseCase {
 
       for (const model of models) {
         // Verificar si ya existe un documento con esta combinación
-        const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
-          model.documentTypeId,
-          model.documentSubtypeId,
+        const exists = await this.documentRepository.existsByModelContractColaborator(
+          model.id,
           contractId,
           [colaboratorId],
         );
@@ -88,16 +87,19 @@ export class AssignDocumentsFromFamilyUseCase {
         const subtypeName = model.documentSubtypeName || model.documentSubtypeId;
 
         const props: DocumentProps = {
-          documentTypeId: model.documentTypeId,
-          documentSubtypeId: model.documentSubtypeId,
+          documentModelId: model.id,
           colaboratorIds: [colaboratorId],
           name: `${typeName} - ${subtypeName}`,
           contractId: contractId,
           createdBy: request.createdBy,
+          groupId: colaborator.groupId,
+
+          // Read-only props
+          documentTypeId: model.documentTypeId,
+          documentSubtypeId: model.documentSubtypeId,
           requiredForContract: model.requiredForContract,
           requiredForColaborator: model.requiredForColaborator,
           requiredExpirationDate: model.requiredExpirationDate,
-          groupId: colaborator.groupId,
         };
 
         const doc = Document.create(props);
@@ -108,8 +110,8 @@ export class AssignDocumentsFromFamilyUseCase {
         if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
           const history: DocumentHistoryProps = {
             documentId: saved.id,
-            documentTypeId: saved.documentTypeId,
-            documentSubtypeId: saved.documentSubtypeId,
+            documentTypeId: saved.documentTypeId!,
+            documentSubtypeId: saved.documentSubtypeId!,
             name: saved.name,
             issuedDate: saved.issuedDate,
             expirationDate: saved.expirationDate || undefined,

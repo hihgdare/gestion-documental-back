@@ -3,6 +3,7 @@ import { DocumentHistoryRepository } from '@domains/document/repositories/docume
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
 import { Document, DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentHistoryProps } from '@domains/document/entities/document-history.entity';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
@@ -10,7 +11,6 @@ import { ValidationError, NotFoundError } from '@shared/domain/errors';
 
 export interface AssignDocumentsFromModelRequest {
   documentModelId: string;
-  contractId: string;
   colaboratorIds: string[];
   createdBy?: string;
   comment?: string;
@@ -28,6 +28,7 @@ export class AssignDocumentsFromModelUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly contractRepository: ContractRepository,
     private readonly colaboratorRepository: ColaboratorRepository,
+    private readonly familyRepository: IFamilyRepository,
   ) {}
 
   public async execute(request: AssignDocumentsFromModelRequest): Promise<AssignDocumentsFromModelResult> {
@@ -37,10 +38,17 @@ export class AssignDocumentsFromModelUseCase {
       throw new NotFoundError('Modelo de documento no encontrado');
     }
 
+    // Obtener la familia para saber el contrato
+    const family = await this.familyRepository.findById(model.familyId);
+    if (!family) {
+      throw new NotFoundError('Familia asociada al modelo no encontrada');
+    }
+    const contractId = family.contractId;
+
     // Validar que exista el contrato
-    const contract = await this.contractRepository.findById(request.contractId);
+    const contract = await this.contractRepository.findById(contractId);
     if (!contract) {
-      throw new ValidationError('Contrato no encontrado');
+      throw new ValidationError('Contrato asociado a la familia no encontrado');
     }
 
     // Validar colaboradores
@@ -60,10 +68,9 @@ export class AssignDocumentsFromModelUseCase {
       }
 
       // Verificar si ya existe un documento con esta combinación
-      const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
-        model.documentTypeId,
-        model.documentSubtypeId,
-        request.contractId,
+      const exists = await this.documentRepository.existsByModelContractColaborator(
+        model.id,
+        contractId,
         [colaboratorId],
       );
 
@@ -77,16 +84,19 @@ export class AssignDocumentsFromModelUseCase {
       const subtypeName = model.documentSubtypeName || model.documentSubtypeId;
 
       const props: DocumentProps = {
-        documentTypeId: model.documentTypeId,
-        documentSubtypeId: model.documentSubtypeId,
+        documentModelId: model.id,
         colaboratorIds: [colaboratorId],
         name: `${typeName} - ${subtypeName}`,
-        contractId: request.contractId,
+        contractId: contractId,
         createdBy: request.createdBy,
+        groupId: colaborator.groupId,
+
+        // Read-only properties populated for completeness
+        documentTypeId: model.documentTypeId,
+        documentSubtypeId: model.documentSubtypeId,
         requiredForContract: model.requiredForContract,
         requiredForColaborator: model.requiredForColaborator,
         requiredExpirationDate: model.requiredExpirationDate,
-        groupId: colaborator.groupId,
       };
 
       const doc = Document.create(props);
@@ -97,8 +107,8 @@ export class AssignDocumentsFromModelUseCase {
       if (request.createdBy && request.createdBy !== 'system') {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
-          documentTypeId: saved.documentTypeId,
-          documentSubtypeId: saved.documentSubtypeId,
+          documentTypeId: saved.documentTypeId!,
+          documentSubtypeId: saved.documentSubtypeId!,
           name: saved.name,
           issuedDate: saved.issuedDate || undefined,
           expirationDate: saved.expirationDate || undefined,
