@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { initializeDatabase, clearDatabase, AppDataSource } from './src/shared/infrastructure/database/typeorm.config';
-import runSeeds from './src/shared/infrastructure/database/seed/run-seeds';
-import { runInitialSeedsIfEmpty } from './src/shared/infrastructure/database/seed/initial-seeds';
+import runSeeds from './src/shared/infrastructure/database/seeds/run-seeds';
+import { runInitialSeedsIfEmpty } from './src/shared/infrastructure/database/seeds/initial-seeds';
 
 async function main() {
   const args = process.argv.slice(2);

@@ -11,7 +11,6 @@ import { ValidationError } from '@shared/domain/errors';
 
 export interface AssignDocumentsFromFamilyRequest {
   familyId: string;
-  contractId: string;
   colaboratorIds: string[];
   createdBy?: string;
   comment?: string;
@@ -39,10 +38,13 @@ export class AssignDocumentsFromFamilyUseCase {
       throw new ValidationError('Familia no encontrada');
     }
 
+    // Obtener el contrato de la familia
+    const contractId = family.contractId;
+
     // Validar que exista el contrato
-    const contract = await this.contractRepository.findById(request.contractId);
+    const contract = await this.contractRepository.findById(contractId);
     if (!contract) {
-      throw new ValidationError('Contrato no encontrado');
+      throw new ValidationError('Contrato asociado a la familia no encontrado');
     }
 
     // Validar colaboradores
@@ -72,7 +74,7 @@ export class AssignDocumentsFromFamilyUseCase {
         const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
           model.documentTypeId,
           model.documentSubtypeId,
-          request.contractId,
+          contractId,
           [colaboratorId],
         );
 
@@ -90,7 +92,7 @@ export class AssignDocumentsFromFamilyUseCase {
           documentSubtypeId: model.documentSubtypeId,
           colaboratorIds: [colaboratorId],
           name: `${typeName} - ${subtypeName}`,
-          contractId: request.contractId,
+          contractId: contractId,
           createdBy: request.createdBy,
           requiredForContract: model.requiredForContract,
           requiredForColaborator: model.requiredForColaborator,

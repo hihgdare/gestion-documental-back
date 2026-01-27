@@ -2,16 +2,19 @@ import { IFamilyRepository } from '../repositories/family.repository.interface';
 import { Family } from '../entities/family.entity';
 import { NotFoundError, ConflictError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 
 export interface UpdateFamilyRequest {
-  name: string;
+  name?: string;
   groupId?: number;
+  contractId?: string;
 }
 
 export class UpdateFamilyUseCase {
   constructor(
     private readonly familyRepository: IFamilyRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly contractRepository: ContractRepository,
   ) {}
 
   public async execute(id: string, request: UpdateFamilyRequest): Promise<Family> {
@@ -29,13 +32,23 @@ export class UpdateFamilyUseCase {
       family.changeGroup(request.groupId);
     }
 
-    // Check if another family already exists with the same name
-    const existingFamily = await this.familyRepository.findByName(request.name);
-    if (existingFamily && existingFamily.id !== id) {
-      throw new ConflictError('Ya existe una familia con este nombre');
+    // Validate contract if changing
+    if (request.contractId && request.contractId !== family.contractId) {
+      const contract = await this.contractRepository.findById(request.contractId);
+      if (!contract) {
+        throw new NotFoundError('Contrato no encontrado');
+      }
+      family.changeContract(request.contractId);
     }
 
-    family.updateName(request.name);
+    // Check if another family already exists with the same name
+    if (request.name) {
+      const existingFamily = await this.familyRepository.findByName(request.name);
+      if (existingFamily && existingFamily.id !== id) {
+        throw new ConflictError('Ya existe una familia con este nombre');
+      }
+      family.updateName(request.name);
+    }
 
     return await this.familyRepository.update(family);
   }

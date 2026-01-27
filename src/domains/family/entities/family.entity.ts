@@ -5,6 +5,7 @@ export interface FamilyProps {
   id?: string;
   name: string;
   groupId: number;
+  contractId: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
@@ -14,6 +15,7 @@ export class Family {
   id: string;
   name: string;
   groupId: number;
+  contractId: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -48,6 +50,10 @@ export class Family {
 
     if (!props.groupId || props.groupId <= 0) {
       throw new ValidationError('Group ID is required and must be positive', 'groupId');
+    }
+
+    if (!props.contractId || props.contractId.trim().length === 0) {
+      throw new ValidationError('Contract ID es requerido', 'contractId');
     }
   }
 
@@ -86,11 +92,20 @@ export class Family {
     this.updatedAt = new Date();
   }
 
+  public changeContract(contractId: string): void {
+    if (!contractId || contractId.trim().length === 0) {
+      throw new ValidationError('Contract ID es requerido', 'contractId');
+    }
+    this.contractId = contractId;
+    this.updatedAt = new Date();
+  }
+
   public toJSON() {
     return {
       id: this.id,
       name: this.name,
       groupId: this.groupId,
+      contractId: this.contractId,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       deletedAt: this.deletedAt,

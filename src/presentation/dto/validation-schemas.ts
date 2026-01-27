@@ -328,12 +328,20 @@ export const assignColaboratorsToGroupSchema = Joi.object({
 export const createFamilySchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
   groupId: Joi.number().integer().positive().required(),
+  contractId: Joi.string().uuid().required(),
 });
 
 export const updateFamilySchema = Joi.object({
   name: Joi.string().min(2).max(100).optional(),
   groupId: Joi.number().integer().positive().optional(),
+  contractId: Joi.string().uuid().optional(),
 }).min(1);
+
+export const assignDocumentsFromFamilySchema = Joi.object({
+  familyId: Joi.string().uuid().required(),
+  colaboratorIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+  comment: Joi.string().max(500).optional().allow(''),
+});
 
 export const createCompanySchema = Joi.object({
   groupId: Joi.number().integer().required(),

@@ -64,12 +64,11 @@ export class FamilyController {
   });
 
   public assignDocumentsFromFamily = asyncHandler(async (req: Request, res: Response) => {
-    const { familyId, contractId, colaboratorIds, comment } = req.body;
+    const { familyId, colaboratorIds, comment } = req.body;
     const createdBy = (req as any).user?.id || 'system';
 
     const result = await this.assignDocumentsFromFamilyUseCase.execute({
       familyId,
-      contractId,
       colaboratorIds,
       createdBy,
       comment,
