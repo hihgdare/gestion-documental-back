@@ -24,6 +24,14 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
     return entities.map(entity => this.toDomain(entity));
   }
 
+  async findByContractId(contractId: string): Promise<Family[]> {
+    const entities = await this.repository.find({
+      where: { contractId, deletedAt: IsNull() },
+      order: { name: 'ASC' },
+    });
+    return entities.map(entity => this.toDomain(entity));
+  }
+
   async findById(id: string): Promise<Family | null> {
     const entity = await this.repository.findOne({
       where: { id, deletedAt: IsNull() },

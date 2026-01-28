@@ -129,6 +129,7 @@ import { CreateFamilyUseCase } from '@domains/family/use-cases/create-family.use
 import { GetFamilyByIdUseCase, GetAllFamiliesUseCase } from '@domains/family/use-cases/get-family.use-case';
 import { UpdateFamilyUseCase, DeleteFamilyUseCase } from '@domains/family/use-cases/update-family.use-case';
 import { AssignDocumentsFromFamilyUseCase } from '@domains/family/use-cases/assign-documents-from-family.use-case';
+import { GetFamiliesByContractUseCase } from '@domains/family/use-cases/get-families-by-contract.use-case';
 
 // DocumentModel domain
 import { CreateDocumentModelUseCase } from '@domains/document-model/use-cases/create-document-model.use-case';
@@ -336,6 +337,7 @@ export class DependencyContainer {
   private updateFamilyUseCase!: UpdateFamilyUseCase;
   private deleteFamilyUseCase!: DeleteFamilyUseCase;
   private assignDocumentsFromFamilyUseCase!: AssignDocumentsFromFamilyUseCase;
+  private getFamiliesByContractUseCase!: GetFamiliesByContractUseCase;
 
   // Use Cases - DocumentModel
   private createDocumentModelUseCase!: CreateDocumentModelUseCase;
@@ -700,6 +702,7 @@ export class DependencyContainer {
       this.contractRepository,
       this.colaboratorRepository,
     );
+    this.getFamiliesByContractUseCase = new GetFamiliesByContractUseCase(this.familyRepository);
 
     this.familyController = new FamilyController(
       this.createFamilyUseCase,
@@ -708,6 +711,7 @@ export class DependencyContainer {
       this.updateFamilyUseCase,
       this.deleteFamilyUseCase,
       this.assignDocumentsFromFamilyUseCase,
+      this.getFamiliesByContractUseCase,
     );
 
     // Initialize DocumentModel use cases
