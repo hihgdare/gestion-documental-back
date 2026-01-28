@@ -3,6 +3,7 @@ import { CreateFamilyUseCase } from '@domains/family/use-cases/create-family.use
 import { GetFamilyByIdUseCase, GetAllFamiliesUseCase } from '@domains/family/use-cases/get-family.use-case';
 import { UpdateFamilyUseCase, DeleteFamilyUseCase } from '@domains/family/use-cases/update-family.use-case';
 import { AssignDocumentsFromFamilyUseCase } from '@domains/family/use-cases/assign-documents-from-family.use-case';
+import { GetFamiliesByContractUseCase } from '@domains/family/use-cases/get-families-by-contract.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
 
 export class FamilyController {
@@ -13,10 +14,11 @@ export class FamilyController {
     private readonly updateFamilyUseCase: UpdateFamilyUseCase,
     private readonly deleteFamilyUseCase: DeleteFamilyUseCase,
     private readonly assignDocumentsFromFamilyUseCase: AssignDocumentsFromFamilyUseCase,
+    private readonly getFamiliesByContractUseCase: GetFamiliesByContractUseCase,
   ) {}
 
   public createFamily = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = (req as any).groupId;
+    const groupId = req.body.groupId;
     const family = await this.createFamilyUseCase.execute({ ...req.body, groupId });
     res.status(201).json({
       success: true,
@@ -35,8 +37,19 @@ export class FamilyController {
   });
 
   public getAllFamilies = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = (req as any).groupId;
+    const groupId = req.auth.groupId;
     const families = await this.getAllFamiliesUseCase.execute(groupId);
+    res.status(200).json({
+      success: true,
+      data: families.map(family => family.toJSON()),
+      count: families.length,
+    });
+  });
+
+  public getFamiliesByContract = asyncHandler(async (req: Request, res: Response) => {
+    const { contractId } = req.params;
+    const groupId = req.auth.groupId;
+    const families = await this.getFamiliesByContractUseCase.execute(contractId, groupId);
     res.status(200).json({
       success: true,
       data: families.map(family => family.toJSON()),
@@ -64,12 +77,11 @@ export class FamilyController {
   });
 
   public assignDocumentsFromFamily = asyncHandler(async (req: Request, res: Response) => {
-    const { familyId, contractId, colaboratorIds, comment } = req.body;
+    const { familyId, colaboratorIds, comment } = req.body;
     const createdBy = (req as any).user?.id || 'system';
 
     const result = await this.assignDocumentsFromFamilyUseCase.execute({
       familyId,
-      contractId,
       colaboratorIds,
       createdBy,
       comment,

@@ -6,13 +6,14 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ColaboratorGroup } from '@domains/colaborator-group/entities/colaborator-group.entity';
 import { Colaborator, ColaboratorProps } from '@domains/colaborators/entities/colaborator.entity';
 import { EntityProps } from '@shared/infrastructure/entity-props';
 import { ColaboratorEntity } from './colaborators.entity';
 import { ContractEntity } from './contract.entity';
-import { ManyToOne, JoinColumn } from 'typeorm';
 import {
   DocumentType,
   Gender,

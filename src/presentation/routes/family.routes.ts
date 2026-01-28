@@ -4,6 +4,7 @@ import { validateRequest } from '@shared/middleware/validation';
 import {
   createFamilySchema,
   updateFamilySchema,
+  assignDocumentsFromFamilySchema,
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
@@ -19,6 +20,9 @@ export const createFamilyRoutes = (familyController: FamilyController): Router =
   // GET /api/families - Get all families
   router.get('/', authorize('family:read'), getByGroup(), familyController.getAllFamilies);
 
+  // GET /api/families/by-contract/:contractId - Get families by contract
+  router.get('/by-contract/:contractId', authorize('family:read'), getByGroup(), familyController.getFamiliesByContract);
+
   // GET /api/families/:id - Get family by ID
   router.get('/:id', authorize('family:read'), familyController.getFamilyById);
 
@@ -29,7 +33,7 @@ export const createFamilyRoutes = (familyController: FamilyController): Router =
   router.delete('/:id', authorize('family:delete'), familyController.deleteFamily);
 
   // POST /api/families/assign-documents - Assign documents from family models to colaborators
-  router.post('/assign-documents', authorize('document:create'), familyController.assignDocumentsFromFamily);
+  router.post('/assign-documents', authorize('document:create'), validateRequest(assignDocumentsFromFamilySchema), familyController.assignDocumentsFromFamily);
 
   return router;
 };

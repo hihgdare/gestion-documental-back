@@ -24,6 +24,18 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
     return entities.map(entity => this.toDomain(entity));
   }
 
+  async findByContractId(contractId: string, groupId?: number): Promise<Family[]> {
+    const where: any = { contractId, deletedAt: IsNull() };
+    if (groupId !== undefined) {
+      where.groupId = groupId;
+    }
+    const entities = await this.repository.find({
+      where,
+      order: { name: 'ASC' },
+    });
+    return entities.map(entity => this.toDomain(entity));
+  }
+
   async findById(id: string): Promise<Family | null> {
     const entity = await this.repository.findOne({
       where: { id, deletedAt: IsNull() },
@@ -73,6 +85,7 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
       id: entity.id,
       name: entity.name,
       groupId: entity.groupId,
+      contractId: entity.contractId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
@@ -85,6 +98,7 @@ export class TypeOrmFamilyRepository implements IFamilyRepository {
       id: family.id,
       name: family.name,
       groupId: family.groupId,
+      contractId: family.contractId,
       createdAt: family.createdAt,
       updatedAt: family.updatedAt,
       deletedAt: family.deletedAt,
