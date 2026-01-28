@@ -4,38 +4,39 @@ export class AddGroupIdToDocumentModelsTables1768985719154 implements MigrationI
   name = 'AddGroupIdToDocumentModelsTables1768985719154';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.addColumn(
-      'document_models',
-      new TableColumn({
-        name: 'group_id',
-        type: 'int',
-        isNullable: false,
-      }),
-    );
+    await queryRunner.getTable('document_models').then(async (table) => {
+      if (table && !table?.columns.some((col) => col.name === 'group_id')) {
+        await queryRunner.addColumn(
+          'document_models',
+          new TableColumn({
+            name: 'group_id',
+            type: 'int',
+            isNullable: false,
+          }),
+        );
 
-    await queryRunner.createForeignKey(
-      'document_models',
-      new TableForeignKey({
-        name: 'FK_DOCUMENT_MODELS_GROUP',
-        columnNames: ['group_id'],
-        referencedColumnNames: ['id'],
-        referencedTableName: 'groups',
-        onDelete: 'CASCADE',
-      }),
-    );
+        await queryRunner.createForeignKey(
+          'document_models',
+          new TableForeignKey({
+            name: 'FK_DOCUMENT_MODELS_GROUP',
+            columnNames: ['group_id'],
+            referencedColumnNames: ['id'],
+            referencedTableName: 'groups',
+            onDelete: 'CASCADE',
+          }),
+        );
+      }
+    });
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    const table = await queryRunner.getTable('document_models');
-    if (table) {
-      const foreignKey = table.foreignKeys.find(
-        (fk) => fk.name === 'FK_DOCUMENT_MODELS_GROUP',
-      );
-      if (foreignKey) {
-        await queryRunner.dropForeignKey('document_models', foreignKey);
+    await queryRunner.getTable('document_models').then(async (table) => {
+      if (table?.foreignKeys.some((fk) => fk.name === 'FK_DOCUMENT_MODELS_GROUP')) {
+        await queryRunner.dropForeignKey('document_models', 'FK_DOCUMENT_MODELS_GROUP');
       }
-    }
-    await queryRunner.dropColumn('document_models', 'group_id');
+      if (table?.columns.some((col) => col.name === 'group_id')) {
+        await queryRunner.dropColumn('document_models', 'group_id');
+      }
+    });
   }
-
 }
