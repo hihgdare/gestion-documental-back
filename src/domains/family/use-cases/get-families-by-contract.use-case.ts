@@ -4,7 +4,7 @@ import { Family } from '../entities/family.entity';
 export class GetFamiliesByContractUseCase {
   constructor(private readonly familyRepository: IFamilyRepository) {}
 
-  public async execute(contractId: string): Promise<Family[]> {
-    return await this.familyRepository.findByContractId(contractId);
+  public async execute(contractId: string, groupId?: number): Promise<Family[]> {
+    return await this.familyRepository.findByContractId(contractId, groupId);
   }
 }

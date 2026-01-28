@@ -18,7 +18,7 @@ export class FamilyController {
   ) {}
 
   public createFamily = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = (req as any).groupId;
+    const groupId = req.body.groupId;
     const family = await this.createFamilyUseCase.execute({ ...req.body, groupId });
     res.status(201).json({
       success: true,
@@ -37,7 +37,7 @@ export class FamilyController {
   });
 
   public getAllFamilies = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = (req as any).groupId;
+    const groupId = req.auth.groupId;
     const families = await this.getAllFamiliesUseCase.execute(groupId);
     res.status(200).json({
       success: true,
@@ -48,7 +48,8 @@ export class FamilyController {
 
   public getFamiliesByContract = asyncHandler(async (req: Request, res: Response) => {
     const { contractId } = req.params;
-    const families = await this.getFamiliesByContractUseCase.execute(contractId);
+    const groupId = req.auth.groupId;
+    const families = await this.getFamiliesByContractUseCase.execute(contractId, groupId);
     res.status(200).json({
       success: true,
       data: families.map(family => family.toJSON()),

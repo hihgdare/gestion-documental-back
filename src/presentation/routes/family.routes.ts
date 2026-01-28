@@ -21,7 +21,7 @@ export const createFamilyRoutes = (familyController: FamilyController): Router =
   router.get('/', authorize('family:read'), getByGroup(), familyController.getAllFamilies);
 
   // GET /api/families/by-contract/:contractId - Get families by contract
-  router.get('/by-contract/:contractId', authorize('family:read'), familyController.getFamiliesByContract);
+  router.get('/by-contract/:contractId', authorize('family:read'), getByGroup(), familyController.getFamiliesByContract);
 
   // GET /api/families/:id - Get family by ID
   router.get('/:id', authorize('family:read'), familyController.getFamilyById);
