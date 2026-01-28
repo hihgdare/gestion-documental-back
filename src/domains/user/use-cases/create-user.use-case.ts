@@ -41,7 +41,7 @@ export class CreateUserUseCase {
 
     // Create user
     const user = new User({
-      email: request.email,
+      email: request.email.toLowerCase(),
       firstName: request.firstName,
       lastName: request.lastName,
       password: hashedPassword,
