@@ -5,6 +5,7 @@ import { UpdateFamilyUseCase, DeleteFamilyUseCase } from '@domains/family/use-ca
 import { AssignDocumentsFromFamilyUseCase } from '@domains/family/use-cases/assign-documents-from-family.use-case';
 import { GetFamiliesByContractUseCase } from '@domains/family/use-cases/get-families-by-contract.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
+import { parseNum } from '@shared/utils/numbers';
 
 export class FamilyController {
   constructor(
@@ -37,7 +38,8 @@ export class FamilyController {
   });
 
   public getAllFamilies = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = req.auth.groupId;
+    const groupId = parseNum(req.query.groupId) || req.auth?.groupId;
+
     const families = await this.getAllFamiliesUseCase.execute(groupId);
     res.status(200).json({
       success: true,

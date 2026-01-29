@@ -12,7 +12,6 @@ import {
   Index,
 } from 'typeorm';
 import { DocumentModelEntity } from './document-model.entity';
-import { ContractEntity } from './contract.entity';
 import { ColaboratorEntity } from './colaborators.entity';
 import { UserEntity } from './user.entity';
 
@@ -47,13 +46,6 @@ export class DocumentEntity {
 
   @Column({ name: 'expiration_date', type: 'date', nullable: true })
   expirationDate?: Date;
-
-  @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
-  contractId?: string;
-
-  @ManyToOne(() => ContractEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'contract_id' })
-  contract?: ContractEntity;
 
   @Column({ type: 'text', nullable: true })
   description?: string;

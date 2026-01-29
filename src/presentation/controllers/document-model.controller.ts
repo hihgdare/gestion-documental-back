@@ -8,6 +8,7 @@ import {
 import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains/document-model/use-cases/update-document-model.use-case';
 import { AssignDocumentsFromModelUseCase } from '@domains/document-model/use-cases/assign-documents-from-model.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
+import { parseNum } from '@shared/utils/numbers';
 
 export class DocumentModelController {
   constructor(
@@ -39,7 +40,7 @@ export class DocumentModelController {
   });
 
   public getAllDocumentModels = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = req.auth?.groupId;
+    const groupId = parseNum(req.query.groupId) || req.auth?.groupId;
     const { familyId } = req.query;
     const documentModels = await this.getAllDocumentModelsUseCase.execute(groupId, familyId as string);
     res.status(200).json({
