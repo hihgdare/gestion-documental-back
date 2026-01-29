@@ -1,7 +1,7 @@
 import { UserRepository } from '../repositories/user.repository';
 import { RoleRepository } from '../../role/repositories/role.repository';
 import { UpdateUserProps, User } from '../entities/user.entity';
-import { NotFoundError } from '@shared/domain/errors';
+import { ForbiddenError, NotFoundError } from '@shared/domain/errors';
 
 export class AssignRoleToUserUseCase {
   constructor(
@@ -9,16 +9,20 @@ export class AssignRoleToUserUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(input: { userId: string; roleIds: number[] }): Promise<User> {
-    const user = await this.userRepository.findById(input.userId);
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
+  async execute({ userId, roleIds, currentUser }: { userId: string; roleIds: number[]; currentUser?: User }): Promise<User> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new NotFoundError('User');
 
-    const roles = await this.roleRepository.findIn(input.roleIds);
+    const roles = await this.roleRepository.findIn(roleIds);
+    if (!roles || roles.length !== roleIds.length) throw new NotFoundError('One or more roles');
 
-    if (!roles || roles.length !== input.roleIds.length) {
-      throw new Error('One or more roles not found');
+    if (currentUser && !currentUser.can('admin:roles')) {
+      const currentPermissions = currentUser.getPermissionNames()!;
+      roles.forEach((role) => {
+        if (role.permissions?.some((p) => !currentPermissions.has(p.name))) {
+          throw new ForbiddenError(`You can not assign/remove roles with permissions you do not have. Role: ${role.name}`);
+        }
+      });
     }
 
     user.assignRoles(roles);
