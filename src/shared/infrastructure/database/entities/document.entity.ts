@@ -11,33 +11,33 @@ import {
   JoinTable,
   Index,
 } from 'typeorm';
-import { DocumentTypeEntity } from './document-type.entity';
-import { DocumentSubtypeEntity } from './document-subtype.entity';
-import { ContractEntity } from './contract.entity';
+import { DocumentModelEntity } from './document-model.entity';
 import { ColaboratorEntity } from './colaborators.entity';
+import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
 @Index('IDX_documents_status', ['status'])
 @Index('IDX_documents_deleted_at', ['deletedAt'])
 @Index('IDX_documents_group_id', ['groupId'])
+@Index('IDX_documents_contract_id', ['contractId'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
-  documentTypeId!: string;
+  @Column({ name: 'document_model_id', type: 'varchar', length: 36 })
+  documentModelId!: string;
 
-  @ManyToOne(() => DocumentTypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_type_id' })
-  documentType!: DocumentTypeEntity;
+  @ManyToOne(() => DocumentModelEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'document_model_id' })
+  documentModel!: DocumentModelEntity;
 
-  @Column({ name: 'document_subtype_id', type: 'varchar', length: 36 })
-  documentSubtypeId!: string;
+  @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
+  contractId?: string;
 
-  @ManyToOne(() => DocumentSubtypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_subtype_id' })
-  documentSubtype!: DocumentSubtypeEntity;
+  @ManyToOne(() => ContractEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'contract_id' })
+  contract?: ContractEntity;
 
   @ManyToMany(() => ColaboratorEntity)
   @JoinTable({
@@ -56,13 +56,6 @@ export class DocumentEntity {
   @Column({ name: 'expiration_date', type: 'date', nullable: true })
   expirationDate?: Date;
 
-  @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
-  contractId?: string;
-
-  @ManyToOne(() => ContractEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'contract_id' })
-  contract?: ContractEntity;
-
   @Column({ type: 'text', nullable: true })
   description?: string;
 
@@ -71,15 +64,6 @@ export class DocumentEntity {
 
   @Column({ type: 'varchar', length: 50, default: 'draft' })
   status!: string;
-
-  @Column({ name: 'required_for_contract', type: 'boolean', default: false })
-  requiredForContract!: boolean;
-
-  @Column({ name: 'required_for_colaborator', type: 'boolean', default: false })
-  requiredForColaborator!: boolean;
-
-  @Column({ name: 'required_expiration_date', type: 'boolean', default: false })
-  requiredExpirationDate!: boolean;
 
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;

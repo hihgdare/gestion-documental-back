@@ -5,6 +5,8 @@ import { Application } from 'express';
 import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { DependencyContainer } from '@/dependency-container';
+import { FamilyEntity } from '@shared/infrastructure/database/entities/family.entity';
+import { DocumentModelEntity } from '@shared/infrastructure/database/entities/document-model.entity';
 
 describe('DocumentController with type/subtype/colaborator', () => {
   let appInstance: App;
@@ -97,9 +99,32 @@ describe('DocumentController with type/subtype/colaborator', () => {
     return res.body.data.id as string;
   }
 
-  async function createColaborator() {
+  async function createDocumentModel(typeId: string, subtypeId: string, existingContractId?: string) {
+    const contractId = existingContractId || await createContract();
+
+    const familyRepo = AppDataSource.getRepository(FamilyEntity);
+    const modelRepo = AppDataSource.getRepository(DocumentModelEntity);
+
+    const family = await familyRepo.save({
+      name: `Family ${Date.now()}-${Math.random()}`,
+      contractId,
+      groupId,
+    });
+
+    const model = await modelRepo.save({
+      familyId: family.id,
+      documentTypeId: typeId,
+      documentSubtypeId: subtypeId,
+      groupId,
+      requiredExpirationDate: false,
+    });
+
+    return { modelId: model.id, familyId: family.id, contractId };
+  }
+
+  async function createColaborator(existingContractId?: string) {
     const base = `${Date.now()}-${Math.random().toString(16).slice(2,8)}`;
-    const contractId = await createContract();
+    const contractId = existingContractId || await createContract();
     const res = await supertest(app)
       .post('/api/colaborators')
       .set('Authorization', 'Bearer user-id:random')
@@ -125,20 +150,20 @@ describe('DocumentController with type/subtype/colaborator', () => {
         groupId,
       });
     expect(res.status).toBe(201);
-    return res.body.data.id as string;
+    return { colaboratorId: res.body.data.id as string, contractId };
   }
 
   describe('/api/documents', () => {
     it('should create a document with type/subtype and colaborator', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
-      const colaboratorId = await createColaborator();
+      const { modelId, contractId } = await createDocumentModel(typeId, subtypeId);
+      const { colaboratorId } = await createColaborator(contractId);
 
       const response = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
         .send({
-          documentTypeId: typeId,
-          documentSubtypeId: subtypeId,
+          documentModelId: modelId,
           colaboratorIds: [colaboratorId],
           name: 'Documento de Prueba',
           issuedDate: '2025-01-01',
@@ -159,14 +184,14 @@ describe('DocumentController with type/subtype/colaborator', () => {
 
     it('should list documents by type/subtype and by colaborator', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
-      const colaboratorId = await createColaborator();
+      const { modelId, contractId } = await createDocumentModel(typeId, subtypeId);
+      const { colaboratorId } = await createColaborator(contractId);
 
       await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
         .send({
-          documentTypeId: typeId,
-          documentSubtypeId: subtypeId,
+          documentModelId: modelId,
           colaboratorIds: [colaboratorId],
           name: 'Documento A',
           issuedDate: '2025-01-01',
@@ -190,12 +215,13 @@ describe('DocumentController with type/subtype/colaborator', () => {
 
     it('should update a document fields', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
-      const colaboratorId = await createColaborator();
+      const { modelId, contractId } = await createDocumentModel(typeId, subtypeId);
+      const { colaboratorId } = await createColaborator(contractId);
 
       const createRes = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'Doc Edit', issuedDate: '2025-01-01', groupId });
+        .send({ documentModelId: modelId, colaboratorIds: [colaboratorId], name: 'Doc Edit', issuedDate: '2025-01-01', groupId });
       const id = createRes.body.data.id as string;
 
       const updateRes = await supertest(app)
@@ -214,88 +240,66 @@ describe('DocumentController with type/subtype/colaborator', () => {
 
     it('should not allow duplicate type+subtype+colaborator on create', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
-      const colaboratorId = await createColaborator();
+      const { modelId, contractId } = await createDocumentModel(typeId, subtypeId);
+      const { colaboratorId } = await createColaborator(contractId);
 
       const first = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'Doc1', issuedDate: '2025-01-01', groupId });
+        .send({ documentModelId: modelId, colaboratorIds: [colaboratorId], name: 'Doc1', issuedDate: '2025-01-01', groupId });
       expect(first.status).toBe(201);
 
       const dup = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'Doc2', issuedDate: '2025-01-02', groupId });
+        .send({ documentModelId: modelId, colaboratorIds: [colaboratorId], name: 'Doc2', issuedDate: '2025-01-02', groupId });
       expect(dup.status).toBe(400);
       expect(dup.body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should not allow duplicate type+subtype+colaborator on update', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
-      const colaboratorId = await createColaborator();
-      const otherTypeSubtype = await createTypeAndSubtype();
+      const { modelId, contractId } = await createDocumentModel(typeId, subtypeId);
+      const { colaboratorId } = await createColaborator(contractId);
+
+      const other = await createTypeAndSubtype();
+      const { modelId: otherModelId } = await createDocumentModel(other.typeId, other.subtypeId, contractId); // Use same contract
 
       await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], name: 'DocA', issuedDate: '2025-01-01', groupId });
+        .send({ documentModelId: modelId, colaboratorIds: [colaboratorId], name: 'DocA', issuedDate: '2025-01-01', groupId });
       const b = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: otherTypeSubtype.typeId, documentSubtypeId: otherTypeSubtype.subtypeId, colaboratorIds: [colaboratorId], name: 'DocB', issuedDate: '2025-01-01', groupId });
+        .send({ documentModelId: otherModelId, colaboratorIds: [colaboratorId], name: 'DocB', issuedDate: '2025-01-01', groupId });
       const bId = b.body.data.id as string;
 
       const dupUpdate = await supertest(app)
         .put(`/api/documents/${bId}`)
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, comment: 'try duplicate' });
+        .send({ documentModelId: modelId, comment: 'try duplicate' });
       expect(dupUpdate.status).toBe(400);
       expect(dupUpdate.body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should enforce uniqueness on type+subtype+contract+colaborator when contractId provided', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
-
-      // Create colaborator and contract
-      const colaboratorId = await createColaborator();
-
-      const today = new Date();
-      const startDateStr = new Date(today.getTime()).toISOString().slice(0, 10);
-      const endDateStr = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-      const contractBase = {
-        rutSociedad: '12.345.678-5',
-        nombreColaborador: 'Juan Perez',
-        administradorContratoMandante: 'Admin M',
-        administradorContratoEmpresa: 'Admin E',
-        rutAdministradorContrato: '23.456.789-6',
-        contractNumber: `CN-${Date.now()}`,
-        nombreMandante: 'Mandante SA',
-        startDate: startDateStr,
-        endDate: endDateStr,
-        contractType: 'consultoria',
-        jornadaTrabajo: 'completa',
-      };
-
-      const contractRes = await supertest(app)
-        .post('/api/contracts')
-        .set('Authorization', 'Bearer user-id:random')
-        .send(contractBase);
-      expect(contractRes.status).toBe(201);
-      const contractId = contractRes.body.data.id as string;
+      const { modelId, contractId } = await createDocumentModel(typeId, subtypeId);
+      const { colaboratorId } = await createColaborator(contractId);
 
       // First create succeeds
       const first = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C1', issuedDate: '2025-01-01', groupId });
+        .send({ documentModelId: modelId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C1', issuedDate: '2025-01-01', groupId });
       expect(first.status).toBe(201);
 
       // Duplicate triple should fail
       const dup = await supertest(app)
         .post('/api/documents')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C2', issuedDate: '2025-01-02', groupId });
+        .send({ documentModelId: modelId, colaboratorIds: [colaboratorId], contractId, name: 'Doc C2', issuedDate: '2025-01-02', groupId });
       expect(dup.status).toBe(400);
       expect(dup.body.error.code).toBe('VALIDATION_ERROR');
     });
@@ -303,41 +307,27 @@ describe('DocumentController with type/subtype/colaborator', () => {
     it('should assign documents from type/subtype to all colaborators in a group and skip duplicates', async () => {
       const { typeId, subtypeId } = await createTypeAndSubtype();
 
-      // Create 3 colaborators
-      const c1 = await createColaborator();
-      const c2 = await createColaborator();
-      const c3 = await createColaborator();
+      // Create contract first
+      const contractId = await createContract();
 
-      // Create contract
-      const now = new Date();
-      const startDate = now.toISOString().slice(0, 10);
-      const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const contractDto = {
-        rutSociedad: '76.543.210-1',
-        nombreColaborador: 'Empresa X',
-        administradorContratoMandante: 'Admin M',
-        administradorContratoEmpresa: 'Admin E',
-        rutAdministradorContrato: '19.876.543-2',
-        contractNumber: `CN-GRP-${Date.now()}`,
-        nombreMandante: 'Mandante X',
-        startDate,
-        endDate,
-        contractType: 'consultoria',
-        jornadaTrabajo: 'completa',
-        groupId,
-      };
-      const contractRes = await supertest(app)
-        .post('/api/contracts')
-        .set('Authorization', 'Bearer user-id:random')
-        .send(contractDto);
-      expect(contractRes.status).toBe(201);
-      const contractId = contractRes.body.data.id as string;
+      // Create model for that contract
+      const { modelId } = await createDocumentModel(typeId, subtypeId, contractId);
+
+      // Create 3 colaborators with same contract
+      const { colaboratorId: c1 } = await createColaborator(contractId);
+      const { colaboratorId: c2 } = await createColaborator(contractId);
+      const { colaboratorId: c3 } = await createColaborator(contractId);
 
       // First bulk assignment
       const bulk1 = await supertest(app)
         .post('/api/documents/assign-to-group')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk' });
+        .send({ documentModelId: modelId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk' });
+
+      if (bulk1.status !== 201) {
+        console.log('Bulk error:', bulk1.body);
+      }
+
       expect(bulk1.status).toBe(201);
       expect(bulk1.body.success).toBe(true);
       expect(bulk1.body.data.createdCount).toBe(3);
@@ -353,7 +343,7 @@ describe('DocumentController with type/subtype/colaborator', () => {
       const bulk2 = await supertest(app)
         .post('/api/documents/assign-to-group')
         .set('Authorization', 'Bearer user-id:random')
-        .send({ documentTypeId: typeId, documentSubtypeId: subtypeId, contractId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk 2' });
+        .send({ documentModelId: modelId, colaboratorIds: [c1, c2, c3], name: 'Doc Bulk 2' });
       expect(bulk2.status).toBe(201);
       expect(bulk2.body.success).toBe(true);
       expect(bulk2.body.data.createdCount).toBe(0);

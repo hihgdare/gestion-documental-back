@@ -5,23 +5,20 @@ import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
+import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 
 export interface CreateDocumentRequest {
-  documentTypeId: string;
-  documentSubtypeId: string;
+  documentModelId: string;
   colaboratorIds?: string[];
   name: string;
   issuedDate?: Date;
   expirationDate?: Date;
-  contractId?: string;
   description?: string;
   documentUrl?: string;
   groupId: number;
   createdBy?: string;
   comment?: string;
-  requiredExpirationDate?: boolean;
-  requiredForContract?: boolean;
-  requiredForColaborator?: boolean;
 }
 
 export class CreateDocumentUseCase {
@@ -29,6 +26,8 @@ export class CreateDocumentUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly documentModelRepository: IDocumentModelRepository,
+    private readonly familyRepository: IFamilyRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
@@ -38,43 +37,49 @@ export class CreateDocumentUseCase {
       throw new ValidationError('Group not found', 'groupId');
     }
 
+    // Validate Document Model exists
+    const documentModel = await this.documentModelRepository.findById(request.documentModelId);
+    if (!documentModel) {
+      throw new ValidationError('Document Model not found', 'documentModelId');
+    }
+
+    // Get Family and Contract
+    const family = await this.familyRepository.findById(documentModel.familyId);
+    if (!family) {
+      throw new ValidationError('Family associated with model not found');
+    }
+    const contractId = family.contractId;
+
     // Verificando que no haya documentos duplicados
     if (request.colaboratorIds && request.colaboratorIds.length > 0) {
-      let exists = false;
-      if (request.contractId) {
-        exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
-          request.documentTypeId,
-          request.documentSubtypeId,
-          request.contractId,
-          request.colaboratorIds,
-        );
-      } else {
-        exists = await this.documentRepository.existsByTypeSubtypeAndColaborator(
-          request.documentTypeId,
-          request.documentSubtypeId,
-          request.colaboratorIds,
-        );
-      }
+      const exists = await this.documentRepository.existsByModelContractColaborator(
+        request.documentModelId,
+        contractId,
+        request.colaboratorIds,
+      );
 
       if (exists) {
-        throw new ValidationError(`Ya existe un documento de este tipo para los colaboradores seleccionados${request.contractId ? ' en este contrato' : ''}.`);
+        throw new ValidationError('Ya existe un documento de este modelo para los colaboradores seleccionados en este contrato.');
+      }
+    }
+
+    // Validate required expiration date based on model
+    if (request.documentUrl && request.documentUrl.trim().length > 0) {
+      if (documentModel.requiredExpirationDate && !request.expirationDate) {
+        throw new ValidationError('La fecha de expiración es requerida para este documento');
       }
     }
 
     // Creando documento
     const documentProps: DocumentProps = {
-      documentTypeId: request.documentTypeId,
-      documentSubtypeId: request.documentSubtypeId,
+      documentModelId: request.documentModelId,
       colaboratorIds: request.colaboratorIds,
       name: request.name,
       issuedDate: request.issuedDate,
       expirationDate: request.expirationDate,
-      contractId: request.contractId,
+      contractId: contractId,
       description: request.description,
       documentUrl: request.documentUrl,
-      requiredForContract: request.requiredForContract,
-      requiredForColaborator: request.requiredForColaborator,
-      requiredExpirationDate: request.requiredExpirationDate,
       groupId: request.groupId,
       createdBy: request.createdBy,
     };
@@ -88,8 +93,7 @@ export class CreateDocumentUseCase {
     if (request.createdBy && request.createdBy !== 'system') {
       const historyProps: DocumentHistoryProps = {
         documentId: savedDocument.id,
-        documentTypeId: savedDocument.documentTypeId,
-        documentSubtypeId: savedDocument.documentSubtypeId,
+        documentModelId: savedDocument.documentModelId || request.documentModelId,
         name: savedDocument.name,
         issuedDate: savedDocument.issuedDate,
         expirationDate: savedDocument.expirationDate,
@@ -100,7 +104,9 @@ export class CreateDocumentUseCase {
         comment: request.comment || null,
         action: DocumentAction.CREATED,
         updatedBy: request.createdBy,
+        updatedAt: new Date(),
       };
+
       await this.documentHistoryRepository.save(historyProps);
     }
 

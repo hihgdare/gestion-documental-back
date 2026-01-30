@@ -7,8 +7,7 @@ import { DocumentStatus, DocumentAction } from '../value-objects/document-enums'
 export interface DocumentHistoryProps {
   id?: string;
   documentId: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  documentModelId: string;
   name: string;
   issuedDate?: Date | null;
   expirationDate?: Date | null;
@@ -27,8 +26,7 @@ export interface DocumentHistoryProps {
 export class DocumentHistory {
   id: string;
   documentId: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  documentModelId: string;
   name: string;
   issuedDate: Date | null;
   expirationDate: Date | null;
@@ -67,12 +65,8 @@ export class DocumentHistory {
       throw new ValidationError('El ID del documento es requerido');
     }
 
-    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
-      throw new ValidationError('El ID del tipo de documento es requerido');
-    }
-
-    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
-      throw new ValidationError('El ID del subtipo de documento es requerido');
+    if (!props.documentModelId || props.documentModelId.trim().length === 0) {
+      throw new ValidationError('El ID del modelo de documento es requerido');
     }
 
     if (!props.name || props.name.trim().length === 0) {
@@ -105,12 +99,12 @@ export class DocumentHistory {
     }
   }
 
-  public isExpired(): boolean {
+  public get isExpired(): boolean {
     if (!this.expirationDate) return false;
     return DateUtils.isAfter(new Date(), this.expirationDate);
   }
 
-  public daysUntilExpiration(): number | null {
+  public get daysUntilExpiration(): number | null {
     if (!this.expirationDate) return null;
     return DateUtils.daysBetween(new Date(), this.expirationDate);
   }
@@ -119,8 +113,7 @@ export class DocumentHistory {
     return {
       id: this.id,
       documentId: this.documentId,
-      documentTypeId: this.documentTypeId,
-      documentSubtypeId: this.documentSubtypeId,
+      documentModelId: this.documentModelId,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate),
       expirationDate: DateUtils.toString(this.expirationDate),
@@ -131,8 +124,8 @@ export class DocumentHistory {
       comment: this.comment,
       action: this.action,
       updatedBy: this.updatedBy,
-      isExpired: this.isExpired(),
-      daysUntilExpiration: this.daysUntilExpiration(),
+      isExpired: this.isExpired,
+      daysUntilExpiration: this.daysUntilExpiration,
       updatedAt: DateTimeUtils.toString(this.updatedAt),
     };
   }

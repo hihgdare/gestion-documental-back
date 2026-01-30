@@ -457,7 +457,13 @@ export class DependencyContainer {
 
 
     // Initialize Document use cases
-    this.createDocumentUseCase = new CreateDocumentUseCase(this.documentRepository, this.documentHistoryRepository, this.groupRepository);
+    this.createDocumentUseCase = new CreateDocumentUseCase(
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.groupRepository,
+      this.documentModelRepository,
+      this.familyRepository,
+    );
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
     this.getDocumentsByContractIdUseCase = new GetDocumentsByContractIdUseCase(this.documentRepository);
@@ -465,7 +471,12 @@ export class DependencyContainer {
     this.getDocumentsByColaboratorIdUseCase = new GetDocumentsByColaboratorIdUseCase(this.documentRepository);
     this.getExpiredDocumentsUseCase = new GetExpiredDocumentsUseCase(this.documentRepository);
     this.getExpiringDocumentsUseCase = new GetExpiringDocumentsUseCase(this.documentRepository);
-    this.updateDocumentUseCase = new UpdateDocumentUseCase(this.documentRepository, this.documentHistoryRepository, this.groupRepository);
+    this.updateDocumentUseCase = new UpdateDocumentUseCase(
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.groupRepository,
+      this.documentModelRepository,
+    );
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.approveDocumentUseCase = new ApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
@@ -478,6 +489,8 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.contractRepository,
       this.colaboratorRepository,
+      this.documentModelRepository,
+      this.familyRepository,
     );
 
 
@@ -730,6 +743,7 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.contractRepository,
       this.colaboratorRepository,
+      this.familyRepository,
     );
 
     this.documentModelController = new DocumentModelController(

@@ -14,10 +14,11 @@ export interface DocumentRepository {
   save(request: Partial<Omit<Document, 'id'>>): Promise<Document>;
   update(request: Document & { id: string }): Promise<Document>;
   delete(id: string): Promise<void>;
-  findByTypeAndSubtypeId(typeId: string, subtypeId: string): Promise<Document[]>;
+  findByDocumentModelId(documentModelId: string): Promise<Document[]>;
   findByColaboratorIds(colaboratorIds: string[]): Promise<Document[]>;
   findExpiredDocuments(): Promise<Document[]>;
   findExpiringDocuments(days: number): Promise<Document[]>;
-  existsByTypeSubtypeAndColaborator(typeId: string, subtypeId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
-  existsByTypeSubtypeContractColaborator(typeId: string, subtypeId: string, contractId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
+  existsByModelAndColaborator(documentModelId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
+  existsByModelContractColaborator(documentModelId: string, contractId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
+  findByTypeAndSubtypeId(typeId: string, subtypeId: string): Promise<Document[]>;
 }

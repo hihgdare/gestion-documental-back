@@ -7,10 +7,9 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { DocumentEntity } from './document.entity';
-import { DocumentTypeEntity } from './document-type.entity';
-import { DocumentSubtypeEntity } from './document-subtype.entity';
 import { ContractEntity } from './contract.entity';
+import { DocumentEntity } from './document.entity';
+import { DocumentModelEntity } from './document-model.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents_history')
@@ -29,19 +28,12 @@ export class DocumentHistoryEntity {
   @JoinColumn({ name: 'document_id' })
   document!: DocumentEntity;
 
-  @Column({ name: 'document_type_id', type: 'varchar', length: 36 })
-  documentTypeId!: string;
+  @Column({ name: 'document_model_id', type: 'varchar', length: 36 })
+  documentModelId!: string;
 
-  @ManyToOne(() => DocumentTypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_type_id' })
-  documentType!: DocumentTypeEntity;
-
-  @Column({ name: 'document_subtype_id', type: 'varchar', length: 36 })
-  documentSubtypeId!: string;
-
-  @ManyToOne(() => DocumentSubtypeEntity, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'document_subtype_id' })
-  documentSubtype!: DocumentSubtypeEntity;
+  @ManyToOne(() => DocumentModelEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'document_model_id' })
+  documentModel!: DocumentModelEntity;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;

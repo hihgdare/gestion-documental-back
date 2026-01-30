@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ForbiddenError, UnauthorizedError, ValidationError } from '@shared/domain/errors';
+import { parseNum } from '@shared/utils/numbers';
 
 type Body = Request['body'];
 type GroupIdHandlers = {
@@ -23,7 +24,7 @@ export const assignGroup = (handlers?: GroupIdHandlers) => (req: Request, _res: 
   }
 
   // Si el usuario tiene grupo asignado, lo almacena y continua.
-  const userGroupId = parseId(req.auth?.groupId);
+  const userGroupId = parseNum(req.auth?.groupId);
   if (userGroupId) return setGroupId(userGroupId), next();
 
   // Si tiene el permiso admin:groups, devuelve error de validación.
@@ -87,13 +88,7 @@ function init(req: Request, handlers?: GroupIdHandlers) {
   const setter = handlers?.set ?? ((body: Body, groupId?: number) => { body.groupId = groupId; });
   return [
     user,
-    parseId(getter(req.body)),
+    parseNum(getter(req.body)),
     (groupId?: number) => setter(req.body, groupId),
   ] as const;
-}
-
-function parseId(value: any): number | null {
-  if (!value) return null;
-  const id = Number(value);
-  return isNaN(id) ? null : id;
 }

@@ -84,12 +84,39 @@ describe('DocumentModelController', () => {
 
     userId = createdUser.id;
 
+    // Create Contract
+    const today = new Date().toISOString().split('T')[0];
+    const nextYear = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0];
+    const contractRes = await supertest(app)
+      .post('/api/contracts')
+      .set('Authorization', `Bearer user-id:${userId}`)
+      .set('Cookie', [`groupId=${groupId}`])
+      .send({
+        contractNumber: `CN-${Date.now()}`,
+        rutSociedad: '76.123.456-7',
+        nombreMandante: 'Mandante Test',
+        rutAdministradorContrato: '12.345.678-9',
+        administradorContratoMandante: 'Admin Mandante',
+        administradorContratoEmpresa: 'Admin Empresa',
+        nombreColaborador: 'Colaborador Test',
+        startDate: today,
+        endDate: nextYear,
+        contractType: 'consultoria',
+        jornadaTrabajo: 'completa',
+        groupId,
+      });
+
+    if (contractRes.status !== 201) {
+      console.error('Contract creation failed:', JSON.stringify(contractRes.body, null, 2));
+    }
+    contractId = contractRes.body.data.id;
+
     // Create family
     const familyResponse = await supertest(app)
       .post('/api/families')
       .set('Authorization', `Bearer user-id:${userId}`)
       .set('Cookie', [`groupId=${groupId}`])
-      .send({ name: 'Test Family' });
+      .send({ name: 'Test Family', contractId });
 
     if (familyResponse.status !== 201) {
       console.error('Family creation failed:', JSON.stringify(familyResponse.body, null, 2));

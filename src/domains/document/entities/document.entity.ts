@@ -6,11 +6,8 @@ import { DocumentStatus } from '../value-objects/document-enums';
 
 export interface DocumentProps {
   id?: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  documentModelId: string;
   colaboratorIds?: string[];
-  documentTypeName?: string;
-  documentSubtypeName?: string;
   name: string;
   issuedDate?: Date;
   expirationDate?: Date | null;
@@ -20,9 +17,6 @@ export interface DocumentProps {
   description?: string;
   documentUrl?: string;
   status?: string;
-  requiredForContract?: boolean;
-  requiredForColaborator?: boolean;
-  requiredExpirationDate?: boolean;
   groupId: number;
   createdBy?: string;
   comment?: string | null;
@@ -30,15 +24,21 @@ export interface DocumentProps {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+
+  // Read-only properties from DocumentModel (for display)
+  documentTypeId?: string;
+  documentSubtypeId?: string;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
+  requiredExpirationDate?: boolean;
 }
 
 export class Document {
   id: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  documentModelId: string;
   colaboratorIds: string[];
-  documentTypeName?: string;
-  documentSubtypeName?: string;
   name: string;
   issuedDate: Date | null;
   expirationDate: Date | null;
@@ -48,9 +48,6 @@ export class Document {
   description?: string;
   documentUrl?: string;
   status: DocumentStatus;
-  requiredForContract: boolean;
-  requiredForColaborator: boolean;
-  requiredExpirationDate: boolean;
   groupId: number;
   createdBy: string | null;
   comment: string | null;
@@ -58,6 +55,15 @@ export class Document {
   deletedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+
+  // Read-only properties
+  documentTypeId?: string;
+  documentSubtypeId?: string;
+  documentTypeName?: string;
+  documentSubtypeName?: string;
+  requiredForContract?: boolean;
+  requiredForColaborator?: boolean;
+  requiredExpirationDate?: boolean;
 
   constructor(props: DocumentProps) {
     Document.validateRequired(props);
@@ -69,9 +75,6 @@ export class Document {
       expirationDate: 'dateNullable',
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
-      requiredForContract: (required?: boolean) => required ?? false,
-      requiredForColaborator: (required?: boolean) => required ?? false,
-      requiredExpirationDate: (required?: boolean) => required ?? false,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
       deletedAt: 'dateNullable',
@@ -80,6 +83,15 @@ export class Document {
       updatedAt: 'datetime',
       colaboratorIds: (ids?: string[]) => ids ?? [],
     });
+
+    // Assign read-only props
+    this.documentTypeId = props.documentTypeId;
+    this.documentSubtypeId = props.documentSubtypeId;
+    this.documentTypeName = props.documentTypeName;
+    this.documentSubtypeName = props.documentSubtypeName;
+    this.requiredForContract = props.requiredForContract;
+    this.requiredForColaborator = props.requiredForColaborator;
+    this.requiredExpirationDate = props.requiredExpirationDate;
   }
 
   public static create(props: DocumentProps): Document {
@@ -87,12 +99,9 @@ export class Document {
   }
 
   private static validateRequired(props: DocumentProps): void {
-    if (!props.documentTypeId || props.documentTypeId.trim().length === 0) {
-      throw new ValidationError('El ID del tipo de documento es requerido');
-    }
-
-    if (!props.documentSubtypeId || props.documentSubtypeId.trim().length === 0) {
-      throw new ValidationError('El ID del subtipo de documento es requerido');
+    // console.log('Validating props:', props);
+    if (!props.documentModelId || props.documentModelId.trim().length === 0) {
+      throw new ValidationError('El ID del modelo de documento es requerido');
     }
 
     // Los colaboradores son opcionales en la creación, se pueden asignar después
@@ -158,14 +167,16 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public updateDates(issuedDate?: Date | null, expirationDate?: Date | null): void {
+  public updateDates(issuedDate?: Date | null, expirationDate?: Date | null, requiredExpirationDate?: boolean): void {
+    const isRequired = requiredExpirationDate !== undefined ? requiredExpirationDate : this.requiredExpirationDate;
+
     Document.validateDates(issuedDate, expirationDate);
 
     if (this.documentUrl && this.documentUrl.trim().length > 0) {
       if (!issuedDate) {
         throw new ValidationError('La fecha de emisión es requerida cuando se suministra el archivo');
       }
-      if (this.requiredExpirationDate && !expirationDate) {
+      if (isRequired && !expirationDate) {
         throw new ValidationError('La fecha de expiración es requerida para este documento');
       }
     }
@@ -189,21 +200,12 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public updateDocumentTypeId(documentTypeId: string): void {
-    if (!documentTypeId || documentTypeId.trim().length === 0) {
-      throw new ValidationError('El ID del tipo de documento es requerido');
+  public updateDocumentModelId(documentModelId: string): void {
+    if (!documentModelId || documentModelId.trim().length === 0) {
+      throw new ValidationError('El ID del modelo de documento es requerido');
     }
 
-    this.documentTypeId = documentTypeId;
-    this.updatedAt = new Date();
-  }
-
-  public updateDocumentSubtypeId(documentSubtypeId: string): void {
-    if (!documentSubtypeId || documentSubtypeId.trim().length === 0) {
-      throw new ValidationError('El ID del subtipo de documento es requerido');
-    }
-
-    this.documentSubtypeId = documentSubtypeId;
+    this.documentModelId = documentModelId;
     this.updatedAt = new Date();
   }
 
@@ -236,21 +238,6 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public updateRequiredForContract(required: boolean): void {
-    this.requiredForContract = required;
-    this.updatedAt = new Date();
-  }
-
-  public updateRequiredForColaborator(required: boolean): void {
-    this.requiredForColaborator = required;
-    this.updatedAt = new Date();
-  }
-
-  public updateRequiredExpirationDate(required: boolean): void {
-    this.requiredExpirationDate = required;
-    this.updatedAt = new Date();
-  }
-
   public changeGroup(groupId: number): void {
     if (!groupId) throw new ValidationError('Group ID is required', 'groupId');
     this.groupId = groupId;
@@ -269,12 +256,12 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public isExpired(): boolean {
+  public get isExpired(): boolean {
     if (!this.expirationDate) return false;
     return DateUtils.isAfter(new Date(), this.expirationDate);
   }
 
-  public daysUntilExpiration(): number | null {
+  public get daysUntilExpiration(): number | null {
     if (!this.expirationDate) return null;
     return DateUtils.daysBetween(new Date(), this.expirationDate);
   }
@@ -324,11 +311,8 @@ export class Document {
   public toJSON() {
     return {
       id: this.id,
-      documentTypeId: this.documentTypeId,
-      documentSubtypeId: this.documentSubtypeId,
+      documentModelId: this.documentModelId,
       colaboratorIds: this.colaboratorIds,
-      documentTypeName: this.documentTypeName,
-      documentSubtypeName: this.documentSubtypeName,
       name: this.name,
       issuedDate: DateUtils.toString(this.issuedDate, true),
       expirationDate: DateUtils.toString(this.expirationDate, true),
@@ -338,18 +322,24 @@ export class Document {
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,
-      requiredForContract: this.requiredForContract,
-      requiredForColaborator: this.requiredForColaborator,
-      requiredExpirationDate: this.requiredExpirationDate,
       groupId: this.groupId,
       createdBy: this.createdBy,
       comment: this.comment,
       deletedAt: DateTimeUtils.toString(this.deletedAt, true),
       deletedBy: this.deletedBy,
-      isExpired: this.isExpired(),
-      daysUntilExpiration: this.daysUntilExpiration(),
+      isExpired: this.isExpired,
+      daysUntilExpiration: this.daysUntilExpiration,
       createdAt: DateTimeUtils.toString(this.createdAt),
       updatedAt: DateTimeUtils.toString(this.updatedAt),
+
+      // Read-only properties
+      documentTypeId: this.documentTypeId,
+      documentSubtypeId: this.documentSubtypeId,
+      documentTypeName: this.documentTypeName,
+      documentSubtypeName: this.documentSubtypeName,
+      requiredForContract: this.requiredForContract,
+      requiredForColaborator: this.requiredForColaborator,
+      requiredExpirationDate: this.requiredExpirationDate,
     };
   }
 }

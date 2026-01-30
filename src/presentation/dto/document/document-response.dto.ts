@@ -1,8 +1,9 @@
 export interface DocumentResponseDto {
   id: string;
-  documentTypeId: string;
-  documentSubtypeId: string;
+  documentModelId: string;
   colaboratorIds: string[];
+  documentTypeId?: string;
+  documentSubtypeId?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   name: string;

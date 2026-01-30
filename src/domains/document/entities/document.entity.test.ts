@@ -6,8 +6,7 @@ import { DocumentStatus } from '../value-objects/document-enums';
 
 describe('Document Entity', () => {
   const validProps: DocumentProps = {
-    documentTypeId: 'type-1',
-    documentSubtypeId: 'subtype-1',
+    documentModelId: 'model-1',
     name: 'Test Document',
     groupId: 1,
     status: DocumentStatus.DRAFT,

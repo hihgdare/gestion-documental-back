@@ -5,10 +5,10 @@ import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 
 export interface UpdateDocumentRequest {
-  documentTypeId?: string;
-  documentSubtypeId?: string;
+  documentModelId?: string;
   colaboratorIds?: string[];
   name?: string;
   issuedDate?: Date;
@@ -26,6 +26,7 @@ export class UpdateDocumentUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly documentModelRepository: IDocumentModelRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -39,22 +40,31 @@ export class UpdateDocumentUseCase {
       document.updateName(request.name);
     }
 
-    if (request.documentTypeId !== undefined) {
-      document.updateDocumentTypeId(request.documentTypeId);
-    }
-
-    if (request.documentSubtypeId !== undefined) {
-      document.updateDocumentSubtypeId(request.documentSubtypeId);
+    if (request.documentModelId !== undefined) {
+      // Validate new model exists
+      const model = await this.documentModelRepository.findById(request.documentModelId);
+      if (!model) {
+        throw new ValidationError('Document Model not found', 'documentModelId');
+      }
+      document.updateDocumentModelId(request.documentModelId);
     }
 
     if (request.colaboratorIds !== undefined) {
       document.updateColaborators(request.colaboratorIds);
     }
 
+    // Load model to check validation rules (either new model or existing one)
+    const currentModelId = request.documentModelId || document.documentModelId;
+    const documentModel = await this.documentModelRepository.findById(currentModelId);
+    if (!documentModel) {
+      throw new ValidationError('Document Model not found for the document', 'documentModelId');
+    }
+
     if (request.issuedDate !== undefined || request.expirationDate !== undefined) {
       document.updateDates(
         request.issuedDate || document.issuedDate,
         request.expirationDate !== undefined ? request.expirationDate : (document.expirationDate || undefined),
+        documentModel.requiredExpirationDate,
       );
     }
 
@@ -80,32 +90,29 @@ export class UpdateDocumentUseCase {
     }
 
     // Verificar que no haya documentos duplicados
-    const finalDocumentTypeId = document.documentTypeId;
-    const finalDocumentSubtypeId = document.documentSubtypeId;
+    const finalDocumentModelId = document.documentModelId;
     const finalContractId = document.contractId;
     const finalColaboratorIds = document.colaboratorIds;
 
     if (finalColaboratorIds && finalColaboratorIds.length > 0) {
       let exists = false;
       if (finalContractId) {
-        exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
-          finalDocumentTypeId,
-          finalDocumentSubtypeId,
+        exists = await this.documentRepository.existsByModelContractColaborator(
+          finalDocumentModelId,
           finalContractId,
           finalColaboratorIds,
           document.id,
         );
       } else {
-        exists = await this.documentRepository.existsByTypeSubtypeAndColaborator(
-          finalDocumentTypeId,
-          finalDocumentSubtypeId,
+        exists = await this.documentRepository.existsByModelAndColaborator(
+          finalDocumentModelId,
           finalColaboratorIds,
           document.id,
         );
       }
 
       if (exists) {
-        throw new ValidationError(`Ya existe un documento de este tipo para los colaboradores seleccionados${finalContractId ? ' en este contrato' : ''}.`);
+        throw new ValidationError(`Ya existe un documento de este modelo para los colaboradores seleccionados${finalContractId ? ' en este contrato' : ''}.`);
       }
     }
 
@@ -118,8 +125,7 @@ export class UpdateDocumentUseCase {
     // Crear entrada de historial
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
-      documentTypeId: updatedDocument.documentTypeId,
-      documentSubtypeId: updatedDocument.documentSubtypeId,
+      documentModelId: updatedDocument.documentModelId || document.documentModelId,
       name: updatedDocument.name,
       issuedDate: updatedDocument.issuedDate,
       expirationDate: updatedDocument.expirationDate,

@@ -188,8 +188,6 @@ export const getDocumentSubtypeByIdSchema = Joi.object({
 });
 
 export const createDocumentSchema = Joi.object({
-  documentTypeId: Joi.string().uuid().required(),
-  documentSubtypeId: Joi.string().uuid().required(),
   colaboratorIds: Joi.array().items(Joi.string().uuid()).optional().allow(null),
   name: Joi.string().min(2).max(255).required(),
   issuedDate: Joi.date()
@@ -205,12 +203,8 @@ export const createDocumentSchema = Joi.object({
       'date.greater': 'expirationDate must be after issuedDate',
       'date.base': 'expirationDate must be a valid date',
     }),
-  contractId: Joi.string().uuid().optional().allow(null),
   description: Joi.string().max(1000).optional().allow('', null),
   documentUrl: Joi.string().optional().allow('', null),
-  requiredForContract: Joi.boolean().optional().default(false),
-  requiredForColaborator: Joi.boolean().optional().default(false),
-  requiredExpirationDate: Joi.boolean().optional().default(false),
   groupId: Joi.number().integer().positive().required(),
 }).unknown(true);
 

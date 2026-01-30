@@ -8,6 +8,7 @@ import {
 import { UpdateDocumentModelUseCase, DeleteDocumentModelUseCase } from '@domains/document-model/use-cases/update-document-model.use-case';
 import { AssignDocumentsFromModelUseCase } from '@domains/document-model/use-cases/assign-documents-from-model.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
+import { parseNum } from '@shared/utils/numbers';
 
 export class DocumentModelController {
   constructor(
@@ -21,7 +22,11 @@ export class DocumentModelController {
   ) {}
 
   public createDocumentModel = asyncHandler(async (req: Request, res: Response) => {
-    const documentModel = await this.createDocumentModelUseCase.execute(req.body);
+    const request = {
+      ...req.body,
+      groupId: req.body.groupId || req.auth?.groupId,
+    };
+    const documentModel = await this.createDocumentModelUseCase.execute(request);
     res.status(201).json({
       success: true,
       data: documentModel.toJSON(),
@@ -39,7 +44,7 @@ export class DocumentModelController {
   });
 
   public getAllDocumentModels = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = req.auth?.groupId;
+    const groupId = parseNum(req.query.groupId) || req.auth?.groupId;
     const { familyId } = req.query;
     const documentModels = await this.getAllDocumentModelsUseCase.execute(groupId, familyId as string);
     res.status(200).json({
@@ -80,12 +85,11 @@ export class DocumentModelController {
   });
 
   public assignDocumentsFromModel = asyncHandler(async (req: Request, res: Response) => {
-    const { documentModelId, contractId, colaboratorIds, comment } = req.body;
+    const { documentModelId, colaboratorIds, comment } = req.body;
     const createdBy = (req as any).user?.id;
 
     const result = await this.assignDocumentsFromModelUseCase.execute({
       documentModelId,
-      contractId,
       colaboratorIds,
       createdBy,
       comment,

@@ -5,20 +5,18 @@ import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
-import { ValidationError } from '@shared/domain/errors';
+import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
+import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
+import { ValidationError, NotFoundError } from '@shared/domain/errors';
 
 export interface AssignDocumentsToGroupRequest {
-  documentTypeId: string;
-  documentSubtypeId: string;
-  contractId: string;
+  documentModelId: string;
   colaboratorIds: string[];
   issuedDate?: Date;
   expirationDate?: Date;
   name?: string;
   createdBy?: string;
   comment?: string;
-  requiredForContract?: boolean;
-  requiredForColaborator?: boolean;
 }
 
 export interface AssignDocumentsToGroupResult {
@@ -32,12 +30,25 @@ export class AssignDocumentsToGroupUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly contractRepository: ContractRepository,
     private readonly colaboratorRepository: ColaboratorRepository,
+    private readonly documentModelRepository: IDocumentModelRepository,
+    private readonly familyRepository: IFamilyRepository,
   ) {}
 
   public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
-    const contract = await this.contractRepository.findById(request.contractId);
+    const documentModel = await this.documentModelRepository.findById(request.documentModelId);
+    if (!documentModel) {
+      throw new ValidationError('Modelo de documento no encontrado');
+    }
+
+    const family = await this.familyRepository.findById(documentModel.familyId);
+    if (!family) {
+      throw new NotFoundError('Familia asociada al modelo no encontrada');
+    }
+    const contractId = family.contractId;
+
+    const contract = await this.contractRepository.findById(contractId);
     if (!contract) {
-      throw new ValidationError('Contrato no encontrado');
+      throw new ValidationError('Contrato asociado a la familia no encontrado');
     }
 
     if (!request.colaboratorIds || request.colaboratorIds.length === 0) {
@@ -54,10 +65,9 @@ export class AssignDocumentsToGroupUseCase {
         continue;
       }
 
-      const exists = await this.documentRepository.existsByTypeSubtypeContractColaborator(
-        request.documentTypeId,
-        request.documentSubtypeId,
-        request.contractId,
+      const exists = await this.documentRepository.existsByModelContractColaborator(
+        request.documentModelId,
+        contractId,
         [colaboratorId],
       );
       if (exists) {
@@ -66,16 +76,22 @@ export class AssignDocumentsToGroupUseCase {
       }
 
       const props: DocumentProps = {
-        documentTypeId: request.documentTypeId,
-        documentSubtypeId: request.documentSubtypeId,
+        documentModelId: request.documentModelId,
         colaboratorIds: [colaboratorId],
-        name: request.name?.trim() || `${request.documentTypeId} ${request.documentSubtypeId}`,
+        name: request.name?.trim() || `${documentModel.documentTypeId} ${documentModel.documentSubtypeId}`,
         issuedDate: request.issuedDate,
         expirationDate: request.expirationDate,
-        contractId: request.contractId,
+        contractId: contractId,
         createdBy: request.createdBy,
-        requiredForContract: request.requiredForContract,
-        requiredForColaborator: request.requiredForColaborator,        groupId: colaborator.groupId      };
+        groupId: colaborator.groupId,
+
+        // Read-only properties populated for completeness if needed immediately
+        documentTypeId: documentModel.documentTypeId,
+        documentSubtypeId: documentModel.documentSubtypeId,
+        requiredForContract: documentModel.requiredForContract,
+        requiredForColaborator: documentModel.requiredForColaborator,
+        requiredExpirationDate: documentModel.requiredExpirationDate,
+      };
       const doc = Document.create(props);
       const saved = await this.documentRepository.save(doc);
       created.push(saved);
@@ -83,8 +99,7 @@ export class AssignDocumentsToGroupUseCase {
       if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
-          documentTypeId: saved.documentTypeId,
-          documentSubtypeId: saved.documentSubtypeId,
+          documentModelId: saved.documentModelId || request.documentModelId,
           name: saved.name,
           issuedDate: saved.issuedDate,
           expirationDate: saved.expirationDate || undefined,
