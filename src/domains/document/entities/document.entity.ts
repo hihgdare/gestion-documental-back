@@ -256,12 +256,12 @@ export class Document {
     this.updatedAt = new Date();
   }
 
-  public isExpired(): boolean {
+  public get isExpired(): boolean {
     if (!this.expirationDate) return false;
     return DateUtils.isAfter(new Date(), this.expirationDate);
   }
 
-  public daysUntilExpiration(): number | null {
+  public get daysUntilExpiration(): number | null {
     if (!this.expirationDate) return null;
     return DateUtils.daysBetween(new Date(), this.expirationDate);
   }
@@ -327,8 +327,8 @@ export class Document {
       comment: this.comment,
       deletedAt: DateTimeUtils.toString(this.deletedAt, true),
       deletedBy: this.deletedBy,
-      isExpired: this.isExpired(),
-      daysUntilExpiration: this.daysUntilExpiration(),
+      isExpired: this.isExpired,
+      daysUntilExpiration: this.daysUntilExpiration,
       createdAt: DateTimeUtils.toString(this.createdAt),
       updatedAt: DateTimeUtils.toString(this.updatedAt),
 

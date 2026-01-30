@@ -113,17 +113,7 @@ export class DocumentModel {
     this.updatedAt = new Date();
   }
 
-  public softDelete(): void {
-    this.deletedAt = new Date();
-    this.updatedAt = new Date();
-  }
-
-  public restore(): void {
-    this.deletedAt = null;
-    this.updatedAt = new Date();
-  }
-
-  public toJSON() {
+  public toJSON(): any {
     return {
       id: this.id,
       groupId: this.groupId,

@@ -64,7 +64,17 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
     const domain = new DocumentHistory(props);
     const entity = this.toEntity(domain);
     const savedEntity = await this.repository.save(entity);
-    return this.toDomain(savedEntity);
+
+    const loadedEntity = await this.repository.findOne({
+      where: { id: savedEntity.id },
+      relations: ['documentModel', 'updater'],
+    });
+
+    if (!loadedEntity) {
+      throw new Error('Could not load saved document history');
+    }
+
+    return this.toDomain(loadedEntity);
   }
 
   async delete(id: string): Promise<void> {
@@ -75,8 +85,7 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
     return new DocumentHistory({
       id: entity.id,
       documentId: entity.documentId,
-      documentTypeId: entity.documentTypeId,
-      documentSubtypeId: entity.documentSubtypeId,
+      documentModelId: entity.documentModelId || entity.documentModel?.id,
       name: entity.name,
       issuedDate: DateUtils.parse(entity.issuedDate)!,
       expirationDate: DateUtils.parse(entity.expirationDate),
@@ -97,8 +106,7 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
     return {
       id: history.id,
       documentId: history.documentId,
-      documentTypeId: history.documentTypeId,
-      documentSubtypeId: history.documentSubtypeId,
+      documentModelId: history.documentModelId,
       name: history.name,
       issuedDate: DateUtils.toLocalDate(history.issuedDate)!,
       expirationDate: history.expirationDate ? DateUtils.toLocalDate(history.expirationDate) : undefined,

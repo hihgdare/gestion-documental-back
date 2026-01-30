@@ -107,8 +107,7 @@ export class AssignDocumentsFromModelUseCase {
       if (request.createdBy && request.createdBy !== 'system') {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
-          documentTypeId: saved.documentTypeId!,
-          documentSubtypeId: saved.documentSubtypeId!,
+          documentModelId: saved.documentModelId,
           name: saved.name,
           issuedDate: saved.issuedDate || undefined,
           expirationDate: saved.expirationDate || undefined,

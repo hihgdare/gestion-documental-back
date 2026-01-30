@@ -88,6 +88,7 @@ export class DocumentController {
   });
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    console.log('DocumentController.createDocument body:', JSON.stringify(req.body, null, 2));
     const dto: CreateDocumentDto = req.body;
 
     const document = await this.createDocumentUseCase.execute({
@@ -326,9 +327,9 @@ export class DocumentController {
     return {
       id: json.id,
       documentModelId: json.documentModelId,
-      documentTypeId: json.documentTypeId || '',
-      documentSubtypeId: json.documentSubtypeId || '',
       colaboratorIds: json.colaboratorIds || [],
+      documentTypeId: document.documentTypeId,
+      documentSubtypeId: document.documentSubtypeId,
       documentTypeName: document.documentTypeName,
       documentSubtypeName: document.documentSubtypeName,
       name: json.name,
@@ -344,8 +345,8 @@ export class DocumentController {
       requiredForColaborator: json.requiredForColaborator ?? false,
       requiredExpirationDate: json.requiredExpirationDate ?? false,
       comment: json.comment,
-      isExpired: document.isExpired(),
-      daysUntilExpiration: document.daysUntilExpiration(),
+      isExpired: document.isExpired,
+      daysUntilExpiration: document.daysUntilExpiration,
       createdAt: json.createdAt,
       updatedAt: json.updatedAt,
     };

@@ -22,7 +22,11 @@ export class DocumentModelController {
   ) {}
 
   public createDocumentModel = asyncHandler(async (req: Request, res: Response) => {
-    const documentModel = await this.createDocumentModelUseCase.execute(req.body);
+    const request = {
+      ...req.body,
+      groupId: req.body.groupId || req.auth?.groupId,
+    };
+    const documentModel = await this.createDocumentModelUseCase.execute(request);
     res.status(201).json({
       success: true,
       data: documentModel.toJSON(),

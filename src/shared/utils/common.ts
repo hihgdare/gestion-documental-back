@@ -103,13 +103,27 @@ export class EntityUtils {
       if (isFunction(parser)) return parser;
       return isString(parser) && parserKeys.includes(parser) ? defaultParsers[parser] : undefined;
     })) as Record<keyof P, ParserMethod | undefined>;
-    Object.keys(a).forEach(key => {
-      const parser = parsers?.[key];
-      if (key in b) {
-        // @ts-expect-error: We know that the key is in `a` and `b`
-        a[key] = isFunction(parser) ? parser(b[key]) : b[key];
-      }
+
+    // 1. Assign from b
+    Object.keys(b).forEach(key => {
+      const parser = parsers?.[key as unknown as keyof P];
+      // @ts-expect-error: We know that the key is in `a` and `b`
+      a[key] = isFunction(parser) ? parser(b[key]) : b[key];
     });
+
+    // 2. Handle parsers for keys missing in b (e.g. auto-generation)
+    if (parserList) {
+      Object.keys(parserList).forEach(key => {
+        if (!(key in b)) {
+          const parser = parsers?.[key as unknown as keyof P];
+          if (isFunction(parser)) {
+            // @ts-expect-error: We know that the key is in `a`
+            a[key] = parser(undefined);
+          }
+        }
+      });
+    }
+
     return a;
   }
 

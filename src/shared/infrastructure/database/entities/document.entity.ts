@@ -13,12 +13,14 @@ import {
 } from 'typeorm';
 import { DocumentModelEntity } from './document-model.entity';
 import { ColaboratorEntity } from './colaborators.entity';
+import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
 @Index('IDX_documents_status', ['status'])
 @Index('IDX_documents_deleted_at', ['deletedAt'])
 @Index('IDX_documents_group_id', ['groupId'])
+@Index('IDX_documents_contract_id', ['contractId'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -29,6 +31,13 @@ export class DocumentEntity {
   @ManyToOne(() => DocumentModelEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'document_model_id' })
   documentModel!: DocumentModelEntity;
+
+  @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
+  contractId?: string;
+
+  @ManyToOne(() => ContractEntity, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'contract_id' })
+  contract?: ContractEntity;
 
   @ManyToMany(() => ColaboratorEntity)
   @JoinTable({

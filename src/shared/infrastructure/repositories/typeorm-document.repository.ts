@@ -272,10 +272,13 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   private toDomain(entity: DocumentEntity): Document {
+    if (!entity.documentModelId && !entity.documentModel) {
+      console.log('TypeOrmDocumentRepository.toDomain: documentModelId and documentModel are missing', JSON.stringify(entity, null, 2));
+    }
     const colaboratorIds = entity.colaborators ? entity.colaborators.map(c => c.id) : [];
     const props: DocumentProps = {
       id: entity.id,
-      documentModelId: entity.documentModelId,
+      documentModelId: entity.documentModelId || entity.documentModel?.id,
       colaboratorIds: colaboratorIds.length > 0 ? colaboratorIds : [],
       name: entity.name,
       issuedDate: entity.issuedDate,
@@ -293,8 +296,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       updatedAt: entity.updatedAt,
 
       // Populate read-only props from Model
-      documentTypeId: entity.documentModel?.documentTypeId,
-      documentSubtypeId: entity.documentModel?.documentSubtypeId,
+      documentTypeId: entity.documentModel?.documentType?.id,
+      documentSubtypeId: entity.documentModel?.documentSubtype?.id,
       documentTypeName: entity.documentModel?.documentType?.name,
       documentSubtypeName: entity.documentModel?.documentSubtype?.name,
       requiredForContract: entity.documentModel?.requiredForContract,

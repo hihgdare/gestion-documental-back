@@ -26,10 +26,9 @@ export class RejectDocumentUseCase {
     // Crear registro en historial
     const historyProps: DocumentHistoryProps = {
       documentId: document.id,
+      documentModelId: document.documentModelId,
       action: DocumentAction.REJECTED,
       updatedBy: userId === 'system' ? undefined : userId,
-      documentTypeId: document.documentTypeId!,
-      documentSubtypeId: document.documentSubtypeId!,
       name: document.name,
       issuedDate: document.issuedDate,
       expirationDate: document.expirationDate,

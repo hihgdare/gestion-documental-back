@@ -99,8 +99,7 @@ export class AssignDocumentsToGroupUseCase {
       if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
         const history: DocumentHistoryProps = {
           documentId: saved.id,
-          documentTypeId: saved.documentTypeId!,
-          documentSubtypeId: saved.documentSubtypeId!,
+          documentModelId: saved.documentModelId || request.documentModelId,
           name: saved.name,
           issuedDate: saved.issuedDate,
           expirationDate: saved.expirationDate || undefined,

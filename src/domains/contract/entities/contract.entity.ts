@@ -307,7 +307,7 @@ export class Contract {
     return start > today;
   }
 
-  public isExpired(): boolean {
+  public get isExpired(): boolean {
     if (!this.endDate || !(this.endDate instanceof Date)) return false;
     return DateUtils.isAfter(new Date(), this.endDate);
   }
@@ -352,7 +352,7 @@ export class Contract {
       endDate: DateUtils.toString(this.endDate),
       duration: this.getDuration(),
       isActive: this.isActive(),
-      isExpired: this.isExpired(),
+      isExpired: this.isExpired,
       colaborators: this.colaborators?.map((colaborator) => colaborator.toJSON()) ?? [],
       createdAt: DateTimeUtils.toString(this.createdAt),
       updatedAt: DateTimeUtils.toString(this.updatedAt),

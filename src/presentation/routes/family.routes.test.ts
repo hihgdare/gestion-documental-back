@@ -6,12 +6,15 @@ import { App } from '@/app';
 import { AppDataSource, clearDatabase } from '@shared/infrastructure/database/typeorm.config';
 import { DependencyContainer } from '@/dependency-container';
 import { User } from '@domains/user/entities/user.entity';
+import { Contract } from '@domains/contract/entities/contract.entity';
+import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 
 describe('FamilyController', () => {
   let appInstance: App;
   let app: Application;
   let dependencyContainer: DependencyContainer;
   let user: User;
+  let contract: Contract;
 
   beforeAll(async () => {
     process.env.ENABLE_RBAC = 'false';
@@ -32,8 +35,32 @@ describe('FamilyController', () => {
 
     const createUserUseCase = dependencyContainer.getCreateUserUseCase();
     const roleRepository = dependencyContainer.getRoleRepository();
+    const groupRepository = dependencyContainer.getGroupRepository();
+    const contractRepository = dependencyContainer.getContractRepository();
 
     const defaultRole = await roleRepository.save({ name: 'default.role', description: 'Default role for tests' });
+
+    // Create Group
+    const group = await groupRepository.save({
+      name: 'Test Group',
+      description: 'Test Description',
+    });
+
+    // Create Contract
+    contract = await contractRepository.save({
+      rutSociedad: '12345678-9',
+      nombreColaborador: 'Test Colaborador',
+      startDate: new Date(),
+      contractType: ContractType.INDEFINIDO,
+      administradorContratoMandante: 'Admin Mandante',
+      administradorContratoEmpresa: 'Admin Empresa',
+      rutAdministradorContrato: '98765432-1',
+      contractNumber: 'TEST-001',
+      nombreMandante: 'Mandante Test',
+      jornadaTrabajo: JornadaTrabajo.COMPLETA,
+      groupId: group.id!,
+      status: ContractStatus.ACTIVE,
+    });
 
     user = await createUserUseCase.execute({
       email: 'test@example.com',
@@ -41,6 +68,7 @@ describe('FamilyController', () => {
       lastName: 'User',
       password: 'password123',
       roleIds: [defaultRole.id],
+      groupId: group.id!,
     });
   });
 
@@ -49,7 +77,7 @@ describe('FamilyController', () => {
       const response = await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Test Family' });
+        .send({ name: 'Test Family', contractId: contract.id });
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
@@ -61,12 +89,12 @@ describe('FamilyController', () => {
       await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Test Family' });
+        .send({ name: 'Test Family', contractId: contract.id });
 
       const response = await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Test Family' });
+        .send({ name: 'Test Family', contractId: contract.id });
 
       expect(response.status).toBe(409);
     });
@@ -77,12 +105,12 @@ describe('FamilyController', () => {
       await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Family 1' });
+        .send({ name: 'Family 1', contractId: contract.id });
 
       await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Family 2' });
+        .send({ name: 'Family 2', contractId: contract.id });
 
       const response = await supertest(app)
         .get('/api/families')
@@ -100,7 +128,7 @@ describe('FamilyController', () => {
       const createResponse = await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Test Family' });
+        .send({ name: 'Test Family', contractId: contract.id });
 
       const familyId = createResponse.body.data.id;
 
@@ -128,7 +156,7 @@ describe('FamilyController', () => {
       const createResponse = await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Original Name' });
+        .send({ name: 'Original Name', contractId: contract.id });
 
       const familyId = createResponse.body.data.id;
 
@@ -148,7 +176,7 @@ describe('FamilyController', () => {
       const createResponse = await supertest(app)
         .post('/api/families')
         .set('Authorization', `Bearer user-id:${user.id}`)
-        .send({ name: 'Test Family' });
+        .send({ name: 'Test Family', contractId: contract.id });
 
       const familyId = createResponse.body.data.id;
 

@@ -95,8 +95,6 @@ export class AssignDocumentsFromFamilyUseCase {
           groupId: colaborator.groupId,
 
           // Read-only props
-          documentTypeId: model.documentTypeId,
-          documentSubtypeId: model.documentSubtypeId,
           requiredForContract: model.requiredForContract,
           requiredForColaborator: model.requiredForColaborator,
           requiredExpirationDate: model.requiredExpirationDate,
@@ -110,8 +108,7 @@ export class AssignDocumentsFromFamilyUseCase {
         if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
           const history: DocumentHistoryProps = {
             documentId: saved.id,
-            documentTypeId: saved.documentTypeId!,
-            documentSubtypeId: saved.documentSubtypeId!,
+            documentModelId: saved.documentModelId,
             name: saved.name,
             issuedDate: saved.issuedDate,
             expirationDate: saved.expirationDate || undefined,

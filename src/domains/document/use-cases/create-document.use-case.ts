@@ -93,8 +93,7 @@ export class CreateDocumentUseCase {
     if (request.createdBy && request.createdBy !== 'system') {
       const historyProps: DocumentHistoryProps = {
         documentId: savedDocument.id,
-        documentTypeId: documentModel.documentTypeId,
-        documentSubtypeId: documentModel.documentSubtypeId,
+        documentModelId: savedDocument.documentModelId || request.documentModelId,
         name: savedDocument.name,
         issuedDate: savedDocument.issuedDate,
         expirationDate: savedDocument.expirationDate,
@@ -105,7 +104,9 @@ export class CreateDocumentUseCase {
         comment: request.comment || null,
         action: DocumentAction.CREATED,
         updatedBy: request.createdBy,
+        updatedAt: new Date(),
       };
+
       await this.documentHistoryRepository.save(historyProps);
     }
 

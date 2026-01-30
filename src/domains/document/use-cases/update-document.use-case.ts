@@ -125,8 +125,7 @@ export class UpdateDocumentUseCase {
     // Crear entrada de historial
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
-      documentTypeId: documentModel.documentTypeId,
-      documentSubtypeId: documentModel.documentSubtypeId,
+      documentModelId: updatedDocument.documentModelId || document.documentModelId,
       name: updatedDocument.name,
       issuedDate: updatedDocument.issuedDate,
       expirationDate: updatedDocument.expirationDate,
