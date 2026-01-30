@@ -615,8 +615,9 @@ async function runRequestedSeeds(): Promise<void> {
   if (!ownerRole) {
     ownerRole = await saveRoleUseCase.execute({ name: ownerRoleName, description: 'Propietario' });
     const allPermissions = await permissionRepository.findAll();
+    const excludedPermissionNames = ['admin:groups', 'user:change:group', 'admin:roles'];
     const ownerPermissionIds = allPermissions
-      .filter(p => !['admin:groups', 'user:change:group'].includes(p.name))
+      .filter(p => p.id && !excludedPermissionNames.includes(p.name))
       .map(p => p.id!);
 
     if (ownerRole.id && ownerPermissionIds.length > 0) {

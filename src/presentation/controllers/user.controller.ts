@@ -79,7 +79,8 @@ export class UserController {
   public assignRoleToUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { roleIds } = req.body;
-    const user = await this.assignRoleToUserUseCase.execute({ userId: id, roleIds });
+    const currentUser = req.auth.user!;
+    const user = await this.assignRoleToUserUseCase.execute({ userId: id, roleIds, currentUser });
     res.status(200).json({
       success: true,
       data: user,

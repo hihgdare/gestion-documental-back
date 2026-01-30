@@ -1,24 +1,33 @@
-import { ConflictError, NotFoundError } from '@shared/domain/errors';
+import { ConflictError, NotFoundError, ForbiddenError } from '@shared/domain/errors';
 import { Role, UpdateRoleProps } from '@domains/role/entities/role.entity';
 import { RoleRepository } from '@domains/role/repositories/role.repository';
+import { User } from '@domains/user/entities/user.entity';
 
 export class UpdateRoleUseCase {
   constructor(private readonly roleRepository: RoleRepository) {}
 
-  async execute(props: UpdateRoleProps): Promise<Role> {
-    const role = await this.roleRepository.findById(props.id);
+  async execute(props: UpdateRoleProps & { currentUser?: User }): Promise<Role> {
+    const { currentUser, ...updateProps } = props;
+
+    const role = await this.roleRepository.findById(updateProps.id);
     if (!role) {
-      throw new NotFoundError(`Role with ID ${props.id} not found`);
+      throw new NotFoundError(`Role with ID ${updateProps.id} not found`);
     }
 
-    if (props.name) {
-      const existing = await this.roleRepository.findByName(props.name);
-      if (existing && existing.id !== props.id) {
+    if (updateProps.permissions) {
+      if (currentUser && !currentUser.can('admin:roles')) {
+        throw new ForbiddenError('Permissions cannot be updated via this endpoint. Please use the dedicated permission assignment endpoint.');
+      }
+    }
+
+    if (updateProps.name) {
+      const existing = await this.roleRepository.findByName(updateProps.name);
+      if (existing && existing.id !== updateProps.id) {
         throw new ConflictError('Role name already taken');
       }
     }
 
-    return this.roleRepository.update(props);
+    return this.roleRepository.update(updateProps);
   }
 }
 

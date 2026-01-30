@@ -27,6 +27,7 @@ const adminSections = [
 ];
 const extraPermissions = [
   'admin:groups',
+  'admin:roles',
   'colaborator-group:assign:colaborator',
   'colaborator-group:assign:document',
   'contract:assign:reviewer',
