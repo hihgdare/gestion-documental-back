@@ -78,11 +78,16 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
 
 export async function clearDatabase(DataSource?: DataSource): Promise<void> {
   if (process.env.NODE_ENV === 'production') return;
+  const synchronize = process.env.DB_SYNCHRONIZE !== 'false';
   if (!DataSource) {
     DataSource = AppDataSource;
   }
   if (DataSource.isInitialized) {
     await DataSource.dropDatabase();
-    await DataSource.synchronize();
+    if (synchronize) {
+      await DataSource.synchronize();
+    } else {
+      await DataSource.runMigrations();
+    }
   }
 }

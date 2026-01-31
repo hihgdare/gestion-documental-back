@@ -4,7 +4,29 @@ const path = require('path');
 const migrationsDir = path.join(__dirname, '..', '..', 'src', 'shared', 'infrastructure', 'database', 'migrations');
 const entitiesDir = path.join(__dirname, '..', '..', 'src', 'shared', 'infrastructure', 'database', 'entities');
 
-function extractTableEffects(content) {
+const normalize = s => s.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+
+function extractUpMethod(content) {
+  // Find "public async up" or just "up" followed by params and opening brace
+  // Typical signature: public async up(queryRunner: QueryRunner): Promise<void> {
+  const upMatch = content.match(/(\bpublic\s+async\s+up\b|\basync\s+up\b|\bup\b)\s*\([^\)]*\)[^{]*\{/);
+  if (!upMatch) return content; // Fallback: process whole file if up method not clearly found
+
+  const startIndex = upMatch.index + upMatch[0].length - 1; // Index of the opening '{'
+  let depth = 1;
+  for (let i = startIndex + 1; i < content.length; i++) {
+    if (content[i] === '{') depth++;
+    else if (content[i] === '}') depth--;
+
+    if (depth === 0) {
+      return content.substring(startIndex + 1, i);
+    }
+  }
+  return content;
+}
+
+function extractTableEffects(fileContent) {
+  const content = extractUpMethod(fileContent);
   const tableEffects = {};
 
   // Detect full Table definitions: new Table({ name: 'table', columns: [...] })
@@ -30,7 +52,7 @@ function extractTableEffects(content) {
           const cols = [];
           let m;
           while ((m = nameRegex.exec(columnsSection))) {
-            cols.push(m[1]);
+            cols.push(normalize(m[1]));
           }
           if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
           tableEffects[tableName].full = cols;
@@ -39,27 +61,82 @@ function extractTableEffects(content) {
     }
   }
 
-  // Detect addColumn: addColumn('table', new TableColumn({ name: 'col', ... }))
-  const addColRegex = /addColumn\(\s*['"]([a-z0-9_]+)['"]([\s\S]*?)\)/g;
-  let addMatch;
-  while ((addMatch = addColRegex.exec(content))) {
-    const tableName = addMatch[1];
-    const colContent = addMatch[2];
-    const nameMatch = colContent.match(/name:\s*['"]([a-zA-Z0-9_]+)['"]/);
-    if (nameMatch) {
-      if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
-      tableEffects[tableName].adds.push(nameMatch[1]);
+  // Helper to find balanced closing parenthesis
+  function findClosingParen(str, startIndex) {
+    let depth = 1;
+    for (let i = startIndex; i < str.length; i++) {
+      if (str[i] === '(') depth++;
+      else if (str[i] === ')') depth--;
+      if (depth === 0) return i;
+    }
+    return -1;
+  }
+
+  // Detect addColumn (robust) - supports runner.addColumn('table', [cols])
+  let pos = 0;
+  while ((pos = content.indexOf('addColumn(', pos)) !== -1) {
+    const startArgs = pos + 10; // 'addColumn('.length
+    const endArgs = findClosingParen(content, startArgs);
+    if (endArgs !== -1) {
+      const argsContent = content.substring(startArgs, endArgs);
+      const firstComma = argsContent.indexOf(',');
+      if (firstComma !== -1) {
+        const tablePart = argsContent.substring(0, firstComma).trim();
+        const tableMatch = tablePart.match(/^['"]([a-zA-Z0-9_]+)['"]$/);
+        if (tableMatch) {
+          const tableName = tableMatch[1];
+          const colPart = argsContent.substring(firstComma + 1);
+          const nameRegex = /name:\s*['"]([a-zA-Z0-9_]+)['"]/g;
+          let m;
+          while ((m = nameRegex.exec(colPart))) {
+            if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
+            tableEffects[tableName].adds.push(normalize(m[1]));
+          }
+        }
+      }
+    }
+    pos = startArgs;
+  }
+
+  // Detect dropColumn/dropColumns (robust) - supports runner.dropColumn('table', ['c1', 'c2'])
+  const dropKeywords = ['dropColumn(', 'dropColumns('];
+  for (const keyword of dropKeywords) {
+    let dPos = 0;
+    while ((dPos = content.indexOf(keyword, dPos)) !== -1) {
+      const startArgs = dPos + keyword.length;
+      const endArgs = findClosingParen(content, startArgs);
+      if (endArgs !== -1) {
+        const argsContent = content.substring(startArgs, endArgs);
+        const stringRegex = /['"]([a-zA-Z0-9_]+)['"]/g;
+        const matches = [];
+        let m;
+        while ((m = stringRegex.exec(argsContent))) {
+          matches.push(m[1]);
+        }
+        if (matches.length >= 2) {
+          const tableName = matches[0];
+          const columns = matches.slice(1);
+          if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
+          for (const col of columns) {
+            tableEffects[tableName].drops.push(normalize(col));
+          }
+        }
+      }
+      dPos = startArgs;
     }
   }
 
-  // Detect dropColumn: dropColumn('table', 'col')
-  const dropColRegex = /dropColumn\(\s*['"]([a-z0-9_]+)['"]\s*,\s*['"]([a-zA-Z0-9_]+)['"]/g;
-  let dropMatch;
-  while ((dropMatch = dropColRegex.exec(content))) {
-    const tableName = dropMatch[1];
-    const colName = dropMatch[2];
+  // Detect manual queries that drop columns (fallback for raw SQL migrations)
+  // e.g. ALTER TABLE `documents_history` DROP COLUMN `document_type_id`
+  // e.g. queryRunner.query('ALTER TABLE documents_history DROP COLUMN document_type_id')
+  const rawDropRegex = /ALTER\s+TABLE\s+[`'"]?([a-zA-Z0-9_]+)[`'"]?\s+DROP\s+(?:COLUMN\s+)?[`'"]?([a-zA-Z0-9_]+)[`'"]?/gi;
+  let rawDropMatch;
+  while ((rawDropMatch = rawDropRegex.exec(content))) {
+    const tableName = rawDropMatch[1];
+    const colName = rawDropMatch[2];
+    if (['FOREIGN', 'KEY', 'INDEX', 'CONSTRAINT'].includes(colName.toUpperCase())) continue;
     if (!tableEffects[tableName]) tableEffects[tableName] = { full: null, adds: [], drops: [] };
-    tableEffects[tableName].drops.push(colName);
+    tableEffects[tableName].drops.push(normalize(colName));
   }
 
   return tableEffects;
@@ -67,7 +144,6 @@ function extractTableEffects(content) {
 
 function extractColumnsFromEntity(content) {
   const cols = new Set();
-  const normalize = s => s.replace(/([A-Z])/g, '_$1').toLowerCase();
 
   // Match decorators and property names
   // Capture group 1: Decorators block
@@ -93,7 +169,7 @@ function extractColumnsFromEntity(content) {
       // Look for explicit name
       const nameMatch = decorators.match(/name:\s*['"]([^'"]+)['"]/);
       if (nameMatch) {
-        cols.add(nameMatch[1]);
+        cols.add(normalize(nameMatch[1]));
       } else {
         // Fallback to snake_case property name
         cols.add(normalize(propName));

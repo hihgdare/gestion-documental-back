@@ -32,12 +32,12 @@ export class CreateAreaTable1768795878256 implements MigrationInterface {
             isNullable: false,
           },
           {
-            name: "createdAt",
+            name: "created_at",
             type: "timestamp",
             default: "CURRENT_TIMESTAMP",
           },
           {
-            name: "updatedAt",
+            name: "updated_at",
             type: "timestamp",
             default: "CURRENT_TIMESTAMP",
             onUpdate: "CURRENT_TIMESTAMP",
