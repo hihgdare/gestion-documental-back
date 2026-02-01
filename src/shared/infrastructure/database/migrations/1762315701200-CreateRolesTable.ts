@@ -1,8 +1,9 @@
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { Table } from "typeorm";
+import { ImprovedRunner, IQueryRunner } from "../runner";
 
-export class CreateRolesTable1762315701200 implements MigrationInterface {
+export class CreateRolesTable1762315701200 extends ImprovedRunner {
 
-  public async up(queryRunner: QueryRunner): Promise<void> {
+  public async onUp(queryRunner: IQueryRunner): Promise<void> {
     await queryRunner.createTable(new Table({
       name: 'roles',
       columns: [
@@ -40,11 +41,11 @@ export class CreateRolesTable1762315701200 implements MigrationInterface {
           isNullable: false,
         },
       ],
-    }), true);
+    }));
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.dropTable('roles', true, true, true);
+  public async onDown(queryRunner: IQueryRunner): Promise<void> {
+    await queryRunner.dropTable('roles');
   }
 
 }

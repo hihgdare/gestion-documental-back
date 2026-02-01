@@ -16,5 +16,4 @@ export { FileEntity } from './file.entity';
 export { AreaEntity } from './area.entity';
 export { DivisionEntity } from './division.entity';
 export { ContractSubcontractEntity } from './contract-subcontract.entity';
-export { ContractTemplateEntity } from './contract-template.entity';
 export { DocumentHistoryEntity } from './document-history.entity';
