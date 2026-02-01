@@ -1,15 +1,14 @@
-import { MigrationInterface, QueryRunner, Table, TableColumn, TableForeignKey } from "typeorm";
-import { getRunner } from "../runner";
+import { Table, TableColumn, TableForeignKey } from "typeorm";
+import { ImprovedRunner, IQueryRunner } from "../runner";
 
-export class CreateRoleHierarchyTable1762315701201 implements MigrationInterface {
+export class CreateRoleHierarchyTable1762315701201 extends ImprovedRunner {
 
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    const runner = getRunner(queryRunner);
+  public async onUp(queryRunner: IQueryRunner): Promise<void> {
     // Drop parent_id column if it exists
-    await runner.dropColumn('roles', 'parent_id');
+    await queryRunner.dropColumn('roles', 'parent_id');
 
     // Create role_hierarchy table
-    await runner.createTable(new Table({
+    await queryRunner.createTable(new Table({
       name: 'role_hierarchy',
       columns: [
         {
@@ -51,22 +50,21 @@ export class CreateRoleHierarchyTable1762315701201 implements MigrationInterface
           onDelete: 'CASCADE',
         },
       ],
-    }), true);
+    }));
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    const runner = getRunner(queryRunner);
+  public async onDown(queryRunner: IQueryRunner): Promise<void> {
     // Drop role_hierarchy table if exists
-    await runner.dropTable('role_hierarchy', true, true, true);
+    await queryRunner.dropTable('role_hierarchy', true, true, true);
 
     // Restore parent_id only if roles table exists
-    if (!(await runner.hasColumn('roles', 'parent_id'))) {
-      await runner.addColumn('roles', new TableColumn({
+    if (!(await queryRunner.hasColumn('roles', 'parent_id'))) {
+      await queryRunner.addColumn('roles', new TableColumn({
         name: 'parent_id',
         type: 'int',
         isNullable: true,
       }));
-      await runner.createForeignKey('roles', new TableForeignKey({
+      await queryRunner.createForeignKey('roles', new TableForeignKey({
         name: 'FK_ROLES_PARENT',
         columnNames: ['parent_id'],
         referencedColumnNames: ['id'],
@@ -75,4 +73,5 @@ export class CreateRoleHierarchyTable1762315701201 implements MigrationInterface
       }));
     }
   }
+
 }
