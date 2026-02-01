@@ -351,14 +351,21 @@ export async function runSampleSeeds(): Promise<void> {
   const familyRepo = new TypeOrmFamilyRepository();
   const documentModelRepo = new TypeOrmDocumentModelRepository();
 
-  // Create Default Family
-  let family = await familyRepo.findByName('Familia de Muestra');
-  if (!family && contractIds.length > 0) {
-    family = await familyRepo.create(Family.create({
-      name: 'Familia de Muestra',
-      groupId: 1,
-      contractId: contractIds[0],
-    }));
+  // Create Families for each Contract (required for Document Models)
+  const familiesByContractId: Record<string, Family> = {};
+  for (let i = 0; i < contractIds.length; i++) {
+    const contractId = contractIds[i];
+    const name = `Familia de Muestra Contrato ${i + 1}`;
+
+    let family = await familyRepo.findByName(name);
+    if (!family) {
+      family = await familyRepo.create(Family.create({
+        name,
+        groupId: 1,
+        contractId,
+      }));
+    }
+    familiesByContractId[contractId] = family;
   }
 
   // Get first user to use as createdBy
@@ -442,10 +449,10 @@ export async function runSampleSeeds(): Promise<void> {
       testFile: 'test-document-2.pdf',
     },
     {
-      name: 'Documento Rechazado',
+      name: `Documento Rechazado-${Date.now()}`,
       documentTypeId: types[0],
       documentSubtypeId: subtypes[0],
-      contractId: contractIds[0],
+      contractId: contractIds[2],
       colaboratorIds: [colaboratorIds[6]],
       description: 'Documento de prueba rechazado',
       status: DocumentStatus.REJECTED,
@@ -460,9 +467,9 @@ export async function runSampleSeeds(): Promise<void> {
     },
     {
       name: 'Documento Rechazado con Comentarios',
-      documentTypeId: types[1],
-      documentSubtypeId: subtypes[1],
-      contractId: contractIds[1],
+      documentTypeId: types[2],
+      documentSubtypeId: subtypes[2],
+      contractId: contractIds[0],
       colaboratorIds: [colaboratorIds[0], colaboratorIds[3]],
       description: 'Documento rechazado con comentarios para corrección',
       status: DocumentStatus.REJECTED_WITH_COMMENTS,
@@ -477,8 +484,8 @@ export async function runSampleSeeds(): Promise<void> {
     },
     {
       name: 'Documento Expirado',
-      documentTypeId: types[2],
-      documentSubtypeId: subtypes[2],
+      documentTypeId: types[1],
+      documentSubtypeId: subtypes[1],
       contractId: contractIds[2],
       colaboratorIds: [colaboratorIds[1], colaboratorIds[4]],
       description: 'Documento que ya ha expirado',
@@ -493,8 +500,8 @@ export async function runSampleSeeds(): Promise<void> {
     },
     {
       name: 'Documento Obsoleto',
-      documentTypeId: types[0],
-      documentSubtypeId: subtypes[0],
+      documentTypeId: types[1],
+      documentSubtypeId: subtypes[1],
       contractId: contractIds[0],
       colaboratorIds: [colaboratorIds[2], colaboratorIds[5]],
       description: 'Documento marcado como obsoleto',
@@ -509,8 +516,8 @@ export async function runSampleSeeds(): Promise<void> {
     },
     {
       name: 'Documento Archivado',
-      documentTypeId: types[1],
-      documentSubtypeId: subtypes[1],
+      documentTypeId: types[2],
+      documentSubtypeId: subtypes[2],
       contractId: contractIds[1],
       colaboratorIds: [colaboratorIds[3], colaboratorIds[6]],
       description: 'Documento archivado para registro histórico',
@@ -527,20 +534,16 @@ export async function runSampleSeeds(): Promise<void> {
 
   for (const docData of documentsData) {
     const { testFile, documentTypeId, documentSubtypeId, requiredForContract, requiredForColaborator, ...documentProps } = docData as any;
+    const contractId = (docData as any).contractId;
 
-    // Check if document already exists by name
-    const existing = await documentRepo.findAll(undefined, { contractId: documentProps.contractId });
-    if (existing.some(d => d.name === documentProps.name)) {
-      // console.log(`  ⏭️  Documento "${documentProps.name}" ya existe, omitiendo...`);
-      continue;
-    }
+    const family = familiesByContractId[contractId];
 
     if (!family) {
-      console.error('Family not found, cannot create document model');
+      console.error(`Family not found for contract ${contractId}, cannot create document model`);
       continue;
     }
 
-    // Find or Create Document Model
+    // Find or Create Document Model - reuse if it already exists for this family/type/subtype
     let documentModel = await documentModelRepo.findByFamilyTypeSubtype(
       family.id,
       documentTypeId,
