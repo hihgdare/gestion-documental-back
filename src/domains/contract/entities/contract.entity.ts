@@ -19,6 +19,8 @@ interface BaseContractProps {
   areaName?: string;
   divisionId?: string;
   divisionName?: string;
+  companyId?: string;
+  companyName?: string;
   descripcionServicio?: string;
   nombreProyecto?: string;
   startDate?: DateType,
@@ -54,6 +56,7 @@ export type UpdateContractProps = {
   area?: string;
   areaId?: string;
   divisionId?: string;
+  companyId?: string;
   descripcionServicio?: string;
   nombreProyecto?: string;
   startDate?: DateType;
@@ -102,6 +105,8 @@ export class Contract {
   areaName?: string;
   divisionId?: string;
   divisionName?: string;
+  companyId?: string;
+  companyName?: string;
   dotacionPersonal: number;
   dotacionVehiculos: number;
   descripcionServicio?: string;
@@ -338,6 +343,8 @@ export class Contract {
       rutAdministradorContrato: this.rutAdministradorContrato,
       contractNumber: this.contractNumber,
       nombreMandante: this.nombreMandante,
+      companyId: this.companyId,
+      companyName: this.companyName,
       division: this.division,
       area: this.area,
       descripcionServicio: this.descripcionServicio,
