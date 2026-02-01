@@ -612,19 +612,19 @@ async function runRequestedSeeds(): Promise<void> {
   const assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(roleRepository, permissionRepository);
   const createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
 
-  // 1. Create 'propietario' role
-  const ownerRoleName = 'propietario';
-  let ownerRole = await roleRepository.findByName(ownerRoleName);
-  if (!ownerRole) {
-    ownerRole = await saveRoleUseCase.execute({ name: ownerRoleName, description: 'Propietario' });
+  // 1. Create 'advisor' role
+  const advisorRoleName = 'advisor';
+  let advisorRole = await roleRepository.findByName(advisorRoleName);
+  if (!advisorRole) {
+    advisorRole = await saveRoleUseCase.execute({ name: advisorRoleName, description: 'Advisor' });
     const allPermissions = await permissionRepository.findAll();
     const excludedPermissionNames = ['admin:groups', 'user:change:group', 'admin:roles'];
     const ownerPermissionIds = allPermissions
       .filter(p => p.id && !excludedPermissionNames.includes(p.name))
       .map(p => p.id!);
 
-    if (ownerRole.id && ownerPermissionIds.length > 0) {
-      await assignPermissionsToRoleUseCase.execute({ roleId: ownerRole.id, permissionIds: ownerPermissionIds });
+    if (advisorRole.id && ownerPermissionIds.length > 0) {
+      await assignPermissionsToRoleUseCase.execute({ roleId: advisorRole.id, permissionIds: ownerPermissionIds });
     }
   }
 
@@ -648,7 +648,7 @@ async function runRequestedSeeds(): Promise<void> {
           firstName: `User S${i}`,
           lastName: `${u}`,
           password: 'Password123!',
-          roleIds: ownerRole?.id ? [ownerRole.id] : [],
+          roleIds: advisorRole?.id ? [advisorRole.id] : [],
           groupId: group.id,
         });
       }
