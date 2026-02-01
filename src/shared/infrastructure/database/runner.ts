@@ -1,7 +1,9 @@
 import { toArray } from "@shared/utils/array";
-import { QueryRunner, Table, TableColumn, TableForeignKey, TableIndex } from "typeorm";
+import { MigrationInterface, QueryRunner, Table, TableColumn, TableForeignKey, TableIndex } from "typeorm";
 
 type NamedTableIndex = TableIndex & { name: string; };
+export type IQueryRunner = ReturnType<typeof getRunner>;
+
 
 interface Named {
   name?: string;
@@ -21,11 +23,14 @@ export function getRunner(queryRunner: QueryRunner) {
       queryRunner.changeColumn(table, oldColumn ?? newColumn.name, newColumn),
     createForeignKey: (table: string, foreignKey: TableForeignKey | TableForeignKey[]) =>
       queryRunner.createForeignKeys(table, toArray(foreignKey)),
-    async createIndex(table: string, index: TableIndex | TableIndex[]) {
+    async createIndex<TI extends TableIndex>(table: string, index: TI | TI[]) {
       for (const idx of toArray(index)) {
         if (idx.name && (await runner.hasIndex(table, idx.name))) continue;
         await queryRunner.createIndex(table, idx);
       }
+    },
+    async createTable(table: Table, ifNotExist = true, createForeignKeys = true, createIndices = true) {
+      await queryRunner.createTable(table, ifNotExist, createForeignKeys, createIndices);
     },
     async dropColumn(table: string, columns: string | string[], withConstraints: boolean = true) {
       for (const column of toArray(columns)) {
@@ -59,6 +64,9 @@ export function getRunner(queryRunner: QueryRunner) {
         f => tbl.indices.filter(idx => idx.columnNames.includes(f)),
       ));
     },
+    async dropTable(table: string, ifExist = true, dropForeignKeys = true, dropIndices = true) {
+      await queryRunner.dropTable(table, ifExist, dropForeignKeys, dropIndices);
+    },
     findColumnByName: (table: string, name: string | TableColumn) =>
       runner.withTable(table, t => t.columns.find(c => equalNames(c, name))),
     async getTable(tablePath: string): Promise<Table> {
@@ -86,4 +94,15 @@ export function getRunner(queryRunner: QueryRunner) {
       return queryRunner[prop as keyof typeof queryRunner];
     },
   }) as Omit<QueryRunner, keyof typeof runner> & typeof runner;
+}
+
+export abstract class ImprovedRunner implements MigrationInterface {
+  async up(baseRunner: QueryRunner) {
+    await this.onUp?.(getRunner(baseRunner));
+  }
+  async down(baseRunner: QueryRunner) {
+    await this.onDown?.(getRunner(baseRunner));
+  }
+  abstract onUp(queryRunner: IQueryRunner): Promise<void>;
+  abstract onDown(queryRunner: IQueryRunner): Promise<void>;
 }
