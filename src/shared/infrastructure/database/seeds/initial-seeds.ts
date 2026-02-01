@@ -70,8 +70,8 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
   if (!existingUser) {
     await createUserUseCase.execute({
       email,
-      firstName: 'Advisor',
-      lastName: '',
+      firstName: 'Admin',
+      lastName: 'User',
       password,
       roleIds: adminRole?.id ? [adminRole.id] : [],
     });
