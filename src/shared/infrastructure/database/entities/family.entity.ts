@@ -12,8 +12,6 @@ import {
 import type { ContractEntity } from './contract.entity';
 
 @Entity('families')
-@Index('IDX_families_group_id', ['groupId'])
-@Index('IDX_families_contract_id', ['contractId'])
 export class FamilyEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -22,9 +20,11 @@ export class FamilyEntity {
   name!: string;
 
   @Column({ name: 'group_id', type: 'int' })
+  @Index('IDX_FAMILIES_GROUP_ID')
   groupId!: number;
 
   @Column({ name: 'contract_id', type: 'varchar', length: 36 })
+  @Index('IDX_FAMILIES_CONTRACT_ID')
   contractId!: string;
 
   @ManyToOne('ContractEntity')
@@ -37,6 +37,6 @@ export class FamilyEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt!: Date | null;
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date | null;
 }

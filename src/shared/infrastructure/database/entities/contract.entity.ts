@@ -18,19 +18,16 @@ import { DivisionEntity } from './division.entity';
 import { CompanyEntity } from './company.entity';
 
 @Entity('contracts')
-@Index('IDX_contracts_rut_sociedad', ['rutSociedad'])
-@Index('IDX_contracts_nombre_colaborador', ['nombreColaborador'])
-@Index('IDX_contracts_contract_type', ['contractType'])
-@Index('IDX_contracts_status', ['status'])
-@Index('IDX_contracts_group_id', ['groupId'])
 export class ContractEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ name: 'rut_sociedad', type: 'varchar', length: 12 })
+  @Index('IDX_CONTRACTS_RUT_SOCIEDAD')
   rutSociedad!: string;
 
   @Column({ name: 'nombre_colaborador', type: 'varchar', length: 255 })
+  @Index('IDX_CONTRACTS_NOMBRE_COLABORADOR')
   nombreColaborador!: string;
 
   @Column({ name: 'start_date', type: 'date' })
@@ -43,6 +40,7 @@ export class ContractEntity {
     name: 'contract_type',
     enum: ['indefinido', 'plazo_fijo', 'obra_faena', 'consultoria', 'honorarios'],
   })
+  @Index('IDX_CONTRACTS_CONTRACT_TYPE')
   contractType!: string;
 
   @Column({ name: 'administrador_contrato_mandante', type: 'varchar', length: 255 })
@@ -66,25 +64,25 @@ export class ContractEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   area?: string;
 
-  @Column({ name: 'areaId', type: 'varchar', length: 36, nullable: true })
+  @Column({ name: 'area_id', type: 'varchar', length: 36, nullable: true })
   areaId?: string;
 
   @ManyToOne(() => AreaEntity)
-  @JoinColumn({ name: 'areaId' })
+  @JoinColumn({ name: 'area_id' })
   areaRelation?: AreaEntity;
 
-  @Column({ name: 'divisionId', type: 'varchar', length: 36, nullable: true })
+  @Column({ name: 'division_id', type: 'varchar', length: 36, nullable: true })
   divisionId?: string;
 
   @ManyToOne(() => DivisionEntity)
-  @JoinColumn({ name: 'divisionId' })
+  @JoinColumn({ name: 'division_id' })
   divisionRelation?: DivisionEntity;
 
-  @Column({ name: 'companyId', type: 'varchar', length: 36, nullable: true })
+  @Column({ name: 'company_id', type: 'varchar', length: 36, nullable: true })
   companyId?: string;
 
   @ManyToOne(() => CompanyEntity)
-  @JoinColumn({ name: 'companyId' })
+  @JoinColumn({ name: 'company_id' })
   companyRelation?: CompanyEntity;
 
   @Column({ name: 'dotacion_personal', type: 'int', default: 0 })
@@ -110,9 +108,11 @@ export class ContractEntity {
     enum: ['draft', 'active', 'suspended', 'terminated', 'expired'],
     default: 'draft',
   })
+  @Index('IDX_CONTRACTS_STATUS')
   status!: string;
 
   @Column({ name: 'group_id', type: 'integer' })
+  @Index('IDX_CONTRACTS_GROUP_ID')
   groupId!: number;
 
   @CreateDateColumn({ name: 'created_at' })

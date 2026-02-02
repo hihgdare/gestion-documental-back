@@ -4,7 +4,6 @@ import { MigrationInterface, QueryRunner, Table, TableColumn, TableForeignKey, T
 type NamedTableIndex = TableIndex & { name: string; };
 export type IQueryRunner = ReturnType<typeof getRunner>;
 
-
 interface Named {
   name?: string;
 }

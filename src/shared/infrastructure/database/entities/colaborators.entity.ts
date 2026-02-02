@@ -93,7 +93,7 @@ export class ColaboratorEntity {
   cargo!: string;
 
   @Column({ type: 'integer', name: 'group_id' })
-  @Index('IDX_colaborators_group_id')
+  @Index('IDX_COLABORATORS_GROUP_ID')
   groupId!: number;
 
   @EnumColumn({

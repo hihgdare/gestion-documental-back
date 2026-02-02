@@ -21,11 +21,11 @@ export class AreaEntity {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ type: 'int' })
+  @Column({ name: 'group_id', type: 'int' })
   groupId!: number;
 
   @ManyToOne(() => GroupEntity)
-  @JoinColumn({ name: 'groupId' })
+  @JoinColumn({ name: 'group_id' })
   group?: GroupEntity;
 
   @CreateDateColumn({ name: 'created_at' })

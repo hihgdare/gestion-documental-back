@@ -22,18 +22,18 @@ export class DivisionEntity {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ type: 'int' })
+  @Column({ name: 'group_id', type: 'int' })
   groupId!: number;
 
   @ManyToOne(() => GroupEntity)
-  @JoinColumn({ name: 'groupId' })
+  @JoinColumn({ name: 'group_id' })
   group?: GroupEntity;
 
-  @Column({ type: 'varchar', length: 36 })
+  @Column({ name: 'area_id', type: 'varchar', length: 36 })
   areaId!: string;
 
   @ManyToOne(() => AreaEntity)
-  @JoinColumn({ name: 'areaId' })
+  @JoinColumn({ name: 'area_id' })
   area?: AreaEntity;
 
   @CreateDateColumn({ name: 'created_at' })

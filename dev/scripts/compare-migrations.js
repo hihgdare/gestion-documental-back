@@ -7,9 +7,9 @@ const entitiesDir = path.join(__dirname, '..', '..', 'src', 'shared', 'infrastru
 const normalize = s => s.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
 
 function extractUpMethod(content) {
-  // Find "public async up" or just "up" followed by params and opening brace
+  // Find "public async up/onUp" or just "up/onUp" followed by params and opening brace
   // Typical signature: public async up(queryRunner: QueryRunner): Promise<void> {
-  const upMatch = content.match(/(\bpublic\s+async\s+up\b|\basync\s+up\b|\bup\b)\s*\([^\)]*\)[^{]*\{/);
+  const upMatch = content.match(/(\bpublic\s+async\s+up\b|\basync\s+(?:up|onUp)\b|\bup\b)\s*\([^\)]*\)[^{]*\{/);
   if (!upMatch) return content; // Fallback: process whole file if up method not clearly found
 
   const startIndex = upMatch.index + upMatch[0].length - 1; // Index of the opening '{'

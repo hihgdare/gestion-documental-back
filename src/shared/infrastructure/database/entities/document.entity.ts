@@ -17,10 +17,6 @@ import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 
 @Entity('documents')
-@Index('IDX_documents_status', ['status'])
-@Index('IDX_documents_deleted_at', ['deletedAt'])
-@Index('IDX_documents_group_id', ['groupId'])
-@Index('IDX_documents_contract_id', ['contractId'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -33,6 +29,7 @@ export class DocumentEntity {
   documentModel!: DocumentModelEntity;
 
   @Column({ name: 'contract_id', type: 'varchar', length: 36, nullable: true })
+  @Index('IDX_DOCUMENTS_CONTRACT_ID')
   contractId?: string;
 
   @ManyToOne(() => ContractEntity, { onDelete: 'RESTRICT' })
@@ -63,9 +60,11 @@ export class DocumentEntity {
   documentUrl?: string;
 
   @Column({ type: 'varchar', length: 50, default: 'draft' })
+  @Index('IDX_DOCUMENTS_STATUS')
   status!: string;
 
   @Column({ name: 'group_id', type: 'integer' })
+  @Index('IDX_DOCUMENTS_GROUP_ID')
   groupId!: number;
 
   @Column({ name: 'created_by', type: 'varchar', length: 36, nullable: true })
@@ -77,9 +76,6 @@ export class DocumentEntity {
 
   @Column({ type: 'text', nullable: true })
   comment?: string;
-
-  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
-  deletedAt?: Date;
 
   @Column({ name: 'deleted_by', type: 'varchar', length: 36, nullable: true })
   deletedBy?: string;
@@ -93,4 +89,8 @@ export class DocumentEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
+
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  @Index('IDX_DOCUMENTS_DELETED_AT')
+  deletedAt?: Date;
 }
