@@ -18,7 +18,7 @@ export class TypeOrmContractRepository implements ContractRepository {
   async findById(id: string): Promise<Contract | null> {
     const contractEntity = await this.repository.findOne({
       where: { id, deletedAt: IsNull() },
-      relations: ['areaRelation', 'divisionRelation'],
+      relations: ['areaRelation', 'divisionRelation', 'companyRelation'],
     });
     if (!contractEntity) return null;
     return this.toDomain(contractEntity);
@@ -33,7 +33,7 @@ export class TypeOrmContractRepository implements ContractRepository {
 
     const contractEntities = await this.repository.find({
       where,
-      relations: ['areaRelation', 'divisionRelation'],
+      relations: ['areaRelation', 'divisionRelation', 'companyRelation'],
       order: { createdAt: 'DESC' },
     });
     return contractEntities.map(entity => this.toDomain(entity));
@@ -77,6 +77,7 @@ export class TypeOrmContractRepository implements ContractRepository {
     if (props.area !== undefined) domain.area = props.area;
     if (props.areaId !== undefined) domain.areaId = props.areaId;
     if (props.divisionId !== undefined) domain.divisionId = props.divisionId;
+    if (props.companyId !== undefined) domain.companyId = props.companyId;
     if (props.descripcionServicio !== undefined) domain.descripcionServicio = props.descripcionServicio;
     if (props.nombreProyecto !== undefined) domain.nombreProyecto = props.nombreProyecto;
     if (props.dotacionPersonal !== undefined) domain.dotacionPersonal = props.dotacionPersonal;
@@ -387,6 +388,8 @@ export class TypeOrmContractRepository implements ContractRepository {
       areaName: entity.areaRelation?.name,
       divisionId: entity.divisionId,
       divisionName: entity.divisionRelation?.name,
+      companyId: entity.companyId,
+      companyName: entity.companyRelation?.name,
       dotacionPersonal: entity.dotacionPersonal,
       dotacionVehiculos: entity.dotacionVehiculos,
       descripcionServicio: entity.descripcionServicio,
@@ -420,6 +423,7 @@ export class TypeOrmContractRepository implements ContractRepository {
       area: contract.area,
       areaId: contract.areaId,
       divisionId: contract.divisionId,
+      companyId: contract.companyId,
       dotacionPersonal: contract.dotacionPersonal,
       dotacionVehiculos: contract.dotacionVehiculos,
       descripcionServicio: contract.descripcionServicio,

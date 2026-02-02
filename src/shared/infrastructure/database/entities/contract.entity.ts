@@ -15,6 +15,7 @@ import { UserEntity } from '@shared/infrastructure/database/entities/user.entity
 import { ColaboratorEntity } from './colaborators.entity';
 import { AreaEntity } from './area.entity';
 import { DivisionEntity } from './division.entity';
+import { CompanyEntity } from './company.entity';
 
 @Entity('contracts')
 @Index('IDX_contracts_rut_sociedad', ['rutSociedad'])
@@ -78,6 +79,13 @@ export class ContractEntity {
   @ManyToOne(() => DivisionEntity)
   @JoinColumn({ name: 'divisionId' })
   divisionRelation?: DivisionEntity;
+
+  @Column({ name: 'companyId', type: 'varchar', length: 36, nullable: true })
+  companyId?: string;
+
+  @ManyToOne(() => CompanyEntity)
+  @JoinColumn({ name: 'companyId' })
+  companyRelation?: CompanyEntity;
 
   @Column({ name: 'dotacion_personal', type: 'int', default: 0 })
   dotacionPersonal!: number;

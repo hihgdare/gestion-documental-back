@@ -14,6 +14,8 @@ export interface ContractResponseDto {
   rutAdministradorContrato: string;
   contractNumber: string;
   nombreMandante: string;
+  companyId?: string;
+  companyName?: string;
   division?: string;
   area?: string;
   dotacionPersonal: number;
@@ -45,6 +47,8 @@ export function toContractResponseDto(contract: Contract): ContractResponseDto {
     rutAdministradorContrato: json.rutAdministradorContrato,
     contractNumber: json.contractNumber,
     nombreMandante: json.nombreMandante,
+    companyId: json.companyId,
+    companyName: json.companyName,
     division: json.division,
     area: json.area,
     dotacionPersonal: json.dotacionPersonal ?? 0,
