@@ -34,14 +34,12 @@ export class UpdateDocumentsHistoryStructure1769600000000 implements MigrationIn
     if (!table) return;
 
     // 1. Agregar document_model_id
-    if (!table?.columns.find((col) => col.name === 'document_model_id')) {
-      await queryRunner?.addColumn('documents_history', new TableColumn({
-        name: 'document_model_id',
-        type: 'varchar',
-        length: '36',
-        isNullable: true, // Inicialmente nullable para permitir documentos sin modelos (aunque la req implique reemplazo)
-      }));
-    }
+    await queryRunner?.addColumn('documents_history', new TableColumn({
+      name: 'document_model_id',
+      type: 'varchar',
+      length: '36',
+      isNullable: true, // Inicialmente nullable para permitir documentos sin modelos (aunque la req implique reemplazo)
+    }));
     // 2. Buscamos todo el historial y actualizamos su document_model_id
     await queryRunner.manager.find<DBDocumentHistory>('documents_history').then(async (histories) => {
       for (const history of histories) {

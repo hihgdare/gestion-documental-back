@@ -14,12 +14,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
             isPrimary: true,
           },
           {
-            name: 'template_id',
-            type: 'varchar',
-            length: '36',
-            isNullable: false,
-          },
-          {
             name: 'colaborator_id',
             type: 'varchar',
             length: '36',
@@ -103,19 +97,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       true,
     );
 
-    // Create foreign key for template_id
-    await queryRunner.createForeignKey(
-      'documents',
-      new TableForeignKey({
-        name: 'FK_DOCUMENTS_TEMPLATE',
-        columnNames: ['template_id'],
-        referencedTableName: 'document_templates',
-        referencedColumnNames: ['id'],
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
-      }),
-    );
-
     // Create foreign key for colaborator_id
     await queryRunner.createForeignKey(
       'documents',
@@ -177,15 +158,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       }),
     );
 
-    // Create index on template_id for performance
-    await queryRunner.createIndex(
-      'documents',
-      new TableIndex({
-        name: 'IDX_DOCUMENTS_TEMPLATE_ID',
-        columnNames: ['template_id'],
-      }),
-    );
-
     // Create index on colaborator_id for performance
     await queryRunner.createIndex(
       'documents',
@@ -220,16 +192,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
         columnNames: ['deleted_at'],
       }),
     );
-
-    // Unique constraint defined in entity: template + contract + colaborator
-    await queryRunner.createIndex(
-      'documents',
-      new TableIndex({
-        name: 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR',
-        columnNames: ['template_id', 'contract_id', 'colaborator_id'],
-        isUnique: true,
-      }),
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -241,8 +203,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       if (fkContract) await queryRunner.dropForeignKey('documents', fkContract);
       const fkColaborator = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_COLABORATOR' || f.columnNames.includes('colaborator_id'));
       if (fkColaborator) await queryRunner.dropForeignKey('documents', fkColaborator);
-      const fkTemplate = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_TEMPLATE' || f.columnNames.includes('template_id'));
-      if (fkTemplate) await queryRunner.dropForeignKey('documents', fkTemplate);
       const fkCreatedBy = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_CREATED_BY' || f.columnNames.includes('created_by'));
       if (fkCreatedBy) await queryRunner.dropForeignKey('documents', fkCreatedBy);
       const fkDeletedBy = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_DELETED_BY' || f.columnNames.includes('deleted_by'));
@@ -257,9 +217,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_COLABORATOR_ID')) {
         await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_COLABORATOR_ID');
       }
-      if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_TEMPLATE_ID')) {
-        await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_TEMPLATE_ID');
-      }
       if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_CONTRACT_ID')) {
         await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_CONTRACT_ID');
       }
@@ -268,9 +225,6 @@ export class CreateDocumentsTable1762448341830 implements MigrationInterface {
       }
       if (table.indices.find(i => i.name === 'IDX_DOCUMENTS_DELETED_AT')) {
         await queryRunner.dropIndex('documents', 'IDX_DOCUMENTS_DELETED_AT');
-      }
-      if (table.indices.find(i => i.name === 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR')) {
-        await queryRunner.dropIndex('documents', 'UQ_DOCUMENTS_TEMPLATE_CONTRACT_COLABORATOR');
       }
     }
 

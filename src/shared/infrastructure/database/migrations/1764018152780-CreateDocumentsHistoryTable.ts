@@ -20,12 +20,6 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
             isNullable: false,
           },
           {
-            name: 'template_id',
-            type: 'varchar',
-            length: '36',
-            isNullable: false,
-          },
-          {
             name: 'colaborator_id',
             type: 'varchar',
             length: '36',
@@ -109,22 +103,6 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
           referencedTableName: 'documents',
           referencedColumnNames: ['id'],
           onDelete: 'CASCADE',
-          onUpdate: 'CASCADE',
-        }),
-      );
-    }
-
-    // Create foreign key for template_id
-    const hasFkTemplate = tableAfterCreate?.foreignKeys.some(f => f.name === 'FK_DOCUMENTS_HISTORY_TEMPLATE' || f.columnNames.includes('template_id'));
-    if (!hasFkTemplate) {
-      await queryRunner.createForeignKey(
-        'documents_history',
-        new TableForeignKey({
-          name: 'FK_DOCUMENTS_HISTORY_TEMPLATE',
-          columnNames: ['template_id'],
-          referencedTableName: 'document_templates',
-          referencedColumnNames: ['id'],
-          onDelete: 'RESTRICT',
           onUpdate: 'CASCADE',
         }),
       );
@@ -236,8 +214,6 @@ export class CreateDocumentsHistoryTable1764018152780 implements MigrationInterf
       if (fkContract) await queryRunner.dropForeignKey('documents_history', fkContract);
       const fkColaborator = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_COLABORATOR' || f.columnNames.includes('colaborator_id'));
       if (fkColaborator) await queryRunner.dropForeignKey('documents_history', fkColaborator);
-      const fkTemplate = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_TEMPLATE' || f.columnNames.includes('template_id'));
-      if (fkTemplate) await queryRunner.dropForeignKey('documents_history', fkTemplate);
       const fkDocument = table.foreignKeys.find(f => f.name === 'FK_DOCUMENTS_HISTORY_DOCUMENT' || f.columnNames.includes('document_id'));
       if (fkDocument) await queryRunner.dropForeignKey('documents_history', fkDocument);
 
