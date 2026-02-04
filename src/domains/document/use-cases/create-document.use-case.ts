@@ -17,6 +17,7 @@ export interface CreateDocumentRequest {
   description?: string;
   documentUrl?: string;
   groupId: number;
+  requiredColaboratorsCount?: number;
   createdBy?: string;
   comment?: string;
 }
@@ -81,6 +82,7 @@ export class CreateDocumentUseCase {
       description: request.description,
       documentUrl: request.documentUrl,
       groupId: request.groupId,
+      requiredColaboratorsCount: request.requiredColaboratorsCount,
       createdBy: request.createdBy,
     };
 

@@ -7,4 +7,5 @@ export interface CreateDocumentDto {
   description?: string;
   documentUrl?: string;
   groupId: number;
+  requiredColaboratorsCount?: number;
 }

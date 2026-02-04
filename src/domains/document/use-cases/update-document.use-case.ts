@@ -17,6 +17,7 @@ export interface UpdateDocumentRequest {
   description?: string;
   documentUrl?: string;
   groupId?: number;
+  requiredColaboratorsCount?: number;
   updatedBy?: string;
   comment?: string;
 }
@@ -87,6 +88,11 @@ export class UpdateDocumentUseCase {
         throw new ValidationError('Group not found', 'groupId');
       }
       document.changeGroup(request.groupId);
+    }
+
+    // Update required colaborators count if provided
+    if (request.requiredColaboratorsCount !== undefined) {
+      document.updateRequiredColaboratorsCount(request.requiredColaboratorsCount);
     }
 
     // Verificar que no haya documentos duplicados

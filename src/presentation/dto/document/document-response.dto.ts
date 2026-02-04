@@ -18,6 +18,7 @@ export interface DocumentResponseDto {
   requiredForContract: boolean;
   requiredForColaborator: boolean;
   requiredExpirationDate: boolean;
+  requiredColaboratorsCount: number;
   comment?: string | null;
   isExpired: boolean;
   daysUntilExpiration: number | null;
