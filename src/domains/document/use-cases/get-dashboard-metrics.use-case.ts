@@ -8,6 +8,9 @@ export interface DashboardMetrics {
   documentsInReview: number;
   pendingRequiredForContract: number;
   pendingRequiredForColaborator: number;
+  requiredForColaboratorAndColaboratorsCountZero: number;
+  colaboratorsPendingAssignment: number;
+  documentsWithInsufficientColaborators: number;
   recentDocuments: Document[];
   documentsRecentlyApproved: Document[];
 }
@@ -23,9 +26,10 @@ export class GetDashboardMetricsUseCase {
       (doc) => doc.status === DocumentStatus.DRAFT,
     ).length;
 
-    // Cantidad de documentos sin colaboradores asignados
+    // Cantidad de documentos sin colaboradores asignados, y que requieran colaboradores
     const documentsWithoutColaborator = allDocuments.filter(
-      (doc) => !doc.colaboratorIds || doc.colaboratorIds.length === 0,
+      (doc) => (!doc.colaboratorIds || doc.colaboratorIds.length === 0) &&
+        doc.requiredForColaborator === true,
     ).length;
 
     // Cantidad de documentos por vencer en los próximos 30 días
@@ -52,6 +56,34 @@ export class GetDashboardMetricsUseCase {
         (doc.status === DocumentStatus.DRAFT || doc.status === DocumentStatus.REJECTED_WITH_COMMENTS),
     ).length;
 
+    // Cantidad de documentos con requeridos del Colaborador, pero con Cantidad de Colaboradores requeridos igual a 0
+    const requiredForColaboratorAndColaboratorsCountZero = allDocuments.filter(
+      (doc) => doc.requiredForColaborator === true &&
+        (!doc.requiredColaboratorsCount || doc.requiredColaboratorsCount === 0),
+    ).length;
+
+    // Cantidad de colaboradores por asignar en documentos requeridos para el Colaborador
+    const colaboratorsPendingAssignment = allDocuments.reduce((acc, doc) => {
+      if (doc.requiredForColaborator === true) {
+        const assignedCount = doc.colaboratorIds ? doc.colaboratorIds.length : 0;
+        const requiredCount = doc.requiredColaboratorsCount || 0;
+        if (requiredCount > assignedCount) {
+          return acc + (requiredCount - assignedCount);
+        }
+      }
+      return acc;
+    }, 0);
+
+    // Cantidad de documentos con una cantidad de colaboradores asignados menor a la requerida
+    const documentsWithInsufficientColaborators = allDocuments.filter((doc) => {
+      if (doc.requiredForColaborator === true) {
+        const assignedCount = doc.colaboratorIds ? doc.colaboratorIds.length : 0;
+        const requiredCount = doc.requiredColaboratorsCount || 0;
+        return assignedCount < requiredCount;
+      }
+      return false;
+    }).length;
+
     // Listas de los 10 documentos más recientemente creados
     const recentDocuments = allDocuments
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -69,6 +101,9 @@ export class GetDashboardMetricsUseCase {
       documentsInReview,
       pendingRequiredForContract,
       pendingRequiredForColaborator,
+      requiredForColaboratorAndColaboratorsCountZero,
+      colaboratorsPendingAssignment,
+      documentsWithInsufficientColaborators,
       recentDocuments,
       documentsRecentlyApproved,
     };
