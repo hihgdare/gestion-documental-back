@@ -369,7 +369,8 @@ export class DocumentController {
   }
 
   getDashboardMetrics = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const metrics = await this.getDashboardMetricsUseCase.execute();
+    const groupId = req.auth.groupId;
+    const metrics = await this.getDashboardMetricsUseCase.execute(groupId);
     res.status(200).json({
       success: true,
       data: metrics as DashboardMetricsDto,

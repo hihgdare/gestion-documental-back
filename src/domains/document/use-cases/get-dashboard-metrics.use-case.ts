@@ -15,8 +15,8 @@ export interface DashboardMetrics {
 export class GetDashboardMetricsUseCase {
   constructor(private readonly documentRepository: DocumentRepository) {}
 
-  public async execute(): Promise<DashboardMetrics> {
-    const allDocuments = await this.documentRepository.findAll();
+  public async execute(groupId?: number): Promise<DashboardMetrics> {
+    const allDocuments = await this.documentRepository.findAll(groupId);
 
     // Cantidad de documentos en estado borrador (draft)
     const documentsInDraft = allDocuments.filter(
