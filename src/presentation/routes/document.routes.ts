@@ -13,10 +13,10 @@ export const createDocumentRoutes = (
 ): Router => {
   const router = Router();
 
-  // Rutas públicas
-  router.get('/dashboard/metrics', controller.getDashboardMetrics);
-
   router.use(auth);
+
+  // Dashboard metrics
+  router.get('/dashboard/metrics', authorize('dashboard:read'), controller.getDashboardMetrics);
 
   // POST routes
   router.post('/',

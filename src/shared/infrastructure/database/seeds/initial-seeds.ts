@@ -31,6 +31,7 @@ const extraPermissions = [
   'colaborator-group:assign:colaborator',
   'colaborator-group:assign:document',
   'contract:assign:reviewer',
+  'dashboard:read',
   'document:review',
   'group:assign:user',
   'role:assign:permission',

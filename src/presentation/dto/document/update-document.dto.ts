@@ -9,4 +9,5 @@ export interface UpdateDocumentDto {
   documentUrl?: string;
   comment?: string;
   groupId?: number;
+  requiredColaboratorsCount?: number;
 }

@@ -18,6 +18,7 @@ export interface DocumentProps {
   documentUrl?: string;
   status?: string;
   groupId: number;
+  requiredColaboratorsCount?: number;
   createdBy?: string;
   comment?: string | null;
   deletedAt?: Date | null;
@@ -49,6 +50,7 @@ export class Document {
   documentUrl?: string;
   status: DocumentStatus;
   groupId: number;
+  requiredColaboratorsCount: number;
   createdBy: string | null;
   comment: string | null;
   deletedAt: Date | null;
@@ -75,6 +77,7 @@ export class Document {
       expirationDate: 'dateNullable',
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
+      requiredColaboratorsCount: (value?: number) => value ?? 0,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
       deletedAt: 'dateNullable',
@@ -244,6 +247,14 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public updateRequiredColaboratorsCount(count: number): void {
+    if (count < 0) {
+      throw new ValidationError('La cantidad de colaboradores requeridos no puede ser negativa');
+    }
+    this.requiredColaboratorsCount = count;
+    this.updatedAt = new Date();
+  }
+
   public softDelete(deletedBy: string): void {
     this.deletedAt = new Date();
     this.deletedBy = deletedBy;
@@ -323,6 +334,7 @@ export class Document {
       documentUrl: this.documentUrl,
       status: this.status,
       groupId: this.groupId,
+      requiredColaboratorsCount: this.requiredColaboratorsCount,
       createdBy: this.createdBy,
       comment: this.comment,
       deletedAt: DateTimeUtils.toString(this.deletedAt, true),

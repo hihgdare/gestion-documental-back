@@ -68,6 +68,9 @@ export class DocumentEntity {
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;
 
+  @Column({ name: 'required_colaborators_count', type: 'int', default: 0 })
+  requiredColaboratorsCount!: number;
+
   @Column({ name: 'created_by', type: 'varchar', length: 36, nullable: true })
   createdBy?: string;
 
