@@ -6,6 +6,7 @@ import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -27,6 +28,7 @@ export class UpdateDocumentUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
+    private readonly fileRepository: TypeOrmFileRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -73,6 +75,13 @@ export class UpdateDocumentUseCase {
     }
 
     if (request.documentUrl !== undefined) {
+      // Delete old file if exists and is different from new one
+      const oldFileId = document.documentUrl;
+      if (oldFileId && oldFileId !== request.documentUrl) {
+        await this.fileRepository.softDelete(oldFileId).catch((error) => {
+          console.error('Error deleting old file:', error);
+        });
+      }
       document.updateDocumentUrl(request.documentUrl);
     }
 

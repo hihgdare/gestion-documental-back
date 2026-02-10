@@ -476,6 +476,7 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.groupRepository,
       this.documentModelRepository,
+      this.fileRepository,
     );
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);

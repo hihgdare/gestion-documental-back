@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, S3ClientConfig, PutObjectCommandOutput } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, PutObjectTaggingCommand, S3ClientConfig, PutObjectCommandOutput } from '@aws-sdk/client-s3';
 import FileUtils from './FileUtils';
 import { except } from './objects';
 
@@ -62,6 +62,26 @@ export class Bucket extends S3Client {
       return buffer;
     } catch (error) {
       console.log(`Error downloading file ${source} from ${this.bucket.bucket}.`);
+      throw error;
+    }
+  }
+
+  async tagAsDeleted(key: string): Promise<void> {
+    try {
+      const command = new PutObjectTaggingCommand({
+        Bucket: this.bucket.bucket,
+        Key: key,
+        Tagging: {
+          TagSet: [
+            { Key: 'deleted', Value: 'true' },
+          ],
+        },
+      });
+
+      await this.send(command);
+      console.log(`File ${key} tagged as deleted in ${this.bucket.bucket}`);
+    } catch (error) {
+      console.log(`Error tagging file ${key} as deleted in ${this.bucket.bucket}.`);
       throw error;
     }
   }
