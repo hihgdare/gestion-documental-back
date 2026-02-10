@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 import { File } from '@domains/file/entities/file.entity';
 
 @Entity('files')
@@ -27,6 +27,9 @@ export class FileEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt?: Date;
+
   static fromDomain(file: File): FileEntity {
     const entity = new FileEntity();
     entity.id = file.id as any;
@@ -48,6 +51,7 @@ export class FileEntity {
       size: entity.size ?? undefined,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      deletedAt: entity.deletedAt,
     });
   }
 }

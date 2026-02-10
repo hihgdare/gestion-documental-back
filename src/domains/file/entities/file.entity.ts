@@ -9,6 +9,7 @@ export interface FileJson {
   size?: number;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date;
 }
 
 export class File {
@@ -20,6 +21,7 @@ export class File {
   public readonly size?: number;
   public readonly createdAt?: Date;
   public readonly updatedAt?: Date;
+  public readonly deletedAt?: Date;
 
   constructor(props: Omit<FileJson, 'id'> & { id?: string }) {
     Object.assign(this, props);
@@ -35,6 +37,7 @@ export class File {
       size: this.size,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
     };
   }
 }
