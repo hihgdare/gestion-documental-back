@@ -15,6 +15,7 @@ export class FileController {
     this.download = this.download.bind(this);
     this.preview = this.preview.bind(this);
     this.getFileById = this.getFileById.bind(this);
+    this.delete = this.delete.bind(this);
   }
 
   async upload(req: Request, res: Response): Promise<void> {
@@ -38,10 +39,10 @@ export class FileController {
 
     // Upload to S3 if configured
     if (STORAGE === 's3') {
-      const bucketName = process.env.FILE_STORAGE_S3_BUCKET;
-      const region = process.env.AWS_REGION;
-      const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-      const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      const bucketName = process.env.AWS_S3_BUCKET;
+      const region = process.env.AWS_DEFAULT_REGION;
+      const accessKeyId = process.env.AWS_S3_ACCESS_KEY_ID;
+      const secretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY;
 
       if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
         throw new ServerError('S3 configuration incomplete');
@@ -104,10 +105,10 @@ export class FileController {
     try {
       if (file.storage === 's3') {
         // Download from S3
-        const bucketName = process.env.FILE_STORAGE_S3_BUCKET;
-        const region = process.env.AWS_REGION;
-        const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-        const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+        const bucketName = process.env.AWS_S3_BUCKET;
+        const region = process.env.AWS_DEFAULT_REGION;
+        const accessKeyId = process.env.AWS_S3_ACCESS_KEY_ID;
+        const secretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY;
 
         if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
           throw new ServerError('S3 configuration incomplete');
@@ -171,10 +172,10 @@ export class FileController {
     try {
       if (file.storage === 's3') {
         // Download from S3
-        const bucketName = process.env.FILE_STORAGE_S3_BUCKET;
-        const region = process.env.AWS_REGION;
-        const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-        const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+        const bucketName = process.env.AWS_S3_BUCKET;
+        const region = process.env.AWS_DEFAULT_REGION;
+        const accessKeyId = process.env.AWS_S3_ACCESS_KEY_ID;
+        const secretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY;
 
         if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
           throw new ServerError('S3 configuration incomplete');
@@ -223,6 +224,51 @@ export class FileController {
     } catch (error) {
       console.error('Error previewing file:', error);
       throw new ServerError('Error previewing file');
+    }
+  }
+
+  async delete(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+
+    if (!id) throw new ValidationError('File ID is required', 'id');
+
+    const file = await this.fileRepo.findById(id);
+
+    if (!file) throw new NotFoundError('File');
+
+    try {
+      // Soft delete in database
+      await this.fileRepo.softDelete(id);
+
+      // Tag file as deleted in S3 if applicable
+      if (file.storage === 's3') {
+        const bucketName = process.env.AWS_S3_BUCKET;
+        const region = process.env.AWS_DEFAULT_REGION;
+        const accessKeyId = process.env.AWS_S3_ACCESS_KEY_ID;
+        const secretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY;
+
+        if (bucketName && region && accessKeyId && secretAccessKey) {
+          const bucket = new Bucket({
+            bucket: bucketName,
+            region,
+            credentials: { accessKeyId, secretAccessKey },
+          });
+
+          try {
+            await bucket.tagAsDeleted(file.path);
+          } catch (error) {
+            console.error('Error tagging file in S3:', error);
+          }
+        }
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Archivo eliminado exitosamente',
+      });
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      throw new ServerError('Error deleting file');
     }
   }
 }

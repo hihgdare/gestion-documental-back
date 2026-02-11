@@ -9,6 +9,7 @@ export function createFileRoutes(fileController: FileController): Router {
   router.get('/:id', fileController.getFileById);
   router.get('/:id/download', fileController.download);
   router.get('/:id/preview', fileController.preview);
+  router.delete('/:id', fileController.delete);
   return router;
 }
 
