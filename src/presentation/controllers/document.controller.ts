@@ -330,6 +330,7 @@ export class DocumentController {
       id: json.id,
       documentModelId: json.documentModelId,
       colaboratorIds: json.colaboratorIds || [],
+      groupId: document.groupId,
       documentTypeId: document.documentTypeId,
       documentSubtypeId: document.documentSubtypeId,
       documentTypeName: document.documentTypeName,
