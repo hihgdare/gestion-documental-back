@@ -168,6 +168,7 @@ export class App {
     const authController = this.dependencyContainer.getAuthController();
     const fileController = this.dependencyContainer.getFileController();
     const companyController = this.dependencyContainer.getCompanyController();
+    const bulkTemplateController = this.dependencyContainer.getBulkTemplateController();
 
     // Get use cases and repositories needed for middleware
     const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
@@ -182,7 +183,7 @@ export class App {
     // API routes
     this.app.use('/api/users', createUserRoutes(userController));
     this.app.use('/api/contracts', createContractRoutes(contractController));
-    this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController));
+    this.app.use('/api/colaborators', createColaboratorRoutes(colaboratorController, bulkTemplateController));
     this.app.use('/api/documents/types', createDocumentTypeRoutes(documentTypeController));
     this.app.use('/api/documents/subtypes', createDocumentSubtypeRoutes(documentSubtypeController));
 

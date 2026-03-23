@@ -195,6 +195,11 @@ import { UpdateGroupUseCase, DeleteGroupUseCase } from '@domains/group/use-cases
 import { AddUserToGroupUseCase, RemoveUserFromGroupUseCase, AssignGroupToUserUseCase } from '@domains/group/use-cases/manage-group-users.use-case';
 import { GroupController } from '@presentation/controllers/group.controller';
 
+// Bulk Template domain
+import { ManageBulkTemplateUseCase } from '@domains/bulk-template/use-cases/manage-bulk-template.use-case';
+import { TypeOrmBulkUploadTemplateRepository } from '@shared/infrastructure/repositories/typeorm-bulk-upload-template.repository';
+import { BulkTemplateController } from '@presentation/controllers/bulk-template.controller';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -216,6 +221,7 @@ export class DependencyContainer {
   private companyRepository!: TypeOrmCompanyRepository;
   private areaRepository!: TypeOrmAreaRepository;
   private divisionRepository!: TypeOrmDivisionRepository;
+  private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -379,6 +385,9 @@ export class DependencyContainer {
   private updateDivisionUseCase!: UpdateDivisionUseCase;
   private deleteDivisionUseCase!: DeleteDivisionUseCase;
 
+  // Use Cases - BulkTemplate
+  private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
+
   // Controllers
   private colaboratorController!: ColaboratorController;
   private contractController!: ContractController;
@@ -399,6 +408,7 @@ export class DependencyContainer {
   private areaController!: AreaController;
   private divisionController!: DivisionController;
   private fileController!: FileController;
+  private bulkTemplateController!: BulkTemplateController;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -421,6 +431,7 @@ export class DependencyContainer {
     this.companyRepository = new TypeOrmCompanyRepository();
     this.areaRepository = new TypeOrmAreaRepository();
     this.divisionRepository = new TypeOrmDivisionRepository();
+    this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -840,6 +851,14 @@ export class DependencyContainer {
     );
 
     this.fileController = new FileController(this.fileRepository);
+
+    // Initialize BulkTemplate
+    this.manageBulkTemplateUseCase = new ManageBulkTemplateUseCase(this.bulkUploadTemplateRepository);
+    this.bulkTemplateController = new BulkTemplateController(
+      this.manageBulkTemplateUseCase,
+      this.fileRepository,
+      this.bulkUploadTemplateRepository,
+    );
   }
 
   // Getters for controllers
@@ -989,5 +1008,9 @@ export class DependencyContainer {
 
   public getCreateGroupUseCase(): CreateGroupUseCase {
     return this.createGroupUseCase;
+  }
+
+  public getBulkTemplateController(): BulkTemplateController {
+    return this.bulkTemplateController;
   }
 }

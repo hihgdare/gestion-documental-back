@@ -1,0 +1,30 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+@token = Bearer user-id:YOUR_USER_ID
+
+###
+# Upload a new bulk template for colaborators
+POST {{baseUrl}}/colaborators/bulk/template
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "filename": "plantilla-colaboradores.xlsx",
+  "contentBase64": "UEsDBAAA...",
+  "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+}
+
+###
+# Get the active bulk template metadata
+GET {{baseUrl}}/colaborators/bulk/template
+Authorization: {{token}}
+
+###
+# Download the active bulk template file
+GET {{baseUrl}}/colaborators/bulk/template/download
+Authorization: {{token}}
+
+###
+# Get the bulk template history
+GET {{baseUrl}}/colaborators/bulk/template/history
+Authorization: {{token}}
