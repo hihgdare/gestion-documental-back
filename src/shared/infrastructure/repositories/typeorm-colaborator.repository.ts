@@ -76,6 +76,17 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     return this.toDomain(colaboratorEntity);
   }
 
+  async findByNumeroDocumentoAndGroupId(
+    numeroDocumento: string,
+    groupId: number,
+  ): Promise<Colaborator | null> {
+    const entity = await this.repository.findOne({
+      where: { numeroDocumento, groupId, deletedAt: IsNull() },
+      relations: ['contracts'],
+    });
+    return entity ? this.toDomain(entity) : null;
+  }
+
   async findByEmail(email: string): Promise<Colaborator | null> {
     const colaboratorEntity = await this.repository.findOne({
       where: { email: email.toLowerCase(), deletedAt: IsNull() },
@@ -83,6 +94,14 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     });
     if (!colaboratorEntity) return null;
     return this.toDomain(colaboratorEntity);
+  }
+
+  async findByEmailAndGroupId(email: string, groupId: number): Promise<Colaborator | null> {
+    const entity = await this.repository.findOne({
+      where: { email: email.toLowerCase(), groupId, deletedAt: IsNull() },
+      relations: ['contracts'],
+    });
+    return entity ? this.toDomain(entity) : null;
   }
 
   async findByNombre(nombre: string): Promise<Colaborator[]> {

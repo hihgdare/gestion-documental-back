@@ -37,14 +37,20 @@ export class CreateColaboratorUseCase {
   ) {}
 
   public async execute(request: CreateColaboratorRequest): Promise<Colaborator> {
-    // Check if document number already exists
-    const existingByDocument = await this.colaboratorRepository.findByNumeroDocumento(request.numeroDocumento);
+    // Check if document number already exists within the same group (excludes soft-deleted)
+    const existingByDocument = await this.colaboratorRepository.findByNumeroDocumentoAndGroupId(
+      request.numeroDocumento,
+      request.groupId,
+    );
     if (existingByDocument) {
       throw new ConflictError('Colaborator with this document number already exists');
     }
 
-    // Check if email already exists
-    const existingByEmail = await this.colaboratorRepository.findByEmail(request.email);
+    // Check if email already exists within the same group (excludes soft-deleted)
+    const existingByEmail = await this.colaboratorRepository.findByEmailAndGroupId(
+      request.email,
+      request.groupId,
+    );
     if (existingByEmail) {
       throw new ConflictError('Colaborator with this email already exists');
     }

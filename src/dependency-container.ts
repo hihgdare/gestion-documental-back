@@ -197,6 +197,7 @@ import { GroupController } from '@presentation/controllers/group.controller';
 
 // Bulk Template domain
 import { ManageBulkTemplateUseCase } from '@domains/bulk-template/use-cases/manage-bulk-template.use-case';
+import { BulkLoadColaboratorsUseCase } from '@domains/bulk-template/use-cases/bulk-load-colaborators.use-case';
 import { TypeOrmBulkUploadTemplateRepository } from '@shared/infrastructure/repositories/typeorm-bulk-upload-template.repository';
 import { BulkTemplateController } from '@presentation/controllers/bulk-template.controller';
 
@@ -222,6 +223,10 @@ export class DependencyContainer {
   private areaRepository!: TypeOrmAreaRepository;
   private divisionRepository!: TypeOrmDivisionRepository;
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
+
+  // Use Cases - BulkTemplate
+  private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
+  private bulkLoadColaboratorsUseCase!: BulkLoadColaboratorsUseCase;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -384,9 +389,6 @@ export class DependencyContainer {
   private listDivisionsUseCase!: ListDivisionsUseCase;
   private updateDivisionUseCase!: UpdateDivisionUseCase;
   private deleteDivisionUseCase!: DeleteDivisionUseCase;
-
-  // Use Cases - BulkTemplate
-  private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
 
   // Controllers
   private colaboratorController!: ColaboratorController;
@@ -854,10 +856,17 @@ export class DependencyContainer {
 
     // Initialize BulkTemplate
     this.manageBulkTemplateUseCase = new ManageBulkTemplateUseCase(this.bulkUploadTemplateRepository);
+    this.bulkLoadColaboratorsUseCase = new BulkLoadColaboratorsUseCase(
+      this.contractRepository,
+      this.colaboratorRepository,
+      this.createColaboratorUseCase,
+      this.createUserUseCase,
+    );
     this.bulkTemplateController = new BulkTemplateController(
       this.manageBulkTemplateUseCase,
       this.fileRepository,
       this.bulkUploadTemplateRepository,
+      this.bulkLoadColaboratorsUseCase,
     );
   }
 

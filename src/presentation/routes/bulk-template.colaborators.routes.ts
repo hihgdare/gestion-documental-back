@@ -31,5 +31,11 @@ export const createBulkTemplateColaboratorsRoutes = (bulkTemplateController: Bul
     bulkTemplateController.getTemplateHistory,
   );
 
+  // POST /api/colaborators/bulk - Bulk load colaborators from a file
+  router.post('/bulk',
+    authorize('colaborator:create'),
+    bulkTemplateController.bulkLoad,
+  );
+
   return router;
 };

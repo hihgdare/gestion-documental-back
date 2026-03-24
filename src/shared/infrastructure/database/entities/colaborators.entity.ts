@@ -17,6 +17,8 @@ import { DocumentEntity } from './document.entity';
 @Entity('colaborators')
 @Index('IDX_colaborators_name_surname', ['nombre', 'apellidoPaterno'])
 @Index('IDX_colaborators_status', ['status'])
+@Index('IDX_colaborators_numero_documento_group_id', ['numeroDocumento', 'groupId'], { unique: true })
+@Index('IDX_colaborators_email_group_id', ['email', 'groupId'], { unique: true })
 export class ColaboratorEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -27,7 +29,7 @@ export class ColaboratorEntity {
   })
   tipoDocumento!: string;
 
-  @Column({ type: 'varchar', length: 50, unique: true, name: 'numero_documento' })
+  @Column({ type: 'varchar', length: 50, name: 'numero_documento' })
   numeroDocumento!: string;
 
   @Column({ type: 'varchar', length: 100 })
@@ -77,7 +79,7 @@ export class ColaboratorEntity {
   @Column({ type: 'varchar', length: 20 })
   telefono!: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({ type: 'varchar', length: 255 })
   email!: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true, name: 'contacto_emergencia' })

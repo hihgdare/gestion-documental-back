@@ -5,6 +5,7 @@ import FileUtils from '@shared/utils/FileUtils';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { TypeOrmBulkUploadTemplateRepository } from '@shared/infrastructure/repositories/typeorm-bulk-upload-template.repository';
 import { ManageBulkTemplateUseCase } from '@domains/bulk-template/use-cases/manage-bulk-template.use-case';
+import { BulkLoadColaboratorsUseCase } from '@domains/bulk-template/use-cases/bulk-load-colaborators.use-case';
 import { BulkTemplateType } from '@domains/bulk-template/value-objects/bulk-template-type';
 import { File } from '@domains/file/entities/file.entity';
 import { NotFoundError, ValidationError, ServerError } from '@shared/domain/errors';
@@ -25,11 +26,13 @@ export class BulkTemplateController {
     private readonly manageBulkTemplateUseCase: ManageBulkTemplateUseCase,
     private readonly fileRepository: TypeOrmFileRepository,
     private readonly bulkUploadTemplateRepository: TypeOrmBulkUploadTemplateRepository,
+    private readonly bulkLoadColaboratorsUseCase: BulkLoadColaboratorsUseCase,
   ) {
     this.uploadTemplate = this.uploadTemplate.bind(this);
     this.getActiveTemplate = this.getActiveTemplate.bind(this);
     this.downloadTemplate = this.downloadTemplate.bind(this);
     this.getTemplateHistory = this.getTemplateHistory.bind(this);
+    this.bulkLoad = this.bulkLoad.bind(this);
   }
 
   async uploadTemplate(req: Request, res: Response): Promise<void> {
@@ -200,5 +203,34 @@ export class BulkTemplateController {
     );
 
     res.status(200).json({ success: true, data: templatesWithFiles });
+  }
+
+  async bulkLoad(req: Request, res: Response): Promise<void> {
+    const { contentBase64, filename, mimeType, contractId, createUsers } = req.body as {
+      contentBase64?: string;
+      filename?: string;
+      mimeType?: string;
+      contractId?: string;
+      createUsers?: boolean;
+    };
+
+    if (!contentBase64 || !filename) {
+      throw new ValidationError('contentBase64 and filename are required', { fields: ['contentBase64', 'filename'] });
+    }
+    if (!contractId) {
+      throw new ValidationError('contractId is required', { fields: ['contractId'] });
+    }
+
+    const result = await this.bulkLoadColaboratorsUseCase.execute({
+      contentBase64,
+      filename,
+      mimeType,
+      contractId,
+      createUsers: !!createUsers,
+      uploadedBy: req.auth.user?.id || 'system',
+      userGroupId: req.auth.groupId,
+    });
+
+    res.status(200).json({ success: true, data: result });
   }
 }
