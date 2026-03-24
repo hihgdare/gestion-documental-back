@@ -9,7 +9,7 @@ export const createBulkTemplateColaboratorsRoutes = (bulkTemplateController: Bul
 
   // POST /api/colaborators/bulk/template - Upload a new bulk template
   router.post('/bulk/template',
-    authorize('colaborator:manage-template'),
+    authorize('admin:colaborator:manage-template'),
     bulkTemplateController.uploadTemplate,
   );
 
@@ -27,7 +27,7 @@ export const createBulkTemplateColaboratorsRoutes = (bulkTemplateController: Bul
 
   // GET /api/colaborators/bulk/template/history - Get all historical templates
   router.get('/bulk/template/history',
-    authorize('colaborator:manage-template'),
+    authorize('admin:colaborator:manage-template'),
     bulkTemplateController.getTemplateHistory,
   );
 

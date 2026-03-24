@@ -46,7 +46,7 @@ describe('BulkTemplateController - Colaborators', () => {
 
     // Create permissions
     const manageTemplatePermission = await permissionRepository.save({
-      name: 'colaborator:manage-template',
+      name: 'admin:colaborator:manage-template',
       description: 'Manage bulk upload templates for colaborators',
     });
     const readPermission = await permissionRepository.save({
