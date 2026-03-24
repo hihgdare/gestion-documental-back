@@ -6,7 +6,7 @@ export class ChangeColaboratorDocumentUniqueToPerGroup1774327068359 implements M
     // Drop global unique index on numero_documento and replace with per-group composite
     await queryRunner.query(`DROP INDEX \`IDX_a09ad8dbb6f626ff6ac25c3f6e\` ON \`colaborators\``);
     await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_colaborators_numero_documento_group_id\` ON \`colaborators\` (\`numero_documento\`, \`group_id\`)`
+      `CREATE UNIQUE INDEX \`IDX_colaborators_numero_documento_group_id\` ON \`colaborators\` (\`numero_documento\`, \`group_id\`)`,
     );
 
     // Drop global unique index on email (find name dynamically) and replace with per-group composite
@@ -22,7 +22,7 @@ export class ChangeColaboratorDocumentUniqueToPerGroup1774327068359 implements M
       await queryRunner.query(`DROP INDEX \`${emailIdxRows[0].INDEX_NAME}\` ON \`colaborators\``);
     }
     await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_colaborators_email_group_id\` ON \`colaborators\` (\`email\`, \`group_id\`)`
+      `CREATE UNIQUE INDEX \`IDX_colaborators_email_group_id\` ON \`colaborators\` (\`email\`, \`group_id\`)`,
     );
   }
 
@@ -30,13 +30,13 @@ export class ChangeColaboratorDocumentUniqueToPerGroup1774327068359 implements M
     // Restore global unique index on email
     await queryRunner.query(`DROP INDEX \`IDX_colaborators_email_group_id\` ON \`colaborators\``);
     await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_6e9a8b6a4bb8b4a6f3bd41d2eb\` ON \`colaborators\` (\`email\`)`
+      `CREATE UNIQUE INDEX \`IDX_6e9a8b6a4bb8b4a6f3bd41d2eb\` ON \`colaborators\` (\`email\`)`,
     );
 
     // Restore global unique index on numero_documento
     await queryRunner.query(`DROP INDEX \`IDX_colaborators_numero_documento_group_id\` ON \`colaborators\``);
     await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_a09ad8dbb6f626ff6ac25c3f6e\` ON \`colaborators\` (\`numero_documento\`)`
+      `CREATE UNIQUE INDEX \`IDX_a09ad8dbb6f626ff6ac25c3f6e\` ON \`colaborators\` (\`numero_documento\`)`,
     );
   }
 }

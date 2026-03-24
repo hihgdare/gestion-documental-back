@@ -10,7 +10,7 @@ import { ColaboratorRepository } from '@domains/colaborators/repositories/colabo
 import { DocumentType, Gender, CivilStatus } from '@domains/colaborators/value-objects/colaborator-enums';
 import { ConflictError, NotFoundError } from '@shared/domain/errors';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const COUNTRIES: Array<{ nameES: string; nameEN: string; iso2: string; iso3: string }> =
   createRequire(__filename)(path.join(__dirname, '../../../shared/data/countries.json'));
 
