@@ -24,6 +24,7 @@ import { createDocumentModelRoutes } from '@presentation/routes/document-model.r
 import { createGroupRoutes } from '@presentation/routes/group.routes';
 import { createAuthRoutes } from '@presentation/routes/auth.routes';
 import { createFileRoutes } from '@presentation/routes/file.routes';
+import { createFileShareAuthRoutes, createSharedFileRoutes } from '@presentation/routes/file-share.routes';
 import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createAreaRoutes } from '@presentation/routes/area.routes';
 import { createDivisionRoutes } from '@presentation/routes/division.routes';
@@ -169,6 +170,7 @@ export class App {
     const fileController = this.dependencyContainer.getFileController();
     const companyController = this.dependencyContainer.getCompanyController();
     const bulkTemplateController = this.dependencyContainer.getBulkTemplateController();
+    const fileShareController = this.dependencyContainer.getFileShareController();
 
     // Get use cases and repositories needed for middleware
     const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
@@ -199,6 +201,8 @@ export class App {
     this.app.use('/api/areas', createAreaRoutes(areaController));
     this.app.use('/api/divisions', createDivisionRoutes(divisionController));
     this.app.use('/api/files', createFileRoutes(fileController));
+    this.app.use('/api/files', createFileShareAuthRoutes(fileShareController));
+    this.app.use('/api/shared/files', createSharedFileRoutes(fileShareController));
 
     // Auth routes
     this.app.use('/api/auth', createAuthRoutes(authController));

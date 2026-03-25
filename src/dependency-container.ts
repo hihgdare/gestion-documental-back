@@ -201,6 +201,12 @@ import { BulkLoadColaboratorsUseCase } from '@domains/bulk-template/use-cases/bu
 import { TypeOrmBulkUploadTemplateRepository } from '@shared/infrastructure/repositories/typeorm-bulk-upload-template.repository';
 import { BulkTemplateController } from '@presentation/controllers/bulk-template.controller';
 
+// FileShare domain
+import { CreateFileShareUseCase } from '@domains/file-share/use-cases/create-file-share.use-case';
+import { GetFileByShareTokenUseCase } from '@domains/file-share/use-cases/get-file-by-share-token.use-case';
+import { TypeOrmFileShareRepository } from '@shared/infrastructure/repositories/typeorm-file-share.repository';
+import { FileShareController } from '@presentation/controllers/file-share.controller';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -223,6 +229,7 @@ export class DependencyContainer {
   private areaRepository!: TypeOrmAreaRepository;
   private divisionRepository!: TypeOrmDivisionRepository;
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
+  private fileShareRepository!: TypeOrmFileShareRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
@@ -411,6 +418,11 @@ export class DependencyContainer {
   private divisionController!: DivisionController;
   private fileController!: FileController;
   private bulkTemplateController!: BulkTemplateController;
+  private fileShareController!: FileShareController;
+
+  // Use Cases - FileShare
+  private createFileShareUseCase!: CreateFileShareUseCase;
+  private getFileByShareTokenUseCase!: GetFileByShareTokenUseCase;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -434,6 +446,7 @@ export class DependencyContainer {
     this.areaRepository = new TypeOrmAreaRepository();
     this.divisionRepository = new TypeOrmDivisionRepository();
     this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
+    this.fileShareRepository = new TypeOrmFileShareRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -854,6 +867,11 @@ export class DependencyContainer {
 
     this.fileController = new FileController(this.fileRepository);
 
+    // Initialize FileShare
+    this.createFileShareUseCase = new CreateFileShareUseCase(this.fileShareRepository, this.fileRepository);
+    this.getFileByShareTokenUseCase = new GetFileByShareTokenUseCase(this.fileShareRepository, this.fileRepository);
+    this.fileShareController = new FileShareController(this.createFileShareUseCase, this.getFileByShareTokenUseCase);
+
     // Initialize BulkTemplate
     this.manageBulkTemplateUseCase = new ManageBulkTemplateUseCase(this.bulkUploadTemplateRepository);
     this.bulkLoadColaboratorsUseCase = new BulkLoadColaboratorsUseCase(
@@ -1021,5 +1039,9 @@ export class DependencyContainer {
 
   public getBulkTemplateController(): BulkTemplateController {
     return this.bulkTemplateController;
+  }
+
+  public getFileShareController(): FileShareController {
+    return this.fileShareController;
   }
 }

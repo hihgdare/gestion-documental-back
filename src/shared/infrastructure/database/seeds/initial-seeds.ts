@@ -34,6 +34,7 @@ const extraPermissions = [
   'contract:assign:reviewer',
   'dashboard:read',
   'document:review',
+  'file:share',
   'group:assign:user',
   'role:assign:permission',
   'user:assign:role',
