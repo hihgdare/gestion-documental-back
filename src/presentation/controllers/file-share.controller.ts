@@ -7,8 +7,6 @@ import { CreateFileShareUseCase } from '@domains/file-share/use-cases/create-fil
 import { GetFileByShareTokenUseCase } from '@domains/file-share/use-cases/get-file-by-share-token.use-case';
 import { NotFoundError, ServerError, ValidationError } from '@shared/domain/errors';
 
-const STORAGE = (process.env.FILE_STORAGE || 'local').toLowerCase();
-
 export class FileShareController {
   constructor(
     private readonly createFileShareUseCase: CreateFileShareUseCase,
