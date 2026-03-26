@@ -2,6 +2,7 @@ export interface DocumentResponseDto {
   id: string;
   documentModelId: string;
   colaboratorIds: string[];
+  groupId: number;
   documentTypeId?: string;
   documentSubtypeId?: string;
   documentTypeName?: string;
