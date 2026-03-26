@@ -618,9 +618,9 @@ async function runRequestedSeeds(): Promise<void> {
   if (!advisorRole) {
     advisorRole = await saveRoleUseCase.execute({ name: advisorRoleName, description: 'Advisor' });
     const allPermissions = await permissionRepository.findAll();
-    const excludedPermissionNames = ['admin:groups', 'user:change:group', 'admin:roles'];
+    const excludedExactNames = ['user:change:group'];
     const ownerPermissionIds = allPermissions
-      .filter(p => p.id && !excludedPermissionNames.includes(p.name))
+      .filter(p => p.id && !p.name.startsWith('admin:') && !excludedExactNames.includes(p.name))
       .map(p => p.id!);
 
     if (advisorRole.id && ownerPermissionIds.length > 0) {
