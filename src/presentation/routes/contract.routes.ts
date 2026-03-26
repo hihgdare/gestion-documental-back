@@ -98,6 +98,9 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // GET /api/contracts/:id/reviewers - Get all reviewers of a contract (query: ?activeOnly=true)
   router.get('/:id/reviewers', authorize('contract:read'), contractController.getReviewers);
 
+  // GET /api/contracts/:id/document-structure - Get document structure (expected vs loaded) for a contract
+  router.get('/:id/document-structure', authorize('contract:read'), contractController.getDocumentStructure);
+
   // PUT /api/contracts/:id/reviewers/:userId - Update a reviewer
   router.put('/:id/reviewers/:userId', authorize('contract:assign:reviewer'), validateRequest(updateReviewerSchema, true), contractController.updateReviewer);
 

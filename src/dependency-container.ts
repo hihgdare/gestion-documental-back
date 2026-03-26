@@ -96,6 +96,7 @@ import { UpdateReviewerUseCase } from '@domains/contract/use-cases/update-review
 import { AddColaboratorToContractUseCase } from '@domains/contract/use-cases/add-colaborator-to-contract.use-case';
 import { RemoveColaboratorFromContractUseCase } from '@domains/contract/use-cases/remove-colaborator-from-contract.use-case';
 import { GetContractColaboratorsUseCase } from '@domains/contract/use-cases/get-contract-colaborators.use-case';
+import { GetContractDocumentStructureUseCase } from '@domains/contract/use-cases/get-contract-document-structure.use-case';
 
 // Colaborator domain
 import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create-colaborator.use-case';
@@ -295,6 +296,7 @@ export class DependencyContainer {
   private addColaboratorToContractUseCase!: AddColaboratorToContractUseCase;
   private removeColaboratorFromContractUseCase!: RemoveColaboratorFromContractUseCase;
   private getContractColaboratorsUseCase!: GetContractColaboratorsUseCase;
+  private getContractDocumentStructureUseCase!: GetContractDocumentStructureUseCase;
 
   // Use Cases - Colaborator
   private createColaboratorUseCase!: CreateColaboratorUseCase;
@@ -537,6 +539,11 @@ export class DependencyContainer {
     this.addColaboratorToContractUseCase = new AddColaboratorToContractUseCase(this.contractRepository);
     this.removeColaboratorFromContractUseCase = new RemoveColaboratorFromContractUseCase(this.contractRepository);
     this.getContractColaboratorsUseCase = new GetContractColaboratorsUseCase(this.contractRepository);
+    this.getContractDocumentStructureUseCase = new GetContractDocumentStructureUseCase(
+      this.contractRepository,
+      this.documentModelRepository,
+      this.documentRepository,
+    );
 
     // Initialize Colaborator use cases
     this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
@@ -628,6 +635,7 @@ export class DependencyContainer {
       this.removeColaboratorFromContractUseCase,
       this.getContractColaboratorsUseCase,
       this.getParentContractsUseCase,
+      this.getContractDocumentStructureUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
