@@ -9,10 +9,17 @@ import {
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
 import { assignGroup, changeGroup, getByGroup } from '@shared/middleware/group.middleware';
+import { BulkTemplateController } from '../controllers/bulk-template.controller';
+import { createBulkTemplateColaboratorsRoutes } from './bulk-template.colaborators.routes';
 
-export const createColaboratorRoutes = (colaboratorController: ColaboratorController): Router => {
+export const createColaboratorRoutes = (colaboratorController: ColaboratorController, bulkTemplateController?: BulkTemplateController): Router => {
   const router = Router();
   router.use(auth);
+
+  // Bulk template routes (must be before /:id routes)
+  if (bulkTemplateController) {
+    router.use(createBulkTemplateColaboratorsRoutes(bulkTemplateController));
+  }
 
   // POST /api/colaborators - Create a new colaborator
   router.post('/',

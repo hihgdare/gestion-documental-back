@@ -5,7 +5,9 @@ import { ColaboratorStatus, DocumentType } from '../value-objects/colaborator-en
 export interface ColaboratorRepository extends Repository<Colaborator> {
   findAll(groupId?: number, filters?: { contractId?: string }): Promise<Colaborator[]>;
   findByNumeroDocumento(numeroDocumento: string): Promise<Colaborator | null>;
+  findByNumeroDocumentoAndGroupId(numeroDocumento: string, groupId: number): Promise<Colaborator | null>;
   findByEmail(email: string): Promise<Colaborator | null>;
+  findByEmailAndGroupId(email: string, groupId: number): Promise<Colaborator | null>;
   findByNombre(nombre: string): Promise<Colaborator[]>;
   findByStatus(status: ColaboratorStatus): Promise<Colaborator[]>;
   findByDocumentType(tipo: DocumentType): Promise<Colaborator[]>;
