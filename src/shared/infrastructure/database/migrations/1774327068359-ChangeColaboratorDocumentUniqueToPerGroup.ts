@@ -1,13 +1,18 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import { TableIndex } from 'typeorm';
+import { IQueryRunner, ImprovedRunner } from '../runner';
 
-export class ChangeColaboratorDocumentUniqueToPerGroup1774327068359 implements MigrationInterface {
+export class ChangeColaboratorDocumentUniqueToPerGroup1774327068359 extends ImprovedRunner {
 
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    // Drop global unique index on numero_documento and replace with per-group composite
-    await queryRunner.query(`DROP INDEX \`IDX_a09ad8dbb6f626ff6ac25c3f6e\` ON \`colaborators\``);
-    await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_colaborators_numero_documento_group_id\` ON \`colaborators\` (\`numero_documento\`, \`group_id\`)`,
-    );
+  public async onUp(queryRunner: IQueryRunner): Promise<void> {
+    const table = 'colaborators';
+
+    // Drop global unique index on numero_documento (if still present) and replace with per-group composite
+    await queryRunner.dropIndex(table, 'IDX_a09ad8dbb6f626ff6ac25c3f6e');
+    await queryRunner.createIndex(table, new TableIndex({
+      name: 'IDX_colaborators_numero_documento_group_id',
+      columnNames: ['numero_documento', 'group_id'],
+      isUnique: true,
+    }));
 
     // Drop global unique index on email (find name dynamically) and replace with per-group composite
     const [emailIdxRows]: [Array<{ INDEX_NAME: string }>] = await queryRunner.query(`
@@ -19,24 +24,32 @@ export class ChangeColaboratorDocumentUniqueToPerGroup1774327068359 implements M
         AND INDEX_NAME != 'IDX_colaborators_email_group_id'
     `);
     if (emailIdxRows?.length) {
-      await queryRunner.query(`DROP INDEX \`${emailIdxRows[0].INDEX_NAME}\` ON \`colaborators\``);
+      await queryRunner.dropIndex(table, emailIdxRows[0].INDEX_NAME);
     }
-    await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_colaborators_email_group_id\` ON \`colaborators\` (\`email\`, \`group_id\`)`,
-    );
+    await queryRunner.createIndex(table, new TableIndex({
+      name: 'IDX_colaborators_email_group_id',
+      columnNames: ['email', 'group_id'],
+      isUnique: true,
+    }));
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
+  public async onDown(queryRunner: IQueryRunner): Promise<void> {
+    const table = 'colaborators';
+
     // Restore global unique index on email
-    await queryRunner.query(`DROP INDEX \`IDX_colaborators_email_group_id\` ON \`colaborators\``);
-    await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_6e9a8b6a4bb8b4a6f3bd41d2eb\` ON \`colaborators\` (\`email\`)`,
-    );
+    await queryRunner.dropIndex(table, 'IDX_colaborators_email_group_id');
+    await queryRunner.createIndex(table, new TableIndex({
+      name: 'IDX_6e9a8b6a4bb8b4a6f3bd41d2eb',
+      columnNames: ['email'],
+      isUnique: true,
+    }));
 
     // Restore global unique index on numero_documento
-    await queryRunner.query(`DROP INDEX \`IDX_colaborators_numero_documento_group_id\` ON \`colaborators\``);
-    await queryRunner.query(
-      `CREATE UNIQUE INDEX \`IDX_a09ad8dbb6f626ff6ac25c3f6e\` ON \`colaborators\` (\`numero_documento\`)`,
-    );
+    await queryRunner.dropIndex(table, 'IDX_colaborators_numero_documento_group_id');
+    await queryRunner.createIndex(table, new TableIndex({
+      name: 'IDX_a09ad8dbb6f626ff6ac25c3f6e',
+      columnNames: ['numero_documento'],
+      isUnique: true,
+    }));
   }
 }
