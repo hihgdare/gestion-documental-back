@@ -18,3 +18,4 @@ export { DivisionEntity } from './division.entity';
 export { ContractSubcontractEntity } from './contract-subcontract.entity';
 export { DocumentHistoryEntity } from './document-history.entity';
 export { BulkUploadTemplateEntity } from './bulk-upload-template.entity';
+export { FileShareEntity } from './file-share.entity';
