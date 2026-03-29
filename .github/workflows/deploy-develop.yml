@@ -105,7 +105,9 @@ jobs:
 
             # Load user environment and configure PATH for bun
             export PATH="$HOME/.bun/bin:$PATH"
-            source ~/.bashrc 2>/dev/null || echo "No .bashrc found"
+            if [ -f ~/.bashrc ]; then
+              source ~/.bashrc
+            fi
 
             # Navigate to Backend Project Directory
             echo "📁 Navigating to backend project directory..."
@@ -116,31 +118,31 @@ jobs:
             # Git Pull from Develop
             echo "🔄 Pulling latest changes from develop..."
             git config --global --add safe.directory /home/ec2-user/gestion-documental-back
-            git checkout -- bun.lock 2>/dev/null || echo "No bun.lock changes to discard"
+            git checkout -- bun.lock 2>/dev/null || true
             git pull --no-rebase origin develop
             echo "✅ Git pull completed"
 
             # Install Dependencies
             echo "📦 Installing dependencies with bun..."
-            which bun || echo "Bun not found in PATH"
-            bun --version || echo "Cannot get bun version"
-            bun install || echo "Failed to install dependencies"
+            which bun
+            bun --version
+            bun install
             echo "✅ Dependencies installation completed"
 
             # Run Database Migrations
             echo "🗄️ Running database migrations..."
-            bun run migration:run || echo "Migration failed"
+            bun run migration:run
             echo "✅ Database migrations completed"
 
             # Build Application
             echo "🏗️ Building backend application..."
-            bun run build || echo "Build step completed (may not be required)"
+            bun run build
             echo "✅ Application build completed"
 
             # Restart PM2 Service for Backend
             echo "🔄 Restarting PM2 backend service..."
-            pm2 list || echo "PM2 not available"
-            pm2 restart BackendAPI || echo "Failed to restart BackendAPI"
+            pm2 list
+            pm2 restart BackendAPI
             echo "✅ PM2 backend service restart completed"
 
             echo "🎉 Backend deployment process completed successfully!"
