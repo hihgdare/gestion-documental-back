@@ -474,12 +474,8 @@ export class ContractController {
 
   public getDocumentStructure = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const groupId = req.auth?.groupId;
-    if (!groupId) {
-      throw new ValidationError('No se pudo determinar el grupo del usuario');
-    }
     const { familyId, documentTypeId, documentSubtypeId, status } = req.query as Record<string, string>;
-    const items = await this.getContractDocumentStructureUseCase.execute(id, groupId, {
+    const items = await this.getContractDocumentStructureUseCase.execute(id, {
       familyId,
       documentTypeId,
       documentSubtypeId,

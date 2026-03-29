@@ -27,7 +27,6 @@ export class GetContractDocumentStructureUseCase {
 
   async execute(
     contractId: string,
-    groupId: number,
     filters?: ContractDocumentStructureFilters,
   ): Promise<ContractDocumentStructureItem[]> {
     const contract = await this.contractRepository.findById(contractId);
@@ -35,6 +34,7 @@ export class GetContractDocumentStructureUseCase {
       throw new NotFoundError('Contrato no encontrado');
     }
 
+    const groupId = contract.groupId;
     const { status, ...modelFilters } = filters ?? {};
 
     const documentModels = await this.documentModelRepository.findByContractId(
