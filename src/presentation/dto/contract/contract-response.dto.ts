@@ -5,7 +5,7 @@ import { DateUtils } from '@shared/utils/date';
 export interface ContractResponseDto {
   id: string;
   rutSociedad: string;
-  nombreColaborador: string;
+  nombreColaborador?: string;
   startDate: string; // ISO date string
   endDate?: string; // ISO date string, optional
   contractType: ContractType;
