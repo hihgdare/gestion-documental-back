@@ -30,8 +30,8 @@ export class ContractEntity {
   @Column({ name: 'rut_sociedad', type: 'varchar', length: 12 })
   rutSociedad!: string;
 
-  @Column({ name: 'nombre_colaborador', type: 'varchar', length: 255 })
-  nombreColaborador!: string;
+  @Column({ name: 'nombre_colaborador', type: 'varchar', length: 255, nullable: true })
+  nombreColaborador?: string;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate!: Date;

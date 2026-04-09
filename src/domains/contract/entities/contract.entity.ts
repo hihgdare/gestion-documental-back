@@ -7,7 +7,7 @@ import { Colaborator, ColaboratorJson } from '@domains/colaborators/entities/col
 
 interface BaseContractProps {
   rutSociedad: string;
-  nombreColaborador: string;
+  nombreColaborador?: string;
   administradorContratoMandante: string;
   administradorContratoEmpresa: string;
   rutAdministradorContrato: string;
@@ -90,7 +90,7 @@ export type ContractJson = Overlap<BaseContractProps, {
 export class Contract {
   id: string;
   rutSociedad: string;
-  nombreColaborador: string;
+  nombreColaborador?: string;
   startDate: Date;
   endDate: Date;
   contractType: ContractType;
@@ -142,9 +142,6 @@ export class Contract {
   private static validateRequired(props: CreateContractProps): void {
     if (!props.rutSociedad?.trim()) {
       throw new ValidationError('RUT de sociedad is required', 'rutSociedad');
-    }
-    if (!props.nombreColaborador?.trim()) {
-      throw new ValidationError('Nombre colaborador is required', 'nombreColaborador');
     }
     if (!props.administradorContratoMandante?.trim()) {
       throw new ValidationError('Administrador contrato mandante is required', 'administradorContratoMandante');
