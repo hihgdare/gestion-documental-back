@@ -11,6 +11,7 @@ export function createAuthRoutes(authController: AuthController): Router {
   authRouter.post('/refresh', auth, authController.refresh);
   authRouter.get('/me', auth, authController.getMe);
   authRouter.post('/me', auth, authController.updateMe);
+  authRouter.post('/change-password', auth, authController.changePassword);
   authRouter.get('/token', authController.getToken);
   authRouter.get('/group', authController.getGroup);
 
