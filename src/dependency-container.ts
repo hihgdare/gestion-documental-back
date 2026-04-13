@@ -21,6 +21,7 @@ import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
+import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
 
 // DocumentType domain
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
@@ -244,6 +245,7 @@ export class DependencyContainer {
   private deleteUserUseCase!: DeleteUserUseCase;
   private assignRoleToUserUseCase!: AssignRoleToUserUseCase;
   private loginUserUseCase!: LoginUserUseCase;
+  private changePasswordUseCase!: ChangePasswordUseCase;
 
   // Use Cases - DocumentType
   private createDocumentTypeUseCase!: CreateDocumentTypeUseCase;
@@ -458,6 +460,7 @@ export class DependencyContainer {
     this.deleteUserUseCase = new DeleteUserUseCase(this.userRepository);
     this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
     this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
+    this.changePasswordUseCase = new ChangePasswordUseCase(this.userRepository);
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -870,6 +873,7 @@ export class DependencyContainer {
       this.loginUserUseCase,
       this.getUserByIdUseCase,
       this.updateUserUseCase,
+      this.changePasswordUseCase,
       this.groupRepository,
     );
 
@@ -1019,6 +1023,10 @@ export class DependencyContainer {
 
   public getLoginUserUseCase(): LoginUserUseCase {
     return this.loginUserUseCase;
+  }
+
+  public getChangePasswordUseCase(): ChangePasswordUseCase {
+    return this.changePasswordUseCase;
   }
 
   public getSaveRoleUseCase(): SaveRoleUseCase {

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
 import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
+import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
 import { UnauthorizedError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 
@@ -11,6 +12,7 @@ export class AuthController {
     private readonly loginUserUseCase: LoginUserUseCase,
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
     private readonly updateUserUseCase: UpdateUserUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly groupRepository: GroupRepository,
   ) {
     this.login = this.login.bind(this);
@@ -19,6 +21,7 @@ export class AuthController {
     this.refresh = this.refresh.bind(this);
     this.getMe = this.getMe.bind(this);
     this.updateMe = this.updateMe.bind(this);
+    this.changePassword = this.changePassword.bind(this);
     this.getToken = this.getToken.bind(this);
     this.getGroup = this.getGroup.bind(this);
   }
@@ -244,5 +247,33 @@ export class AuthController {
       success: true,
       data: { groupId: parseInt(groupId) },
     });
+  }
+
+  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = req.auth?.user;
+      if (!user) {
+        throw new ValidationError('User not authenticated', 'authentication');
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        throw new ValidationError('Current password and new password are required', 'passwords');
+      }
+
+      await this.changePasswordUseCase.execute({
+        userId: user.id,
+        currentPassword,
+        newPassword,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Password changed successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 }
