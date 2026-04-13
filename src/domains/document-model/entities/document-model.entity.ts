@@ -10,6 +10,7 @@ export interface DocumentModelProps {
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
   requiredExpirationDate?: boolean;
+  familyName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   createdAt?: Date;
@@ -26,6 +27,7 @@ export class DocumentModel {
   requiredForContract: boolean;
   requiredForColaborator: boolean;
   requiredExpirationDate: boolean;
+  familyName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
   createdAt: Date;
