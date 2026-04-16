@@ -594,7 +594,7 @@ export class DependencyContainer {
     this.getRoleByIdUseCase = new GetRoleByIdUseCase(this.roleRepository);
     this.getAllRolesUseCase = new GetAllRolesUseCase(this.roleRepository);
     this.updateRoleUseCase = new UpdateRoleUseCase(this.roleRepository);
-    this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository);
+    this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository, this.userRepository);
     this.assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(
       this.roleRepository,
       this.permissionRepository,

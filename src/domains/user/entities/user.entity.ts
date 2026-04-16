@@ -83,9 +83,6 @@ export class User {
     if (!props.password?.trim()) {
       throw new ValidationError('Password is required', 'password');
     }
-    if (!props.roles?.length) {
-      throw new ValidationError('At least one role is required', 'roles');
-    }
   }
 
   // Business methods
