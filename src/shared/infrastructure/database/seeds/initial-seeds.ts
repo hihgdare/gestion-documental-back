@@ -32,6 +32,7 @@ const extraPermissions = [
   'colaborator-group:assign:document',
   'admin:colaborator:manage-template',
   'contract:assign:reviewer',
+  'contract:finalize',
   'dashboard:read',
   'document:review',
   'file:share',

@@ -73,7 +73,7 @@ export const createContractRoutes = (contractController: ContractController): Ro
   router.patch('/:id/suspend', authorize('contract:update'), contractController.suspendContract);
 
   // PATCH /api/contracts/:id/terminate - Terminate contract
-  router.patch('/:id/terminate', authorize('contract:update'), contractController.terminateContract);
+  router.patch('/:id/terminate', authorize('contract:finalize'), contractController.terminateContract);
 
   // DELETE /api/contracts/:id - Delete contract
   router.delete('/:id', authorize('contract:delete'), contractController.deleteContract);
