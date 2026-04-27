@@ -23,9 +23,7 @@ export const getUserByIdSchema = Joi.object({
 export const createContractSchema = Joi.object({
   rutSociedad: Joi.string().trim().min(8).max(12).required(),
   nombreColaborador: Joi.string().trim().min(2).max(100).optional(),
-  startDate: Joi.date().iso().required().min(Joi.ref('$today')).messages({
-    'date.min': 'startDate should be today or later.',
-  }),
+  startDate: Joi.date().iso().required(),
   endDate: Joi.date().iso().optional().greater(Joi.ref('startDate')).messages({
     'date.greater': 'endDate should be after startDate.',
   }),
