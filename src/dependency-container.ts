@@ -209,6 +209,10 @@ import { GetFileByShareTokenUseCase } from '@domains/file-share/use-cases/get-fi
 import { TypeOrmFileShareRepository } from '@shared/infrastructure/repositories/typeorm-file-share.repository';
 import { FileShareController } from '@presentation/controllers/file-share.controller';
 
+// Email
+import { NodemailerEmailService } from '@shared/infrastructure/email/nodemailer-email.service';
+import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -427,6 +431,9 @@ export class DependencyContainer {
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
   private getFileByShareTokenUseCase!: GetFileByShareTokenUseCase;
+
+  // Services
+  private emailService!: EmailService;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -898,6 +905,9 @@ export class DependencyContainer {
       this.bulkUploadTemplateRepository,
       this.bulkLoadColaboratorsUseCase,
     );
+
+    // Initialize Email service
+    this.emailService = new NodemailerEmailService();
   }
 
   // Getters for controllers
@@ -1059,5 +1069,9 @@ export class DependencyContainer {
 
   public getFileShareController(): FileShareController {
     return this.fileShareController;
+  }
+
+  public getEmailService(): EmailService {
+    return this.emailService;
   }
 }
