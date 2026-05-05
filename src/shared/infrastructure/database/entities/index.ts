@@ -19,3 +19,5 @@ export { ContractSubcontractEntity } from './contract-subcontract.entity';
 export { DocumentHistoryEntity } from './document-history.entity';
 export { BulkUploadTemplateEntity } from './bulk-upload-template.entity';
 export { FileShareEntity } from './file-share.entity';
+export { DocumentTemplateEntity } from './document-template.entity';
+export { DocumentFieldValueEntity } from './document-field-value.entity';

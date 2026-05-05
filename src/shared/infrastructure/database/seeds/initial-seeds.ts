@@ -15,6 +15,7 @@ const adminSections = [
   'company',
   'contract',
   'document-model',
+  'document-template',
   'document-type',
   'document',
   'family',
