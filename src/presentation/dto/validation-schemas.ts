@@ -390,7 +390,7 @@ const documentTemplateFieldSchema = Joi.object({
 
 export const createDocumentTemplateSchema = Joi.object({
   title: Joi.string().min(2).max(255).required(),
-  documentDate: Joi.date().iso().required(),
+  documentDate: Joi.string().isoDate().required(),
   description: Joi.string().max(2000).optional().allow(''),
   groupId: Joi.number().integer().positive().required(),
   fields: Joi.array().items(documentTemplateFieldSchema).optional().default([]),
@@ -398,7 +398,7 @@ export const createDocumentTemplateSchema = Joi.object({
 
 export const createDocumentTemplateVersionSchema = Joi.object({
   title: Joi.string().min(2).max(255).optional(),
-  documentDate: Joi.date().iso().optional(),
+  documentDate: Joi.string().isoDate().optional(),
   description: Joi.string().max(2000).optional().allow(''),
   fields: Joi.array().items(documentTemplateFieldSchema).optional(),
 }).min(1);
