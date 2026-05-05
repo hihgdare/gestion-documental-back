@@ -59,6 +59,12 @@ export class UserController {
 
   public updateUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const currentUserId = req.auth?.user?.id;
+
+    if (req.body.status !== undefined && currentUserId === id) {
+      throw new ForbiddenError('You cannot change your own status');
+    }
+
     const user = await this.updateUserUseCase.execute({ id, ...req.body });
     res.status(200).json({
       success: true,
