@@ -7,10 +7,11 @@ interface SmtpConfig {
   user: string;
   password: string;
   from: string;
+  fromName: string;
 }
 
 function loadSmtpConfig(): SmtpConfig | null {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, FROM_EMAIL } = process.env;
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, FROM_EMAIL, FROM_NAME } = process.env;
 
   if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASSWORD || !FROM_EMAIL) {
     return null;
@@ -19,7 +20,7 @@ function loadSmtpConfig(): SmtpConfig | null {
   const port = parseInt(SMTP_PORT, 10);
   if (isNaN(port)) return null;
 
-  return { host: SMTP_HOST, port, user: SMTP_USER, password: SMTP_PASSWORD, from: FROM_EMAIL };
+  return { host: SMTP_HOST, port, user: SMTP_USER, password: SMTP_PASSWORD, from: FROM_EMAIL, fromName: FROM_NAME ?? '' };
 }
 
 export class NodemailerEmailService implements EmailService {
@@ -56,7 +57,9 @@ export class NodemailerEmailService implements EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: this.config.from,
+        from: this.config.fromName
+          ? `"${this.config.fromName}" <${this.config.from}>`
+          : this.config.from,
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject,
         text: options.text,

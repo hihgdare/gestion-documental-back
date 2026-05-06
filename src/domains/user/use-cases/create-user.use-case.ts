@@ -3,6 +3,7 @@ import { RoleRepository } from '@domains/role/repositories/role.repository';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { User } from '@domains/user/entities/user.entity';
 import { ConflictError, ValidationError } from '@shared/domain/errors';
+import { UserStatus } from '@domains/user/value-objects/user-status';
 import bcrypt from 'bcryptjs';
 
 export interface CreateUserRequest {
@@ -39,12 +40,13 @@ export class CreateUserUseCase {
       throw new ValidationError('One or more roles not found');
     }
 
-    // Create user
+    // Create user (inactive by default — must be activated by an admin)
     const user = new User({
       email: request.email.toLowerCase(),
       firstName: request.firstName,
       lastName: request.lastName,
       password: hashedPassword,
+      status: UserStatus.INACTIVE,
       roles: roles.filter(r => r) as any,
     });
 

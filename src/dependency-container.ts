@@ -213,6 +213,10 @@ import { FileShareController } from '@presentation/controllers/file-share.contro
 import { NodemailerEmailService } from '@shared/infrastructure/email/nodemailer-email.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 
+// User extra use cases
+import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
+import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -435,6 +439,10 @@ export class DependencyContainer {
   // Services
   private emailService!: EmailService;
 
+  // Extra user use cases
+  private setPasswordUseCase!: SetPasswordUseCase;
+  private sendActivationEmailUseCase!: SendActivationEmailUseCase;
+
   public async initialize(): Promise<void> {
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
@@ -468,6 +476,11 @@ export class DependencyContainer {
     this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
     this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
     this.changePasswordUseCase = new ChangePasswordUseCase(this.userRepository);
+
+    // Initialize Email service and extra user use cases (must be before controllers)
+    this.emailService = new NodemailerEmailService();
+    this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository);
+    this.sendActivationEmailUseCase = new SendActivationEmailUseCase(this.userRepository, this.emailService);
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -874,6 +887,7 @@ export class DependencyContainer {
       this.updateUserUseCase,
       this.deleteUserUseCase,
       this.assignRoleToUserUseCase,
+      this.sendActivationEmailUseCase,
     );
 
     this.authController = new AuthController(
@@ -882,6 +896,7 @@ export class DependencyContainer {
       this.updateUserUseCase,
       this.changePasswordUseCase,
       this.groupRepository,
+      this.setPasswordUseCase,
     );
 
     this.fileController = new FileController(this.fileRepository);
@@ -905,9 +920,6 @@ export class DependencyContainer {
       this.bulkUploadTemplateRepository,
       this.bulkLoadColaboratorsUseCase,
     );
-
-    // Initialize Email service
-    this.emailService = new NodemailerEmailService();
   }
 
   // Getters for controllers
