@@ -2,6 +2,8 @@ name: Claude PR Review
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
 
 jobs:
   review:
@@ -10,6 +12,7 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +22,8 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          use_bedrock: false
-          use_vertex: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: "--dangerously-skip-permissions"
           prompt: |
             Revisa este Pull Request exhaustivamente con contexto completo del codebase.
 
@@ -40,4 +43,3 @@ jobs:
             Termina con un comentario resumen:
             - Veredicto: ✅ Listo para merge / ⚠️ Cambios menores / ❌ Requiere cambios
             - Lista de hallazgos por severidad
-          allowed_tools: "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"
