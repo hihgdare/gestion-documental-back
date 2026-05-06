@@ -3,14 +3,70 @@ import { ValidationError } from '@shared/domain/errors';
 
 export type DocumentTemplateFieldType = 'text' | 'number' | 'date' | 'select' | 'textarea';
 
-export interface DocumentTemplateField {
-  id: string;
-  name: string;
-  label: string;
-  fieldType: DocumentTemplateFieldType;
-  required: boolean;
-  order: number;
-  options?: string[];
+const VALID_FIELD_TYPES: DocumentTemplateFieldType[] = ['text', 'number', 'date', 'select', 'textarea'];
+
+export class DocumentTemplateField {
+  readonly id: string;
+  readonly name: string;
+  readonly label: string;
+  readonly fieldType: DocumentTemplateFieldType;
+  readonly required: boolean;
+  readonly order: number;
+  readonly options?: string[];
+
+  constructor(props: {
+    id: string;
+    name: string;
+    label: string;
+    fieldType: DocumentTemplateFieldType;
+    required: boolean;
+    order: number;
+    options?: string[];
+  }) {
+    this.id = props.id;
+    this.name = props.name;
+    this.label = props.label;
+    this.fieldType = props.fieldType;
+    this.required = props.required;
+    this.order = props.order;
+    this.options = props.options;
+  }
+
+  public static create(props: {
+    id: string;
+    name: string;
+    label: string;
+    fieldType: string;
+    required: boolean;
+    order: number;
+    options?: string[];
+  }): DocumentTemplateField {
+    if (!props.id?.trim()) {
+      throw new ValidationError('El id del campo es requerido');
+    }
+    if (!props.name?.trim()) {
+      throw new ValidationError('El nombre del campo es requerido');
+    }
+    if (!props.label?.trim()) {
+      throw new ValidationError('La etiqueta del campo es requerida');
+    }
+    if (!VALID_FIELD_TYPES.includes(props.fieldType as DocumentTemplateFieldType)) {
+      throw new ValidationError(`Tipo de campo inválido: ${props.fieldType}`);
+    }
+    if (!Number.isInteger(props.order) || props.order < 0) {
+      throw new ValidationError('El orden del campo debe ser un entero no negativo');
+    }
+
+    return new DocumentTemplateField({
+      id: props.id,
+      name: props.name,
+      label: props.label,
+      fieldType: props.fieldType as DocumentTemplateFieldType,
+      required: props.required,
+      order: props.order,
+      options: props.options,
+    });
+  }
 }
 
 export interface DocumentTemplateProps {
@@ -30,19 +86,19 @@ export interface DocumentTemplateProps {
 }
 
 export class DocumentTemplate {
-  id: string;
-  code: string;
-  title: string;
-  version: number;
-  documentDate: Date;
-  description: string | null;
-  fileUrl: string | null;
-  groupId: number;
-  fields: DocumentTemplateField[];
-  createdBy: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
+  readonly id: string;
+  readonly code: string;
+  readonly title: string;
+  readonly version: number;
+  readonly documentDate: Date;
+  readonly description: string | null;
+  readonly fileUrl: string | null;
+  readonly groupId: number;
+  readonly fields: DocumentTemplateField[];
+  readonly createdBy: string | null;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+  readonly deletedAt: Date | null;
 
   constructor(props: DocumentTemplateProps) {
     DocumentTemplate.validateRequired(props);
@@ -53,7 +109,7 @@ export class DocumentTemplate {
       documentDate: 'date',
       description: (v?: string) => v || null,
       fileUrl: (v?: string) => v || null,
-      fields: (v?: DocumentTemplateField[]) => v ?? [],
+      fields: (v?: DocumentTemplateField[]) => (v ?? []).map(f => DocumentTemplateField.create(f)),
       createdBy: (v?: string) => v || null,
       deletedAt: 'dateNullable',
       createdAt: 'datetime',

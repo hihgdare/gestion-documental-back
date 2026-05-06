@@ -14,13 +14,14 @@ import { UserEntity } from './user.entity';
 
 @Entity('document_templates')
 @Index('IDX_document_templates_code', ['code'])
+@Index('IDX_document_templates_code_version', ['code', 'version'], { unique: true })
 @Index('IDX_document_templates_group_id', ['groupId'])
 @Index('IDX_document_templates_deleted_at', ['deletedAt'])
 export class DocumentTemplateEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar', length: 20, unique: true })
+  @Column({ type: 'varchar', length: 20 })
   code!: string;
 
   @Column({ type: 'varchar', length: 255 })
