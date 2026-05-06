@@ -23,7 +23,7 @@ export class DocumentTemplateController {
   ) {}
 
   public createDocumentTemplate = asyncHandler(async (req: Request, res: Response) => {
-    const groupId = req.body.groupId || req.auth?.groupId;
+    const groupId = req.auth?.groupId ?? req.body.groupId;
     const template = await this.createDocumentTemplateUseCase.execute({
       ...req.body,
       groupId,
