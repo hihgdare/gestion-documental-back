@@ -27,13 +27,26 @@ export class TypeOrmDocumentTemplateRepository implements IDocumentTemplateRepos
   }
 
   async findAll(groupId?: number): Promise<DocumentTemplate[]> {
-    const where: Record<string, unknown> = { deletedAt: IsNull() };
-    if (groupId) where.groupId = groupId;
+    const qb = this.repository
+      .createQueryBuilder('dt')
+      .innerJoin(
+        qb2 => qb2
+          .select('sub.code', 'code')
+          .addSelect('MAX(sub.version)', 'maxVersion')
+          .from(DocumentTemplateEntity, 'sub')
+          .where('sub.deleted_at IS NULL')
+          .groupBy('sub.code'),
+        'latest',
+        'latest.code = dt.code AND latest.maxVersion = dt.version',
+      )
+      .where('dt.deletedAt IS NULL')
+      .orderBy('dt.code', 'ASC');
 
-    const entities = await this.repository.find({
-      where,
-      order: { code: 'ASC', version: 'DESC' },
-    });
+    if (groupId) {
+      qb.andWhere('dt.groupId = :groupId', { groupId });
+    }
+
+    const entities = await qb.getMany();
     return entities.map(e => this.toDomain(e));
   }
 
