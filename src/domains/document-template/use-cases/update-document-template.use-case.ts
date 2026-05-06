@@ -24,10 +24,7 @@ export class CreateNewDocumentTemplateVersionUseCase {
     const latestVersion = await this.documentTemplateRepository.findLatestByCode(existing.code, existing.groupId);
     const nextVersion = (latestVersion?.version ?? existing.version) + 1;
 
-    const newVersionProps = existing.createNewVersion({
-      ...request,
-      version: nextVersion,
-    } as any);
+    const newVersionProps = existing.createNewVersion(request);
 
     const newTemplate = DocumentTemplate.create({ ...newVersionProps, version: nextVersion });
     return this.documentTemplateRepository.save(newTemplate);
