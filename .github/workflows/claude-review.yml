@@ -1,0 +1,44 @@
+name: Claude PR Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Revisa este Pull Request exhaustivamente con contexto completo del codebase.
+
+            Para cada problema encontrado, comenta inline en la línea exacta con:
+            - Qué está mal y por qué
+            - Cómo corregirlo (con ejemplo de código si aplica)
+            - Severidad: 🔴 Crítico / 🟡 Importante / 🔵 Sugerencia
+
+            Revisa:
+            1. Bugs y errores de lógica
+            2. Vulnerabilidades de seguridad (inyecciones, auth, datos expuestos)
+            3. Performance (queries N+1, loops innecesarios, memory leaks)
+            4. Convenciones definidas en CLAUDE.md
+            5. Casos borde y manejo de errores
+            6. Cobertura de tests
+
+            Termina con un comentario resumen que incluya:
+            - Veredicto: ✅ Listo para merge / ⚠️ Cambios menores / ❌ Requiere cambios
+            - Tabla de hallazgos por severidad
+            - Lo que está bien hecho en el PR
+          allowed_tools: "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(gh pr review:*)"
