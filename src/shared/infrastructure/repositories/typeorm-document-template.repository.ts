@@ -3,7 +3,7 @@ import { IDocumentTemplateRepository } from '@domains/document-template/reposito
 import { DocumentTemplate, DocumentTemplateField } from '@domains/document-template/entities/document-template.entity';
 import { DocumentTemplateEntity } from '../database/entities/document-template.entity';
 import { AppDataSource } from '../database/typeorm.config';
-import { NotFoundError } from '@shared/domain/errors';
+import { NotFoundError, ServerError } from '@shared/domain/errors';
 
 export class TypeOrmDocumentTemplateRepository implements IDocumentTemplateRepository {
   private repository: Repository<DocumentTemplateEntity>;
@@ -99,8 +99,8 @@ export class TypeOrmDocumentTemplateRepository implements IDocumentTemplateRepos
     if (entity.fieldsJson) {
       try {
         fields = JSON.parse(entity.fieldsJson) as DocumentTemplateField[];
-      } catch {
-        fields = [];
+      } catch (error) {
+        throw new ServerError(`fieldsJson corrupto para plantilla ${entity.id}: ${(error as Error).message}`);
       }
     }
 
