@@ -25,9 +25,7 @@ export const getUserByIdSchema = Joi.object({
 export const createContractSchema = Joi.object({
   rutSociedad: Joi.string().trim().min(8).max(12).required(),
   nombreColaborador: Joi.string().trim().min(2).max(100).optional(),
-  startDate: Joi.date().iso().required().min(Joi.ref('$today')).messages({
-    'date.min': 'startDate should be today or later.',
-  }),
+  startDate: Joi.date().iso().required(),
   endDate: Joi.date().iso().optional().greater(Joi.ref('startDate')).messages({
     'date.greater': 'endDate should be after startDate.',
   }),
@@ -46,6 +44,7 @@ export const createContractSchema = Joi.object({
   dotacionVehiculos: Joi.number().integer().min(0).optional().default(0),
   descripcionServicio: Joi.string().max(1000).optional(),
   nombreProyecto: Joi.string().max(100).optional(),
+  turnos: Joi.string().max(255).optional().allow(''),
   jornadaTrabajo: Joi.string().valid(...Object.values(JornadaTrabajo)).required(),
   groupId: Joi.number().integer().positive().required(),
   status: Joi.string().valid(...Object.values(ContractStatus)).optional().default(ContractStatus.DRAFT),
@@ -67,6 +66,7 @@ export const updateContractSchema = Joi.object({
   companyId: Joi.string().uuid().optional(),
   descripcionServicio: Joi.string().max(1000).optional(),
   nombreProyecto: Joi.string().max(100).optional(),
+  turnos: Joi.string().max(255).optional().allow(''),
   division: Joi.string().trim().max(100).optional(),
   divisionId: Joi.string().uuid().optional(),
   area: Joi.string().max(100).optional(),
@@ -378,4 +378,29 @@ export const updateDocumentModelSchema = Joi.object({
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
   requiredExpirationDate: Joi.boolean().optional(),
+}).min(1);
+
+const documentTemplateFieldSchema = Joi.object({
+  id: Joi.string().required(),
+  name: Joi.string().min(1).max(100).required(),
+  label: Joi.string().min(1).max(200).required(),
+  fieldType: Joi.string().valid('text', 'number', 'date', 'select', 'textarea').required(),
+  required: Joi.boolean().required(),
+  order: Joi.number().integer().min(0).required(),
+  options: Joi.array().items(Joi.string()).optional(),
+});
+
+export const createDocumentTemplateSchema = Joi.object({
+  title: Joi.string().min(2).max(255).required(),
+  documentDate: Joi.string().isoDate().required(),
+  description: Joi.string().max(2000).optional().allow(''),
+  groupId: Joi.number().integer().positive().optional(),
+  fields: Joi.array().items(documentTemplateFieldSchema).optional().default([]),
+});
+
+export const createDocumentTemplateVersionSchema = Joi.object({
+  title: Joi.string().min(2).max(255).optional(),
+  documentDate: Joi.string().isoDate().optional(),
+  description: Joi.string().max(2000).optional().allow(''),
+  fields: Joi.array().items(documentTemplateFieldSchema).optional(),
 }).min(1);

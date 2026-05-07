@@ -240,7 +240,7 @@ export class ContractController {
   public updateContract = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const dto: UpdateContractDto = req.body;
-    const user = (req as any).user;
+    const user = req.auth.user;
 
     const updateRequest = {
       ...dto,

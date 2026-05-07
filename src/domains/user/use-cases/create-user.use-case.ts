@@ -34,8 +34,11 @@ export class CreateUserUseCase {
     const hashedPassword = await bcrypt.hash(request.password, 12);
 
     // Fetch roles
+    if (!request.roleIds?.length) {
+      throw new ValidationError('At least one role is required', 'roles');
+    }
     const roles = await Promise.all(
-      (request.roleIds || []).map(roleId => this.roleRepository.findById(roleId)),
+      request.roleIds.map(roleId => this.roleRepository.findById(roleId)),
     );
     if (roles.some(r => !r)) {
       throw new ValidationError('One or more roles not found');

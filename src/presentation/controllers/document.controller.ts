@@ -102,6 +102,8 @@ export class DocumentController {
       groupId: dto.groupId,
       requiredColaboratorsCount: dto.requiredColaboratorsCount,
       createdBy: req.auth.user?.id,
+      templateId: dto.templateId,
+      fieldValues: dto.fieldValues,
     });
 
     res.status(201).json({
@@ -244,6 +246,8 @@ export class DocumentController {
       requiredColaboratorsCount: dto.requiredColaboratorsCount,
       updatedBy: req.auth.user?.id,
       comment: dto.comment,
+      templateId: dto.templateId,
+      fieldValues: dto.fieldValues,
     });
 
     res.status(200).json({

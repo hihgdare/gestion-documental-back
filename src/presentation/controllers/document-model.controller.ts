@@ -24,7 +24,7 @@ export class DocumentModelController {
   public createDocumentModel = asyncHandler(async (req: Request, res: Response) => {
     const request = {
       ...req.body,
-      groupId: req.body.groupId || req.auth?.groupId,
+      groupId: req.auth?.groupId ?? req.body.groupId,
     };
     const documentModel = await this.createDocumentModelUseCase.execute(request);
     res.status(201).json({

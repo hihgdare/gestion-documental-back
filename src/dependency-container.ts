@@ -177,6 +177,7 @@ import { TypeOrmDocumentTypeRepository } from '@shared/infrastructure/repositori
 import { TypeOrmDocumentSubtypeRepository } from '@shared/infrastructure/repositories/typeorm-document-subtype.repository';
 import { TypeOrmDocumentRepository } from '@shared/infrastructure/repositories/typeorm-document.repository';
 import { TypeOrmDocumentHistoryRepository } from '@shared/infrastructure/repositories/typeorm-document-history.repository';
+import { TypeOrmDocumentFieldValueRepository } from '@shared/infrastructure/repositories/typeorm-document-field-value.repository';
 import { TypeOrmCompanyRepository } from '@shared/infrastructure/repositories/typeorm-company.repository';
 
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
@@ -217,6 +218,20 @@ import { EmailService } from '@shared/infrastructure/email/email-service.interfa
 import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
 import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
 
+// DocumentTemplate domain
+import { CreateDocumentTemplateUseCase } from '@domains/document-template/use-cases/create-document-template.use-case';
+import {
+  GetDocumentTemplateByIdUseCase,
+  GetAllDocumentTemplatesUseCase,
+  GetDocumentTemplateVersionsUseCase,
+} from '@domains/document-template/use-cases/get-document-template.use-case';
+import {
+  CreateNewDocumentTemplateVersionUseCase,
+  DeleteDocumentTemplateUseCase,
+} from '@domains/document-template/use-cases/update-document-template.use-case';
+import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
+import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -227,6 +242,7 @@ export class DependencyContainer {
 
   private documentRepository!: TypeOrmDocumentRepository;
   private documentHistoryRepository!: TypeOrmDocumentHistoryRepository;
+  private documentFieldValueRepository!: TypeOrmDocumentFieldValueRepository;
   private permissionRepository!: TypeOrmPermissionRepository;
   private roleRepository!: TypeOrmRoleRepository;
   private contractReviewerRepository!: TypeOrmContractReviewerRepository;
@@ -240,10 +256,19 @@ export class DependencyContainer {
   private divisionRepository!: TypeOrmDivisionRepository;
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
   private fileShareRepository!: TypeOrmFileShareRepository;
+  private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
   private bulkLoadColaboratorsUseCase!: BulkLoadColaboratorsUseCase;
+
+  // Use Cases - DocumentTemplate
+  private createDocumentTemplateUseCase!: CreateDocumentTemplateUseCase;
+  private getDocumentTemplateByIdUseCase!: GetDocumentTemplateByIdUseCase;
+  private getAllDocumentTemplatesUseCase!: GetAllDocumentTemplatesUseCase;
+  private getDocumentTemplateVersionsUseCase!: GetDocumentTemplateVersionsUseCase;
+  private createNewDocumentTemplateVersionUseCase!: CreateNewDocumentTemplateVersionUseCase;
+  private deleteDocumentTemplateUseCase!: DeleteDocumentTemplateUseCase;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -431,6 +456,7 @@ export class DependencyContainer {
   private fileController!: FileController;
   private bulkTemplateController!: BulkTemplateController;
   private fileShareController!: FileShareController;
+  private documentTemplateController!: DocumentTemplateController;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -466,6 +492,7 @@ export class DependencyContainer {
     this.divisionRepository = new TypeOrmDivisionRepository();
     this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
     this.fileShareRepository = new TypeOrmFileShareRepository();
+    this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -513,12 +540,14 @@ export class DependencyContainer {
 
 
     // Initialize Document use cases
+    this.documentFieldValueRepository = new TypeOrmDocumentFieldValueRepository();
     this.createDocumentUseCase = new CreateDocumentUseCase(
       this.documentRepository,
       this.documentHistoryRepository,
       this.groupRepository,
       this.documentModelRepository,
       this.familyRepository,
+      this.documentFieldValueRepository,
     );
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
@@ -533,6 +562,7 @@ export class DependencyContainer {
       this.groupRepository,
       this.documentModelRepository,
       this.fileRepository,
+      this.documentFieldValueRepository,
     );
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
@@ -619,7 +649,7 @@ export class DependencyContainer {
     this.getRoleByIdUseCase = new GetRoleByIdUseCase(this.roleRepository);
     this.getAllRolesUseCase = new GetAllRolesUseCase(this.roleRepository);
     this.updateRoleUseCase = new UpdateRoleUseCase(this.roleRepository);
-    this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository);
+    this.deleteRoleUseCase = new DeleteRoleUseCase(this.roleRepository, this.userRepository);
     this.assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(
       this.roleRepository,
       this.permissionRepository,
@@ -925,6 +955,26 @@ export class DependencyContainer {
       this.bulkUploadTemplateRepository,
       this.bulkLoadColaboratorsUseCase,
     );
+
+    // Initialize DocumentTemplate use cases
+    this.createDocumentTemplateUseCase = new CreateDocumentTemplateUseCase(
+      this.documentTemplateRepository,
+      this.groupRepository,
+    );
+    this.getDocumentTemplateByIdUseCase = new GetDocumentTemplateByIdUseCase(this.documentTemplateRepository);
+    this.getAllDocumentTemplatesUseCase = new GetAllDocumentTemplatesUseCase(this.documentTemplateRepository);
+    this.getDocumentTemplateVersionsUseCase = new GetDocumentTemplateVersionsUseCase(this.documentTemplateRepository);
+    this.createNewDocumentTemplateVersionUseCase = new CreateNewDocumentTemplateVersionUseCase(this.documentTemplateRepository);
+    this.deleteDocumentTemplateUseCase = new DeleteDocumentTemplateUseCase(this.documentTemplateRepository);
+
+    this.documentTemplateController = new DocumentTemplateController(
+      this.createDocumentTemplateUseCase,
+      this.getDocumentTemplateByIdUseCase,
+      this.getAllDocumentTemplatesUseCase,
+      this.getDocumentTemplateVersionsUseCase,
+      this.createNewDocumentTemplateVersionUseCase,
+      this.deleteDocumentTemplateUseCase,
+    );
   }
 
   // Getters for controllers
@@ -1090,5 +1140,9 @@ export class DependencyContainer {
 
   public getEmailService(): EmailService {
     return this.emailService;
+  }
+
+  public getDocumentTemplateController(): DocumentTemplateController {
+    return this.documentTemplateController;
   }
 }

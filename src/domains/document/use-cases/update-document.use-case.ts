@@ -1,6 +1,7 @@
 import { DocumentRepository } from '../repositories/document.repository';
 import { DocumentHistoryRepository } from '../repositories/document-history.repository';
-import { Document } from '../entities/document.entity';
+import { DocumentFieldValueRepository } from '../repositories/document-field-value.repository';
+import { Document, DocumentFieldValue } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
@@ -21,6 +22,8 @@ export interface UpdateDocumentRequest {
   requiredColaboratorsCount?: number;
   updatedBy?: string;
   comment?: string;
+  templateId?: string;
+  fieldValues?: DocumentFieldValue[];
 }
 
 export class UpdateDocumentUseCase {
@@ -30,6 +33,7 @@ export class UpdateDocumentUseCase {
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly fileRepository: TypeOrmFileRepository,
+    private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -136,6 +140,14 @@ export class UpdateDocumentUseCase {
 
     // Actualizar documento
     const updatedDocument = await this.documentRepository.update(document);
+
+    // Actualizar valores de campos de plantilla si se proporcionaron
+    if (this.documentFieldValueRepository && request.fieldValues !== undefined) {
+      await this.documentFieldValueRepository.deleteByDocumentId(updatedDocument.id);
+      if (request.fieldValues.length > 0) {
+        await this.documentFieldValueRepository.saveMany(updatedDocument.id, request.fieldValues);
+      }
+    }
 
     // Crear entrada de historial
     const historyProps: DocumentHistoryProps = {

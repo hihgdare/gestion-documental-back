@@ -295,6 +295,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       createdBy: entity.createdBy,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      templateId: entity.templateId,
 
       // Populate read-only props from Model
       documentTypeId: entity.documentModel?.documentType?.id,
@@ -325,6 +326,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       createdBy: document.createdBy || undefined,
       createdAt: document.createdAt,
       updatedAt: document.updatedAt,
+      templateId: document.templateId || undefined,
     };
   }
 }
