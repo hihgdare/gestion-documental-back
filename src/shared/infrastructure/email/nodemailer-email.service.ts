@@ -41,7 +41,7 @@ export class NodemailerEmailService implements EmailService {
         },
       });
     } else {
-      console.warn('[EmailService] SMTP not configured. Email sending is disabled.');
+      console.warn('[EmailService] SMTP not configured — email sending is disabled.');
     }
   }
 
@@ -67,7 +67,7 @@ export class NodemailerEmailService implements EmailService {
       });
       return true;
     } catch (error) {
-      console.error('[EmailService] Failed to send email:', error instanceof Error ? error.message : error);
+      console.warn('[EmailService] Failed to send email', { recipient: Array.isArray(options.to) ? options.to : [options.to] });
       return false;
     }
   }

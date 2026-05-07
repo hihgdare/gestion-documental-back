@@ -2,6 +2,7 @@ import { UserRepository } from '@domains/user/repositories/user.repository';
 import { RoleRepository } from '@domains/role/repositories/role.repository';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { User } from '@domains/user/entities/user.entity';
+import { Role } from '@domains/role/entities/role.entity';
 import { ConflictError, ValidationError } from '@shared/domain/errors';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import bcrypt from 'bcryptjs';
@@ -47,7 +48,7 @@ export class CreateUserUseCase {
       lastName: request.lastName,
       password: hashedPassword,
       status: UserStatus.INACTIVE,
-      roles: roles.filter(r => r) as any,
+      roles: roles.filter((r): r is Role => r !== null),
     });
 
     const savedUser = await this.userRepository.save(user);
