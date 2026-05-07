@@ -8,6 +8,8 @@ export class SendActivationEmailUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly emailService: EmailService,
+    private readonly jwtSecret: string,
+    private readonly frontendUrl: string,
   ) {}
 
   async execute(userId: string): Promise<void> {
@@ -20,21 +22,13 @@ export class SendActivationEmailUseCase {
       return; // Only send activation email to newly activated users
     }
 
-    const secret = process.env.JWT_SECRET;
-    const frontendUrl = process.env.FRONTEND_URL;
-
-    if (!secret || !frontendUrl) {
-      // Email service not fully configured — skip silently
-      return;
-    }
-
     const token = jwt.sign(
       { userId: user.id, purpose: 'set-password' },
-      secret,
+      this.jwtSecret,
       { expiresIn: '48h' },
     );
 
-    const setPasswordUrl = `${frontendUrl}/set-password?token=${token}`;
+    const setPasswordUrl = `${this.frontendUrl}/set-password?token=${token}`;
 
     const sent = await this.emailService.send({
       to: user.email.toString(),

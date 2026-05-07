@@ -480,7 +480,12 @@ export class DependencyContainer {
     // Initialize Email service and extra user use cases (must be before controllers)
     this.emailService = new NodemailerEmailService();
     this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository);
-    this.sendActivationEmailUseCase = new SendActivationEmailUseCase(this.userRepository, this.emailService);
+    this.sendActivationEmailUseCase = new SendActivationEmailUseCase(
+      this.userRepository,
+      this.emailService,
+      process.env.JWT_SECRET ?? '',
+      process.env.FRONTEND_URL ?? '',
+    );
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);

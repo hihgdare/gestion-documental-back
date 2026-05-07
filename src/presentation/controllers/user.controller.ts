@@ -77,7 +77,9 @@ export class UserController {
       previousUser?.status !== UserStatus.ACTIVE
     ) {
       // Fire-and-forget: do not block the response if email fails
-      this.sendActivationEmailUseCase.execute(id).catch(() => {});
+      this.sendActivationEmailUseCase.execute(id).catch((err: Error) => {
+        console.warn('Failed to send activation email', { userId: id, error: err.message });
+      });
     }
 
     res.status(200).json({
