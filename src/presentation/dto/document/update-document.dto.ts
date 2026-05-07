@@ -1,3 +1,5 @@
+import { DocumentFieldValueDto } from './create-document.dto';
+
 export interface UpdateDocumentDto {
   documentModelId?: string;
   colaboratorIds?: string[];
@@ -10,4 +12,6 @@ export interface UpdateDocumentDto {
   comment?: string;
   groupId?: number;
   requiredColaboratorsCount?: number;
+  templateId?: string;
+  fieldValues?: DocumentFieldValueDto[];
 }

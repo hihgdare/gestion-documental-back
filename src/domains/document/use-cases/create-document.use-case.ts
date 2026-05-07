@@ -1,6 +1,7 @@
 import { DocumentRepository } from '../repositories/document.repository';
 import { DocumentHistoryRepository } from '../repositories/document-history.repository';
-import { Document, DocumentProps } from '../entities/document.entity';
+import { DocumentFieldValueRepository } from '../repositories/document-field-value.repository';
+import { Document, DocumentProps, DocumentFieldValue } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction } from '../value-objects/document-enums';
 import { ValidationError } from '@shared/domain/errors';
@@ -20,6 +21,8 @@ export interface CreateDocumentRequest {
   requiredColaboratorsCount?: number;
   createdBy?: string;
   comment?: string;
+  templateId?: string;
+  fieldValues?: DocumentFieldValue[];
 }
 
 export class CreateDocumentUseCase {
@@ -29,6 +32,7 @@ export class CreateDocumentUseCase {
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly familyRepository: IFamilyRepository,
+    private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
@@ -84,12 +88,18 @@ export class CreateDocumentUseCase {
       groupId: request.groupId,
       requiredColaboratorsCount: request.requiredColaboratorsCount,
       createdBy: request.createdBy,
+      templateId: request.templateId,
     };
 
     const document = Document.create(documentProps);
 
     // Guardando documento
     const savedDocument = await this.documentRepository.save(document);
+
+    // Guardando valores de campos de plantilla
+    if (this.documentFieldValueRepository && request.fieldValues && request.fieldValues.length > 0) {
+      await this.documentFieldValueRepository.saveMany(savedDocument.id, request.fieldValues);
+    }
 
     // Creando entrada de historial cuando el contexto del usuario está disponible
     if (request.createdBy && request.createdBy !== 'system') {

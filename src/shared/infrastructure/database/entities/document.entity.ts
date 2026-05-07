@@ -15,6 +15,7 @@ import { DocumentModelEntity } from './document-model.entity';
 import { ColaboratorEntity } from './colaborators.entity';
 import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
+import { DocumentTemplateEntity } from './document-template.entity';
 
 @Entity('documents')
 @Index('IDX_documents_status', ['status'])
@@ -77,6 +78,13 @@ export class DocumentEntity {
   @ManyToOne(() => UserEntity, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'created_by' })
   creator?: UserEntity;
+
+  @Column({ name: 'template_id', type: 'varchar', length: 36, nullable: true })
+  templateId?: string;
+
+  @ManyToOne(() => DocumentTemplateEntity, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'template_id' })
+  template?: DocumentTemplateEntity;
 
   @Column({ type: 'text', nullable: true })
   comment?: string;

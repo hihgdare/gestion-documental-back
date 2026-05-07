@@ -4,6 +4,11 @@ import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 import { parseEnum } from '@shared/utils/objects';
 import { DocumentStatus } from '../value-objects/document-enums';
 
+export interface DocumentFieldValue {
+  fieldName: string;
+  fieldValue: string | null;
+}
+
 export interface DocumentProps {
   id?: string;
   documentModelId: string;
@@ -25,6 +30,8 @@ export interface DocumentProps {
   deletedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  templateId?: string | null;
+  fieldValues?: DocumentFieldValue[];
 
   // Read-only properties from DocumentModel (for display)
   documentTypeId?: string;
@@ -57,6 +64,8 @@ export class Document {
   deletedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+  templateId: string | null;
+  fieldValues: DocumentFieldValue[];
 
   // Read-only properties
   documentTypeId?: string;
@@ -85,6 +94,8 @@ export class Document {
       createdAt: 'datetime',
       updatedAt: 'datetime',
       colaboratorIds: (ids?: string[]) => ids ?? [],
+      templateId: (id?: string | null) => id || null,
+      fieldValues: (vals?: DocumentFieldValue[]) => vals ?? [],
     });
 
     // Assign read-only props

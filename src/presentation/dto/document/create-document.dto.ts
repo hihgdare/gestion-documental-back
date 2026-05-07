@@ -1,3 +1,8 @@
+export interface DocumentFieldValueDto {
+  fieldName: string;
+  fieldValue: string | null;
+}
+
 export interface CreateDocumentDto {
   documentModelId: string;
   colaboratorIds: string[];
@@ -8,4 +13,6 @@ export interface CreateDocumentDto {
   documentUrl?: string;
   groupId: number;
   requiredColaboratorsCount?: number;
+  templateId?: string;
+  fieldValues?: DocumentFieldValueDto[];
 }
