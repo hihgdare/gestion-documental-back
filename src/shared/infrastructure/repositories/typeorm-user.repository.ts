@@ -137,6 +137,10 @@ export class TypeOrmUserRepository implements UserRepository {
     await this.repository.softDelete(id);
   }
 
+  async updatePasswordNonce(userId: string, nonce: string | null): Promise<void> {
+    await this.repository.update({ id: userId }, { passwordNonce: nonce });
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const userEntity = await this.repository.findOne({ where: { email }, relations: ['roles', 'roles.permissions', 'groups'] });
     if (!userEntity) return null;

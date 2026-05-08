@@ -22,6 +22,7 @@ import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/up
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
 import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
+import { ServerError } from '@shared/domain/errors';
 
 // DocumentType domain
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
@@ -506,11 +507,15 @@ export class DependencyContainer {
 
     // Initialize Email service and extra user use cases (must be before controllers)
     this.emailService = new NodemailerEmailService();
-    this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository, process.env.JWT_SECRET ?? '');
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new ServerError('JWT_SECRET is not configured');
+    }
+    this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository, jwtSecret);
     this.sendActivationEmailUseCase = new SendActivationEmailUseCase(
       this.userRepository,
       this.emailService,
-      process.env.JWT_SECRET ?? '',
+      jwtSecret,
       process.env.FRONTEND_URL ?? '',
     );
 
