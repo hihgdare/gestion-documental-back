@@ -120,6 +120,10 @@ export class TypeOrmUserRepository implements UserRepository {
       entity.status = props.status as any;
     }
 
+    if (props.passwordNonce !== undefined) {
+      entity.passwordNonce = props.passwordNonce ?? null;
+    }
+
     if (props.roles) {
       entity.roles = await this.roleRepository.findBy({ id: In(props.roles.map(r => r.id)) });
     }

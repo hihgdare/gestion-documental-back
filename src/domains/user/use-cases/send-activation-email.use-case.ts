@@ -3,6 +3,7 @@ import { EmailService } from '@shared/infrastructure/email/email-service.interfa
 import { NotFoundError, ServerError } from '@shared/domain/errors';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 export class SendActivationEmailUseCase {
   constructor(
@@ -13,17 +14,41 @@ export class SendActivationEmailUseCase {
   ) {}
 
   async execute(userId: string): Promise<void> {
+    if (!this.frontendUrl) {
+      throw new ServerError('FRONTEND_URL is not configured — cannot generate activation link');
+    }
+
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new NotFoundError('User', userId);
     }
 
     if (user.status !== UserStatus.ACTIVE) {
-      return; // Only send activation email to newly activated users
+      return; // Solo enviar si el usuario está activo (el cambio de estado ya ocurrió antes de invocar este use-case)
     }
 
+    // Generate a one-time nonce tied to this specific activation link.
+    // Saving it to the DB before signing ensures the token is invalidated
+    // as soon as the user sets their password (nonce is rotated to null).
+    const nonce = crypto.randomUUID();
+
+    await this.userRepository.update({
+      id: user.id,
+      email: user.email.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      password: user.password,
+      status: user.status,
+      passwordNonce: nonce,
+      roles: user.roles,
+      groups: user.groups,
+      createdAt: user.createdAt,
+      updatedAt: new Date(),
+      deletedAt: user.deletedAt,
+    });
+
     const token = jwt.sign(
-      { userId: user.id, purpose: 'set-password' },
+      { userId: user.id, nonce, purpose: 'set-password' },
       this.jwtSecret,
       { expiresIn: '48h' },
     );
@@ -60,3 +85,4 @@ export class SendActivationEmailUseCase {
     }
   }
 }
+

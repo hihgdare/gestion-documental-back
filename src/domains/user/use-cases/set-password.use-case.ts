@@ -6,25 +6,24 @@ import jwt from 'jsonwebtoken';
 
 interface SetPasswordTokenPayload {
   userId: string;
+  nonce: string;
   purpose: 'set-password';
 }
 
 export class SetPasswordUseCase {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly jwtSecret: string,
+  ) {}
 
   async execute(token: string, newPassword: string): Promise<void> {
     if (!newPassword || newPassword.length < 8) {
       throw new ValidationError('Password must be at least 8 characters long', 'newPassword');
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new UnauthorizedError('Server misconfiguration');
-    }
-
     let payload: SetPasswordTokenPayload;
     try {
-      payload = jwt.verify(token, secret) as SetPasswordTokenPayload;
+      payload = jwt.verify(token, this.jwtSecret) as SetPasswordTokenPayload;
     } catch {
       throw new UnauthorizedError('Invalid or expired token');
     }
@@ -38,8 +37,16 @@ export class SetPasswordUseCase {
       throw new NotFoundError('User', payload.userId);
     }
 
+    // Verify the nonce matches what is stored in the DB.
+    // A mismatch means the token was already used or a newer activation
+    // email was sent, invalidating this link.
+    if (!user.passwordNonce || user.passwordNonce !== payload.nonce) {
+      throw new UnauthorizedError('This activation link has already been used or has been superseded');
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
+    // Rotate nonce to null — invalidates the token for any subsequent attempt.
     await this.userRepository.update({
       id: user.id,
       email: user.email.toString(),
@@ -47,6 +54,7 @@ export class SetPasswordUseCase {
       lastName: user.lastName,
       password: hashedPassword,
       status: UserStatus.ACTIVE,
+      passwordNonce: null,
       roles: user.roles,
       groups: user.groups,
       createdAt: user.createdAt,

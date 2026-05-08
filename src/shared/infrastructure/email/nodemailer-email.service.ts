@@ -66,7 +66,7 @@ export class NodemailerEmailService implements EmailService {
         html: options.html,
       });
       return true;
-    } catch (error) {
+    } catch (_error) {
       console.warn('[EmailService] Failed to send email', { recipient: Array.isArray(options.to) ? options.to : [options.to] });
       return false;
     }

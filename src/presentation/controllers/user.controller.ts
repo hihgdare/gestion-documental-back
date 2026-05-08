@@ -72,20 +72,25 @@ export class UserController {
     const user = await this.updateUserUseCase.execute({ id, ...req.body });
 
     // Send activation email when a user is activated for the first time
+    let emailWarning: string | undefined;
     if (
       req.body.status === UserStatus.ACTIVE &&
       previousUser?.status !== UserStatus.ACTIVE
     ) {
-      // Fire-and-forget: do not block the response if email fails
-      this.sendActivationEmailUseCase.execute(id).catch((err: Error) => {
-        console.warn('Failed to send activation email', { userId: id, error: err.message });
-      });
+      try {
+        await this.sendActivationEmailUseCase.execute(id);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.warn('Failed to send activation email', { userId: id, error: message });
+        emailWarning = 'No se pudo enviar el correo de activación. Verifique la configuración del servidor de correo.';
+      }
     }
 
     res.status(200).json({
       success: true,
       data: user.toJSON(),
       message: 'User updated successfully',
+      ...(emailWarning ? { emailWarning } : {}),
     });
   });
 
