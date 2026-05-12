@@ -16,6 +16,7 @@ export class AuthController {
     private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly groupRepository: GroupRepository,
     private readonly setPasswordUseCase: SetPasswordUseCase,
+    private readonly jwtSecret: string,
   ) {
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);
@@ -63,7 +64,7 @@ export class AuthController {
       // Generate JWT Token
       const token = jwt.sign(
         { userId: user.id, email: user.email.toString() },
-        process.env.JWT_SECRET || 'supersecretjwtkey',
+        this.jwtSecret,
         { expiresIn: '1h' },
       );
 
@@ -121,7 +122,7 @@ export class AuthController {
     // Generate new JWT Token
     const token = jwt.sign(
       { userId: user.id, email: user.email.toString() },
-      process.env.JWT_SECRET || 'supersecretjwtkey',
+      this.jwtSecret,
       { expiresIn: '1h' },
     );
 
