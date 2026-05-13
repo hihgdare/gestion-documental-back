@@ -58,51 +58,63 @@ export class CreateGroupPlansTable1778627870449 implements MigrationInterface {
       true,
     );
 
-    await queryRunner.createForeignKey(
-      "group_plans",
-      new TableForeignKey({
-        name: "FK_GROUP_PLANS_GROUP",
-        columnNames: ["group_id"],
-        referencedColumnNames: ["id"],
-        referencedTableName: "groups",
-        onDelete: "CASCADE",
-      }),
-    );
+    const table = await queryRunner.getTable("group_plans");
 
-    await queryRunner.createForeignKey(
-      "group_plans",
-      new TableForeignKey({
-        name: "FK_GROUP_PLANS_PLAN",
-        columnNames: ["plan_id"],
-        referencedColumnNames: ["id"],
-        referencedTableName: "plans",
-        onDelete: "RESTRICT",
-      }),
-    );
+    if (!table?.foreignKeys.find((fk) => fk.name === "FK_GROUP_PLANS_GROUP")) {
+      await queryRunner.createForeignKey(
+        "group_plans",
+        new TableForeignKey({
+          name: "FK_GROUP_PLANS_GROUP",
+          columnNames: ["group_id"],
+          referencedColumnNames: ["id"],
+          referencedTableName: "groups",
+          onDelete: "CASCADE",
+        }),
+      );
+    }
 
-    await queryRunner.createIndex(
-      "group_plans",
-      new TableIndex({
-        name: "IDX_GROUP_PLANS_GROUP_ID",
-        columnNames: ["group_id"],
-      }),
-    );
+    if (!table?.foreignKeys.find((fk) => fk.name === "FK_GROUP_PLANS_PLAN")) {
+      await queryRunner.createForeignKey(
+        "group_plans",
+        new TableForeignKey({
+          name: "FK_GROUP_PLANS_PLAN",
+          columnNames: ["plan_id"],
+          referencedColumnNames: ["id"],
+          referencedTableName: "plans",
+          onDelete: "RESTRICT",
+        }),
+      );
+    }
 
-    await queryRunner.createIndex(
-      "group_plans",
-      new TableIndex({
-        name: "IDX_GROUP_PLANS_PLAN_ID",
-        columnNames: ["plan_id"],
-      }),
-    );
+    if (!table?.indices.find((i) => i.name === "IDX_GROUP_PLANS_GROUP_ID")) {
+      await queryRunner.createIndex(
+        "group_plans",
+        new TableIndex({
+          name: "IDX_GROUP_PLANS_GROUP_ID",
+          columnNames: ["group_id"],
+        }),
+      );
+    }
 
-    await queryRunner.createIndex(
-      "group_plans",
-      new TableIndex({
-        name: "IDX_GROUP_PLANS_IS_ACTIVE",
-        columnNames: ["is_active"],
-      }),
-    );
+    if (!table?.indices.find((i) => i.name === "IDX_GROUP_PLANS_PLAN_ID")) {
+      await queryRunner.createIndex(
+        "group_plans",
+        new TableIndex({
+          name: "IDX_GROUP_PLANS_PLAN_ID",
+          columnNames: ["plan_id"],
+        }),
+      );
+    }
+
+    if (!table?.indices.find((i) => i.name === "IDX_GROUP_PLANS_IS_ACTIVE")) {
+      await queryRunner.createIndex(
+        "group_plans",
+        new TableIndex({
+          name: "IDX_GROUP_PLANS_IS_ACTIVE",
+          columnNames: ["is_active"],
+        }),
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
