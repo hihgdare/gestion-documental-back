@@ -29,6 +29,7 @@ import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createAreaRoutes } from '@presentation/routes/area.routes';
 import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { createDocumentTemplateRoutes } from '@presentation/routes/document-template.routes';
+import { createPlanRoutes } from '@presentation/routes/plan.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seeds/initial-seeds';
 import { RouteError } from '@shared/domain/errors';
@@ -141,6 +142,7 @@ export class App {
           companies: '/api/companies',
           areas: '/api/areas',
           divisions: '/api/divisions',
+          plans: '/api/plans',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -173,6 +175,7 @@ export class App {
     const bulkTemplateController = this.dependencyContainer.getBulkTemplateController();
     const fileShareController = this.dependencyContainer.getFileShareController();
     const documentTemplateController = this.dependencyContainer.getDocumentTemplateController();
+    const planController = this.dependencyContainer.getPlanController();
 
     // Get use cases and repositories needed for middleware
     const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
@@ -206,6 +209,7 @@ export class App {
     this.app.use('/api/files', createFileShareAuthRoutes(fileShareController));
     this.app.use('/api/shared/files', createSharedFileRoutes(fileShareController));
     this.app.use('/api/document-templates', createDocumentTemplateRoutes(documentTemplateController));
+    this.app.use('/api/plans', createPlanRoutes(planController));
 
     // Auth routes
     this.app.use('/api/auth', createAuthRoutes(authController));

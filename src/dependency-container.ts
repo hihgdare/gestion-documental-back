@@ -224,6 +224,17 @@ import {
 import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
 import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
 
+// Plan domain
+import { CreatePlanUseCase } from '@domains/plan/use-cases/create-plan.use-case';
+import { GetPlanUseCase, ListPlansUseCase } from '@domains/plan/use-cases/get-plan.use-case';
+import { UpdatePlanUseCase, DeletePlanUseCase } from '@domains/plan/use-cases/update-plan.use-case';
+import { AssignPlanToGroupUseCase } from '@domains/plan/use-cases/assign-plan-to-group.use-case';
+import { GetGroupPlanUseCase, ListGroupPlansByGroupUseCase, GetActiveGroupPlanUseCase } from '@domains/plan/use-cases/get-group-plan.use-case';
+import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
+import { TypeOrmPlanRepository } from '@shared/infrastructure/repositories/typeorm-plan.repository';
+import { TypeOrmGroupPlanRepository } from '@shared/infrastructure/repositories/typeorm-group-plan.repository';
+import { PlanController } from '@presentation/controllers/plan.controller';
+
 export class DependencyContainer {
   // Repositories
   private userRepository!: TypeOrmUserRepository;
@@ -249,6 +260,8 @@ export class DependencyContainer {
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
   private fileShareRepository!: TypeOrmFileShareRepository;
   private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
+  private planRepository!: TypeOrmPlanRepository;
+  private groupPlanRepository!: TypeOrmGroupPlanRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
@@ -261,6 +274,19 @@ export class DependencyContainer {
   private getDocumentTemplateVersionsUseCase!: GetDocumentTemplateVersionsUseCase;
   private createNewDocumentTemplateVersionUseCase!: CreateNewDocumentTemplateVersionUseCase;
   private deleteDocumentTemplateUseCase!: DeleteDocumentTemplateUseCase;
+
+  // Use Cases - Plan
+  private createPlanUseCase!: CreatePlanUseCase;
+  private getPlanUseCase!: GetPlanUseCase;
+  private listPlansUseCase!: ListPlansUseCase;
+  private updatePlanUseCase!: UpdatePlanUseCase;
+  private deletePlanUseCase!: DeletePlanUseCase;
+  private assignPlanToGroupUseCase!: AssignPlanToGroupUseCase;
+  private getGroupPlanUseCase!: GetGroupPlanUseCase;
+  private listGroupPlansByGroupUseCase!: ListGroupPlansByGroupUseCase;
+  private getActiveGroupPlanUseCase!: GetActiveGroupPlanUseCase;
+  private updateGroupPlanUseCase!: UpdateGroupPlanUseCase;
+  private deleteGroupPlanUseCase!: DeleteGroupPlanUseCase;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
@@ -449,6 +475,7 @@ export class DependencyContainer {
   private bulkTemplateController!: BulkTemplateController;
   private fileShareController!: FileShareController;
   private documentTemplateController!: DocumentTemplateController;
+  private planController!: PlanController;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -478,6 +505,8 @@ export class DependencyContainer {
     this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
     this.fileShareRepository = new TypeOrmFileShareRepository();
     this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
+    this.planRepository = new TypeOrmPlanRepository();
+    this.groupPlanRepository = new TypeOrmGroupPlanRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -948,6 +977,33 @@ export class DependencyContainer {
       this.createNewDocumentTemplateVersionUseCase,
       this.deleteDocumentTemplateUseCase,
     );
+
+    // Initialize Plan use cases
+    this.createPlanUseCase = new CreatePlanUseCase(this.planRepository);
+    this.getPlanUseCase = new GetPlanUseCase(this.planRepository);
+    this.listPlansUseCase = new ListPlansUseCase(this.planRepository);
+    this.updatePlanUseCase = new UpdatePlanUseCase(this.planRepository);
+    this.deletePlanUseCase = new DeletePlanUseCase(this.planRepository);
+    this.assignPlanToGroupUseCase = new AssignPlanToGroupUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
+    this.getGroupPlanUseCase = new GetGroupPlanUseCase(this.groupPlanRepository);
+    this.listGroupPlansByGroupUseCase = new ListGroupPlansByGroupUseCase(this.groupPlanRepository);
+    this.getActiveGroupPlanUseCase = new GetActiveGroupPlanUseCase(this.groupPlanRepository);
+    this.updateGroupPlanUseCase = new UpdateGroupPlanUseCase(this.groupPlanRepository);
+    this.deleteGroupPlanUseCase = new DeleteGroupPlanUseCase(this.groupPlanRepository);
+
+    this.planController = new PlanController(
+      this.createPlanUseCase,
+      this.getPlanUseCase,
+      this.listPlansUseCase,
+      this.updatePlanUseCase,
+      this.deletePlanUseCase,
+      this.assignPlanToGroupUseCase,
+      this.getGroupPlanUseCase,
+      this.listGroupPlansByGroupUseCase,
+      this.getActiveGroupPlanUseCase,
+      this.updateGroupPlanUseCase,
+      this.deleteGroupPlanUseCase,
+    );
   }
 
   // Getters for controllers
@@ -1113,5 +1169,9 @@ export class DependencyContainer {
 
   public getDocumentTemplateController(): DocumentTemplateController {
     return this.documentTemplateController;
+  }
+
+  public getPlanController(): PlanController {
+    return this.planController;
   }
 }
