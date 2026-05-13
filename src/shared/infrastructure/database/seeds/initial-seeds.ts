@@ -21,6 +21,7 @@ const adminSections = [
   'family',
   'group',
   'permission',
+  'plan',
   'role',
   'user',
   'area',
