@@ -298,6 +298,34 @@ export const assignReviewerSchema = Joi.object({
   return value;
 });
 
+// Plan schemas
+export const createPlanSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(100).required(),
+  maxActiveColaborators: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
+  maxDocuments: Joi.number().integer().min(0).optional().allow(null),
+});
+
+export const updatePlanSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(100).optional(),
+  maxActiveColaborators: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
+  maxDocuments: Joi.number().integer().min(0).optional().allow(null),
+}).min(1);
+
+export const assignPlanToGroupSchema = Joi.object({
+  groupId: Joi.number().integer().positive().required(),
+  planId: Joi.string().uuid().required(),
+  startsAt: Joi.date().iso().optional(),
+  endsAt: Joi.date().iso().optional().allow(null),
+});
+
+export const updateGroupPlanSchema = Joi.object({
+  startsAt: Joi.date().iso().optional(),
+  endsAt: Joi.date().iso().optional().allow(null),
+  isActive: Joi.boolean().optional(),
+}).min(1);
+
 export const updateReviewerSchema = Joi.object({
   isPrimary: Joi.boolean().optional(),
   validUntil: Joi.date().iso().optional().allow(null).min('now').messages({

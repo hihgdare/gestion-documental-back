@@ -2,6 +2,13 @@ import { Router } from 'express';
 import { PlanController } from '../controllers/plan.controller';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
+import { validateRequest } from '@shared/middleware/validation';
+import {
+  createPlanSchema,
+  updatePlanSchema,
+  assignPlanToGroupSchema,
+  updateGroupPlanSchema,
+} from '../dto/validation-schemas';
 
 export const createPlanRoutes = (controller: PlanController) => {
   const router = Router();
@@ -11,6 +18,7 @@ export const createPlanRoutes = (controller: PlanController) => {
   // Plans
   router.post('/',
     authorize('plan:create'),
+    validateRequest(createPlanSchema),
     controller.createPlan,
   );
 
@@ -26,6 +34,7 @@ export const createPlanRoutes = (controller: PlanController) => {
 
   router.put('/:id',
     authorize('plan:update'),
+    validateRequest(updatePlanSchema),
     controller.updatePlan,
   );
 
@@ -37,6 +46,7 @@ export const createPlanRoutes = (controller: PlanController) => {
   // Group Plans
   router.post('/group-plans',
     authorize('plan:create'),
+    validateRequest(assignPlanToGroupSchema),
     controller.assignPlanToGroup,
   );
 
@@ -57,6 +67,7 @@ export const createPlanRoutes = (controller: PlanController) => {
 
   router.put('/group-plans/:id',
     authorize('plan:update'),
+    validateRequest(updateGroupPlanSchema),
     controller.updateGroupPlan,
   );
 

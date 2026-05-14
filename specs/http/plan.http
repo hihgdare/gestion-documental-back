@@ -1,0 +1,90 @@
+@baseUrl = http://localhost:3000/api
+@module = plans
+
+###
+
+# @name list
+GET {{baseUrl}}/{{module}}
+
+###
+
+# @name create
+POST {{baseUrl}}/{{module}}
+Content-Type: application/json
+
+{
+  "name": "Plan Básico",
+  "maxActiveColaborators": 10,
+  "maxActiveContracts": 5,
+  "maxDocuments": 100
+}
+
+###
+
+@id = {{ create.response.body.data.id }}
+@name = {{ create.response.body.data.name }}
+
+# @name get
+GET {{baseUrl}}/{{module}}/{{id}}
+
+###
+
+# @name update
+PUT {{baseUrl}}/{{module}}/{{id}}
+Content-Type: application/json
+
+{
+  "name": "Plan Básico Actualizado",
+  "maxActiveColaborators": 20
+}
+
+###
+
+# @name delete
+DELETE {{baseUrl}}/{{module}}/{{id}}
+
+###
+
+# --- Group Plans ---
+
+# @name assignPlanToGroup
+POST {{baseUrl}}/{{module}}/group-plans
+Content-Type: application/json
+
+{
+  "groupId": 1,
+  "planId": "{{id}}",
+  "startsAt": "2026-01-01T00:00:00.000Z"
+}
+
+###
+
+@groupPlanId = {{ assignPlanToGroup.response.body.data.id }}
+
+# @name getGroupPlan
+GET {{baseUrl}}/{{module}}/group-plans/{{groupPlanId}}
+
+###
+
+# @name listGroupPlansByGroup
+GET {{baseUrl}}/{{module}}/groups/1/plans
+
+###
+
+# @name getActiveGroupPlan
+GET {{baseUrl}}/{{module}}/groups/1/active-plan
+
+###
+
+# @name updateGroupPlan
+PUT {{baseUrl}}/{{module}}/group-plans/{{groupPlanId}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+###
+
+# @name deleteGroupPlan
+DELETE {{baseUrl}}/{{module}}/group-plans/{{groupPlanId}}
