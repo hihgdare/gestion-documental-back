@@ -38,6 +38,7 @@ const extraPermissions = [
   'dashboard:read',
   'document:review',
   'file:share',
+  'group:assign:plan',
   'group:assign:user',
   'role:assign:permission',
   'user:assign:role',

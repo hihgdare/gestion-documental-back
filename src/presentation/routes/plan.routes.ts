@@ -45,34 +45,34 @@ export const createPlanRoutes = (controller: PlanController) => {
 
   // Group Plans
   router.post('/group-plans',
-    authorize('plan:create'),
+    authorize('group:assign:plan'),
     validateRequest(assignPlanToGroupSchema, true),
     controller.assignPlanToGroup,
   );
 
   router.get('/group-plans/:id',
-    authorize('plan:read'),
+    authorize(['group:assign:plan', 'plan:read']),
     controller.getGroupPlan,
   );
 
   router.get('/groups/:groupId/plans',
-    authorize('plan:read'),
+    authorize(['group:assign:plan', 'plan:read']),
     controller.listGroupPlansByGroup,
   );
 
   router.get('/groups/:groupId/active-plan',
-    authorize('plan:read'),
+    authorize(['group:assign:plan', 'plan:read']),
     controller.getActiveGroupPlan,
   );
 
   router.put('/group-plans/:id',
-    authorize('plan:update'),
+    authorize('group:assign:plan'),
     validateRequest(updateGroupPlanSchema, true),
     controller.updateGroupPlan,
   );
 
   router.delete('/group-plans/:id',
-    authorize('plan:delete'),
+    authorize('group:assign:plan'),
     controller.deleteGroupPlan,
   );
 
