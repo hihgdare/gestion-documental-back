@@ -23,12 +23,12 @@ export const createPlanRoutes = (controller: PlanController) => {
   );
 
   router.get('/',
-    authorize('plan:read'),
+    authorize(['plan:read', 'group:assign:plan']),
     controller.listPlans,
   );
 
   router.get('/:id',
-    authorize('plan:read'),
+    authorize(['plan:read', 'group:assign:plan']),
     controller.getPlan,
   );
 
