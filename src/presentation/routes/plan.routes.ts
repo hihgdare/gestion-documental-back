@@ -46,7 +46,7 @@ export const createPlanRoutes = (controller: PlanController) => {
   // Group Plans
   router.post('/group-plans',
     authorize('plan:create'),
-    validateRequest(assignPlanToGroupSchema),
+    validateRequest(assignPlanToGroupSchema, true),
     controller.assignPlanToGroup,
   );
 
@@ -67,7 +67,7 @@ export const createPlanRoutes = (controller: PlanController) => {
 
   router.put('/group-plans/:id',
     authorize('plan:update'),
-    validateRequest(updateGroupPlanSchema),
+    validateRequest(updateGroupPlanSchema, true),
     controller.updateGroupPlan,
   );
 
