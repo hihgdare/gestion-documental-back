@@ -4,6 +4,7 @@ import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
 import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
+import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
 import { UnauthorizedError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 
@@ -14,6 +15,8 @@ export class AuthController {
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly groupRepository: GroupRepository,
+    private readonly setPasswordUseCase: SetPasswordUseCase,
+    private readonly jwtSecret: string,
   ) {
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);
@@ -24,6 +27,7 @@ export class AuthController {
     this.changePassword = this.changePassword.bind(this);
     this.getToken = this.getToken.bind(this);
     this.getGroup = this.getGroup.bind(this);
+    this.setPassword = this.setPassword.bind(this);
   }
 
   private getCookieOptions(): CookieOptions {
@@ -60,7 +64,7 @@ export class AuthController {
       // Generate JWT Token
       const token = jwt.sign(
         { userId: user.id, email: user.email.toString() },
-        process.env.JWT_SECRET || 'supersecretjwtkey',
+        this.jwtSecret,
         { expiresIn: '1h' },
       );
 
@@ -118,7 +122,7 @@ export class AuthController {
     // Generate new JWT Token
     const token = jwt.sign(
       { userId: user.id, email: user.email.toString() },
-      process.env.JWT_SECRET || 'supersecretjwtkey',
+      this.jwtSecret,
       { expiresIn: '1h' },
     );
 
@@ -271,6 +275,25 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Password changed successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async setPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        throw new ValidationError('Token and new password are required', 'body');
+      }
+
+      await this.setPasswordUseCase.execute(token, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password set successfully',
       });
     } catch (error) {
       next(error);
