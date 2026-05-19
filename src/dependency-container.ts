@@ -937,6 +937,7 @@ export class DependencyContainer {
       this.changePasswordUseCase,
       this.groupRepository,
       this.setPasswordUseCase,
+      jwtSecret,
     );
 
     this.fileController = new FileController(this.fileRepository);
