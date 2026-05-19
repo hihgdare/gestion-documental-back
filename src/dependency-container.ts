@@ -22,6 +22,7 @@ import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/up
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 import { LoginUserUseCase } from '@domains/user/use-cases/login-user.use-case';
 import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
+import { ServerError } from '@shared/domain/errors';
 
 // DocumentType domain
 import { CreateDocumentTypeUseCase } from '@domains/document-type/use-cases/create-document-type.use-case';
@@ -209,6 +210,14 @@ import { CreateFileShareUseCase } from '@domains/file-share/use-cases/create-fil
 import { GetFileByShareTokenUseCase } from '@domains/file-share/use-cases/get-file-by-share-token.use-case';
 import { TypeOrmFileShareRepository } from '@shared/infrastructure/repositories/typeorm-file-share.repository';
 import { FileShareController } from '@presentation/controllers/file-share.controller';
+
+// Email
+import { NodemailerEmailService } from '@shared/infrastructure/email/nodemailer-email.service';
+import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+
+// User extra use cases
+import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
+import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
 
 // DocumentTemplate domain
 import { CreateDocumentTemplateUseCase } from '@domains/document-template/use-cases/create-document-template.use-case';
@@ -454,6 +463,13 @@ export class DependencyContainer {
   private createFileShareUseCase!: CreateFileShareUseCase;
   private getFileByShareTokenUseCase!: GetFileByShareTokenUseCase;
 
+  // Services
+  private emailService!: EmailService;
+
+  // Extra user use cases
+  private setPasswordUseCase!: SetPasswordUseCase;
+  private sendActivationEmailUseCase!: SendActivationEmailUseCase;
+
   public async initialize(): Promise<void> {
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
@@ -488,6 +504,20 @@ export class DependencyContainer {
     this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
     this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
     this.changePasswordUseCase = new ChangePasswordUseCase(this.userRepository);
+
+    // Initialize Email service and extra user use cases (must be before controllers)
+    this.emailService = new NodemailerEmailService();
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new ServerError('JWT_SECRET is not configured');
+    }
+    this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository, jwtSecret);
+    this.sendActivationEmailUseCase = new SendActivationEmailUseCase(
+      this.userRepository,
+      this.emailService,
+      jwtSecret,
+      process.env.FRONTEND_URL ?? '',
+    );
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -897,6 +927,7 @@ export class DependencyContainer {
       this.updateUserUseCase,
       this.deleteUserUseCase,
       this.assignRoleToUserUseCase,
+      this.sendActivationEmailUseCase,
     );
 
     this.authController = new AuthController(
@@ -905,6 +936,8 @@ export class DependencyContainer {
       this.updateUserUseCase,
       this.changePasswordUseCase,
       this.groupRepository,
+      this.setPasswordUseCase,
+      jwtSecret,
     );
 
     this.fileController = new FileController(this.fileRepository);
@@ -1109,6 +1142,10 @@ export class DependencyContainer {
 
   public getFileShareController(): FileShareController {
     return this.fileShareController;
+  }
+
+  public getEmailService(): EmailService {
+    return this.emailService;
   }
 
   public getDocumentTemplateController(): DocumentTemplateController {
