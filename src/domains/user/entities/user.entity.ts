@@ -10,6 +10,7 @@ interface BaseUserProps {
   firstName: string;
   lastName: string;
   status?: string;
+  passwordNonce?: string | null;
   roles?: Role[];
   groups?: { id: number; name: string }[];
   createdAt?: DateType;
@@ -51,6 +52,7 @@ export class User {
   lastName: string;
   password: string;
   status?: UserStatus;
+  passwordNonce: string | null;
   roles?: Role[];
   groups?: { id: number; name: string }[];
   createdAt: Date;
@@ -63,6 +65,7 @@ export class User {
       id: 'uuid',
       email: 'email',
       status: (status: string) => isValidUserStatus(status) ? status : UserStatus.ACTIVE,
+      passwordNonce: (v?: string | null) => v ?? null,
       createdAt: 'datetime',
       updatedAt: 'datetime',
       deletedAt: 'datetimeNullable',

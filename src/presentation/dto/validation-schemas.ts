@@ -1,4 +1,5 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
+import { UserStatus } from '@domains/user/value-objects/user-status';
 import Joi from 'joi';
 
 export const createUserSchema = Joi.object({
@@ -14,6 +15,7 @@ export const updateUserSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).optional(),
   lastName: Joi.string().min(2).max(50).optional(),
   roleIds: Joi.array().items(Joi.number().integer()).optional(),
+  status: Joi.string().valid(...Object.values(UserStatus)).optional(),
 }).min(1);
 
 export const getUserByIdSchema = Joi.object({
