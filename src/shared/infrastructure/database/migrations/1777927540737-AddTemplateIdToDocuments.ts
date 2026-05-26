@@ -3,12 +3,14 @@ import { ImprovedRunner, IQueryRunner } from '../runner';
 
 export class AddTemplateIdToDocuments1777927540737 extends ImprovedRunner {
   public async onUp(queryRunner: IQueryRunner): Promise<void> {
-    await queryRunner.addColumn('documents', new TableColumn({
-      name: 'template_id',
-      type: 'varchar',
-      length: '36',
-      isNullable: true,
-    }));
+    if (!(await queryRunner.hasColumn('documents', 'template_id'))) {
+      await queryRunner.addColumn('documents', new TableColumn({
+        name: 'template_id',
+        type: 'varchar',
+        length: '36',
+        isNullable: true,
+      }));
+    }
 
     await queryRunner.createIndex('documents', new TableIndex({
       name: 'IDX_documents_template_id',
