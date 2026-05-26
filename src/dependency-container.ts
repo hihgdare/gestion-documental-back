@@ -664,9 +664,9 @@ export class DependencyContainer {
     );
 
     // Initialize Colaborator use cases
-    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
+    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
     this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
-    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
+    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
     this.deleteColaboratorUseCase = new DeleteColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorContractsUseCase = new UpdateColaboratorContractsUseCase(this.colaboratorRepository);
     this.getContractsByColaboratorUseCase = new GetContractsByColaboratorUseCase(this.contractRepository);
@@ -1135,6 +1135,14 @@ export class DependencyContainer {
 
   public getGroupRepository(): TypeOrmGroupRepository {
     return this.groupRepository;
+  }
+
+  public getPlanRepository(): TypeOrmPlanRepository {
+    return this.planRepository;
+  }
+
+  public getGroupPlanRepository(): TypeOrmGroupPlanRepository {
+    return this.groupPlanRepository;
   }
 
   public getCompanyRepository(): TypeOrmCompanyRepository {

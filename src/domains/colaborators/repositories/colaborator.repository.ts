@@ -20,5 +20,4 @@ export interface ColaboratorRepository extends Repository<Colaborator> {
   searchByName(searchTerm: string): Promise<Colaborator[]>;
   findIn(ids: string[]): Promise<Colaborator[]>;
   findByIdWithGroups(id: string): Promise<Colaborator | null>;
-  updateContracts(colaboratorId: string, contractIds: string[]): Promise<void>;
-}
+  updateContracts(colaboratorId: string, contractIds: string[]): Promise<void>;  countActiveByGroupId(groupId: number): Promise<number>;}

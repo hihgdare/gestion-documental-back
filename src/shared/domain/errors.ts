@@ -76,6 +76,24 @@ export class RouteError extends DomainError {
   }
 }
 
+export class PlanQuotaExceededError extends DomainError {
+  constructor(
+    readonly resource: string,
+    readonly limit: number,
+    readonly current: number,
+  ) {
+    super(
+      `Has alcanzado el límite de ${resource} activos de tu plan (${current}/${limit})`,
+      409,
+      'PLAN_QUOTA_EXCEEDED',
+    );
+  }
+
+  response(res: Response, data?: Record<string, unknown>) {
+    return super.response(res, { resource: this.resource, limit: this.limit, current: this.current, ...data });
+  }
+}
+
 export class ServerError extends DomainError {
   constructor(message?: string) {
     message = message ? `Server error: ${message}` : 'Internal server error';

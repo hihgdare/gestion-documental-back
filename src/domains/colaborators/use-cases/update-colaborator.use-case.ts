@@ -1,8 +1,10 @@
 import { ColaboratorRepository } from '../repositories/colaborator.repository';
 import { Colaborator } from '../entities/colaborator.entity';
-import { NotFoundError, ConflictError, ValidationError } from '@shared/domain/errors';
+import { NotFoundError, ConflictError, ValidationError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-enums';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 
 export interface UpdateColaboratorRequest {
   id: string;
@@ -41,6 +43,8 @@ export class UpdateColaboratorUseCase {
   constructor(
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: UpdateColaboratorRequest): Promise<Colaborator> {
@@ -155,6 +159,18 @@ export class UpdateColaboratorUseCase {
 
     if (!colaborator) {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
+    }
+
+    // Check plan quota before activating
+    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(colaborator.groupId);
+    if (activeGroupPlan) {
+      const plan = await this.planRepository.findById(activeGroupPlan.planId);
+      if (plan && plan.maxActiveColaborators !== null) {
+        const currentCount = await this.colaboratorRepository.countActiveByGroupId(colaborator.groupId);
+        if (currentCount >= plan.maxActiveColaborators) {
+          throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+        }
+      }
     }
 
     colaborator.activate();
