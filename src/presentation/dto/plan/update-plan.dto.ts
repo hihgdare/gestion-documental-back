@@ -3,4 +3,5 @@ export interface UpdatePlanDto {
   maxActiveColaborators?: number | null;
   maxActiveContracts?: number | null;
   maxDocuments?: number | null;
+  maxStorageGb?: number | null;
 }

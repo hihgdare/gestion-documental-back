@@ -8,6 +8,7 @@ export interface UpdatePlanInput {
   maxActiveColaborators?: number | null;
   maxActiveContracts?: number | null;
   maxDocuments?: number | null;
+  maxStorageGb?: number | null;
 }
 
 export class UpdatePlanUseCase {
@@ -30,6 +31,7 @@ export class UpdatePlanUseCase {
     if (input.maxActiveColaborators !== undefined) plan.maxActiveColaborators = input.maxActiveColaborators;
     if (input.maxActiveContracts !== undefined) plan.maxActiveContracts = input.maxActiveContracts;
     if (input.maxDocuments !== undefined) plan.maxDocuments = input.maxDocuments;
+    if (input.maxStorageGb !== undefined) plan.maxStorageGb = input.maxStorageGb;
 
     plan.updatedAt = new Date();
     return await this.planRepository.update(plan);

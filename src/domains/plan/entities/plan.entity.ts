@@ -7,6 +7,7 @@ export interface PlanProps {
   maxActiveColaborators?: number | null;
   maxActiveContracts?: number | null;
   maxDocuments?: number | null;
+  maxStorageGb?: number | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -17,6 +18,7 @@ export interface PlanJson {
   maxActiveColaborators: number | null;
   maxActiveContracts: number | null;
   maxDocuments: number | null;
+  maxStorageGb: number | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -27,6 +29,7 @@ export class Plan {
   maxActiveColaborators: number | null;
   maxActiveContracts: number | null;
   maxDocuments: number | null;
+  maxStorageGb: number | null;
   createdAt: Date;
   updatedAt: Date;
 
@@ -37,6 +40,7 @@ export class Plan {
       maxActiveColaborators: (v: number | null | undefined) => v ?? null,
       maxActiveContracts: (v: number | null | undefined) => v ?? null,
       maxDocuments: (v: number | null | undefined) => v ?? null,
+      maxStorageGb: (v: number | null | undefined) => v ?? null,
       createdAt: 'datetime',
       updatedAt: 'datetime',
     });
@@ -58,6 +62,9 @@ export class Plan {
     if (props.maxDocuments !== undefined && props.maxDocuments !== null && props.maxDocuments < 0) {
       throw new ValidationError('maxDocuments must be non-negative', 'maxDocuments');
     }
+    if (props.maxStorageGb !== undefined && props.maxStorageGb !== null && props.maxStorageGb < 0) {
+      throw new ValidationError('maxStorageGb must be non-negative', 'maxStorageGb');
+    }
   }
 
   toJSON(): PlanJson {
@@ -67,6 +74,7 @@ export class Plan {
       maxActiveColaborators: this.maxActiveColaborators,
       maxActiveContracts: this.maxActiveContracts,
       maxDocuments: this.maxDocuments,
+      maxStorageGb: this.maxStorageGb,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

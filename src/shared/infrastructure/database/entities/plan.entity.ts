@@ -24,6 +24,9 @@ export class PlanEntity {
   @Column({ name: 'max_documents', type: 'int', nullable: true })
   maxDocuments!: number | null;
 
+  @Column({ name: 'max_storage_gb', type: 'int', nullable: true, comment: 'NULL means unlimited' })
+  maxStorageGb!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
@@ -37,6 +40,7 @@ export class PlanEntity {
     entity.maxActiveColaborators = plan.maxActiveColaborators;
     entity.maxActiveContracts = plan.maxActiveContracts;
     entity.maxDocuments = plan.maxDocuments;
+    entity.maxStorageGb = plan.maxStorageGb;
     return entity;
   }
 
@@ -47,6 +51,7 @@ export class PlanEntity {
       maxActiveColaborators: entity.maxActiveColaborators,
       maxActiveContracts: entity.maxActiveContracts,
       maxDocuments: entity.maxDocuments,
+      maxStorageGb: entity.maxStorageGb,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     });

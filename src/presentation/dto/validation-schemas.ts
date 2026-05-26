@@ -306,6 +306,7 @@ export const createPlanSchema = Joi.object({
   maxActiveColaborators: Joi.number().integer().min(0).optional().allow(null),
   maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
   maxDocuments: Joi.number().integer().min(0).optional().allow(null),
+  maxStorageGb: Joi.number().integer().min(0).optional().allow(null),
 });
 
 export const updatePlanSchema = Joi.object({
@@ -313,6 +314,7 @@ export const updatePlanSchema = Joi.object({
   maxActiveColaborators: Joi.number().integer().min(0).optional().allow(null),
   maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
   maxDocuments: Joi.number().integer().min(0).optional().allow(null),
+  maxStorageGb: Joi.number().integer().min(0).optional().allow(null),
 }).min(1);
 
 export const assignPlanToGroupSchema = Joi.object({
