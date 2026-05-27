@@ -398,7 +398,7 @@ export class Colaborator extends BaseEntity {
     if (this._status === ColaboratorStatus.TERMINATED) {
       throw new ValidationError('Cannot suspend a terminated colaborator', 'status');
     }
-    this._status = ColaboratorStatus.SUSPENDED;
+    this._status = ColaboratorStatus.INACTIVE;
   }
 
   public deactivate(): void {

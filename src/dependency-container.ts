@@ -107,6 +107,7 @@ import { UpdateColaboratorUseCase, DeleteColaboratorUseCase } from '@domains/col
 import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
 import { UpdateColaboratorContractsUseCase } from '@domains/colaborators/use-cases/update-colaborator-contracts.use-case';
 import { GetContractsByColaboratorUseCase } from '@domains/contract/use-cases/get-contracts-by-colaborator.use-case';
+import { GetColaboratorQuotaUseCase } from '@domains/colaborators/use-cases/get-colaborator-quota.use-case';
 
 // Permission domain
 import { FindAllPermissionsUseCase, FindPermissionByIdUseCase } from '@domains/permission/use-cases/find-permission.use-case';
@@ -386,6 +387,7 @@ export class DependencyContainer {
   private getColaboratorGroupsUseCase!: GetColaboratorGroupsUseCase;
   private updateColaboratorContractsUseCase!: UpdateColaboratorContractsUseCase;
   private getContractsByColaboratorUseCase!: GetContractsByColaboratorUseCase;
+  private getColaboratorQuotaUseCase!: GetColaboratorQuotaUseCase;
 
   // Use Cases - Permission
   private savePermissionUseCase!: SavePermissionUseCase;
@@ -670,6 +672,7 @@ export class DependencyContainer {
     this.deleteColaboratorUseCase = new DeleteColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorContractsUseCase = new UpdateColaboratorContractsUseCase(this.colaboratorRepository);
     this.getContractsByColaboratorUseCase = new GetContractsByColaboratorUseCase(this.contractRepository);
+    this.getColaboratorQuotaUseCase = new GetColaboratorQuotaUseCase(this.colaboratorRepository, this.groupPlanRepository, this.planRepository);
 
     // Initialize Permission use cases
     this.savePermissionUseCase = new SavePermissionUseCase(this.permissionRepository);
@@ -721,6 +724,7 @@ export class DependencyContainer {
       this.getColaboratorGroupsUseCase,
       this.updateColaboratorContractsUseCase,
       this.getContractsByColaboratorUseCase,
+      this.getColaboratorQuotaUseCase,
     );
 
     this.contractController = new ContractController(

@@ -42,6 +42,12 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
     colaboratorController.getActiveColaborators,
   );
 
+  // GET /api/colaborators/quota - Get active colaborator quota for current group
+  router.get('/quota',
+    authorize('colaborator:read'),
+    colaboratorController.getColaboratorQuota,
+  );
+
   // GET /api/colaborators/search - Search colaborators by name (query: ?name=Juan)
   router.get('/search',
     authorize('colaborator:read'),
