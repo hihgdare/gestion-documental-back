@@ -66,6 +66,9 @@ export class DocumentEntity {
   @Column({ type: 'varchar', length: 50, default: 'draft' })
   status!: string;
 
+  @Column({ name: 'signature_status', type: 'varchar', length: 50, nullable: true })
+  signatureStatus?: string;
+
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;
 
