@@ -309,6 +309,10 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return Document.create(props);
   }
 
+  async countByGroupId(groupId: number): Promise<number> {
+    return this.repository.count({ where: { groupId } });
+  }
+
   private toEntity(document: Document): Partial<DocumentEntity> {
     return {
       id: document.id,

@@ -18,6 +18,9 @@ export const createDocumentRoutes = (
   // Dashboard metrics
   router.get('/dashboard/metrics', authorize('dashboard:read'), controller.getDashboardMetrics);
 
+  // Quota
+  router.get('/quota', authorize('document:read'), controller.getDocumentQuota);
+
   // POST routes
   router.post('/',
     authorize('document:create'),

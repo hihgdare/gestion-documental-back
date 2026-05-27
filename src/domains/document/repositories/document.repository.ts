@@ -21,4 +21,5 @@ export interface DocumentRepository {
   existsByModelAndColaborator(documentModelId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
   existsByModelContractColaborator(documentModelId: string, contractId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean>;
   findByTypeAndSubtypeId(typeId: string, subtypeId: string): Promise<Document[]>;
+  countByGroupId(groupId: number): Promise<number>;
 }
