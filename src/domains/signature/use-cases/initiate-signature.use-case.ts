@@ -1,0 +1,133 @@
+import { DocumentRepository } from '@domains/document/repositories/document.repository';
+import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
+import { DocumentAction } from '@domains/document/value-objects/document-enums';
+import { SignatureRepository } from '../repositories/signature.repository';
+import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
+import { Signature } from '../entities/signature.entity';
+import { SignatureVerificationCode } from '../entities/signature-verification-code.entity';
+import { SignatureStatus, SignatureType, SignatureMethod } from '../value-objects/signature-enums';
+import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
+import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+import { UserRepository } from '@domains/user/repositories/user.repository';
+import { NotFoundError, ValidationError } from '@shared/domain/errors';
+
+const OTP_EXPIRY_MINUTES = 5;
+const MAX_ATTEMPTS = 3;
+
+export interface InitiateSignatureParams {
+  documentId: string;
+  userId: string;
+  signatureType?: SignatureType;
+  signatureMethod?: SignatureMethod;
+}
+
+export interface InitiateSignatureResult {
+  signatureId: string;
+}
+
+export class InitiateSignatureUseCase {
+  constructor(
+    private readonly signatureRepository: SignatureRepository,
+    private readonly signatureCodeRepository: SignatureVerificationCodeRepository,
+    private readonly documentRepository: DocumentRepository,
+    private readonly documentHistoryRepository: DocumentHistoryRepository,
+    private readonly userRepository: UserRepository,
+    private readonly cryptoService: SignatureCryptoService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  async execute(params: InitiateSignatureParams): Promise<InitiateSignatureResult> {
+    const { documentId, userId, signatureType = SignatureType.SIMPLE, signatureMethod = SignatureMethod.EMAIL } = params;
+
+    const document = await this.documentRepository.findById(documentId);
+    if (!document) {
+      throw new NotFoundError('Documento no encontrado');
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError('Usuario no encontrado');
+    }
+
+    if (!user.email) {
+      throw new ValidationError('El usuario no tiene un correo electrónico registrado');
+    }
+
+    const signature = Signature.create({
+      documentId,
+      userId,
+      signatureType,
+      signatureMethod,
+      status: SignatureStatus.PENDING,
+    });
+
+    const savedSignature = await this.signatureRepository.save(signature);
+
+    const otpCode = this.cryptoService.generateOtpCode();
+    const codeHash = this.cryptoService.hashCode(otpCode, savedSignature.id);
+
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + OTP_EXPIRY_MINUTES);
+
+    const verificationCode = SignatureVerificationCode.create({
+      signatureId: savedSignature.id,
+      codeHash,
+      attempts: 0,
+      maxAttempts: MAX_ATTEMPTS,
+      expiresAt,
+    });
+
+    await this.signatureCodeRepository.save(verificationCode);
+
+    document.updateSignatureStatus(SignatureStatus.PENDING);
+    await this.documentRepository.save(document);
+
+    await this.documentHistoryRepository.save({
+      documentId: document.id,
+      documentModelId: document.documentModelId,
+      name: document.name,
+      issuedDate: document.issuedDate ?? undefined,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description,
+      documentUrl: document.documentUrl,
+      status: document.status,
+      action: DocumentAction.SIGNATURE_INITIATED,
+      updatedBy: userId,
+      comment: `Proceso de firma iniciado. Método: ${signatureMethod}`,
+    });
+
+    const emailSent = await this.emailService.send({
+      to: user.email.toString(),
+      subject: 'Código de verificación para firma de documento',
+      html: this.buildEmailHtml(otpCode, document.name, OTP_EXPIRY_MINUTES),
+      text: `Su código de verificación es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+    });
+
+    if (!emailSent) {
+      console.warn(`[InitiateSignatureUseCase] No se pudo enviar el email al usuario ${userId} para el documento ${documentId}`);
+    }
+
+    return { signatureId: savedSignature.id };
+  }
+
+  private buildEmailHtml(code: string, documentName: string, expiryMinutes: number): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+        <h2 style="color: #1a1a1a;">Código de verificación de firma</h2>
+        <p>Has iniciado el proceso de firma para el documento:</p>
+        <p style="font-weight: bold;">${documentName}</p>
+        <p>Tu código de verificación es:</p>
+        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #2563eb;
+                    background: #f0f4ff; padding: 16px 24px; border-radius: 8px;
+                    text-align: center; margin: 16px 0;">
+          ${code}
+        </div>
+        <p style="color: #666; font-size: 14px;">
+          Este código es válido por ${expiryMinutes} minutos y solo puede utilizarse una vez.
+          No lo compartas con nadie.
+        </p>
+      </div>
+    `;
+  }
+}

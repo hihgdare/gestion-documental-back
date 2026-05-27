@@ -334,6 +334,11 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public updateSignatureStatus(status: SignatureStatus | null): void {
+    this.signatureStatus = status;
+    this.updatedAt = new Date();
+  }
+
   public toJSON() {
     return {
       id: this.id,
@@ -348,6 +353,7 @@ export class Document {
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,
+      signatureStatus: this.signatureStatus,
       groupId: this.groupId,
       requiredColaboratorsCount: this.requiredColaboratorsCount,
       createdBy: this.createdBy,

@@ -18,4 +18,7 @@ export enum DocumentAction {
   REJECTED_WITH_COMMENTS = 'rejected_with_comments',
   ARCHIVED = 'archived',
   RESTORED = 'restored',
+  SIGNATURE_INITIATED = 'signature_initiated',
+  SIGNATURE_SIGNED = 'signature_signed',
+  SIGNATURE_REJECTED = 'signature_rejected',
 }
