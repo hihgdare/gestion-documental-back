@@ -1,5 +1,6 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { UserStatus } from '@domains/user/value-objects/user-status';
+import { SignatureType, SignatureMethod } from '@domains/signature/value-objects/signature-enums';
 import Joi from 'joi';
 
 export const createUserSchema = Joi.object({
@@ -404,3 +405,19 @@ export const createDocumentTemplateVersionSchema = Joi.object({
   description: Joi.string().max(2000).optional().allow(''),
   fields: Joi.array().items(documentTemplateFieldSchema).optional(),
 }).min(1);
+
+// Signature schemas
+export const initiateSignatureSchema = Joi.object({
+  documentId: Joi.string().uuid().required(),
+  signatureType: Joi.string().valid(...Object.values(SignatureType)).optional(),
+  signatureMethod: Joi.string().valid(...Object.values(SignatureMethod)).optional(),
+});
+
+export const validateSignatureCodeSchema = Joi.object({
+  signatureId: Joi.string().uuid().required(),
+  code: Joi.string().length(6).pattern(/^\d{6}$/).required(),
+});
+
+export const cancelSignatureSchema = Joi.object({
+  signatureId: Joi.string().uuid().required(),
+});

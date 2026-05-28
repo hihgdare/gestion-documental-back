@@ -215,6 +215,16 @@ import { FileShareController } from '@presentation/controllers/file-share.contro
 import { NodemailerEmailService } from '@shared/infrastructure/email/nodemailer-email.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 
+// Signature domain
+import { TypeOrmSignatureRepository } from '@shared/infrastructure/repositories/typeorm-signature.repository';
+import { TypeOrmSignatureVerificationCodeRepository } from '@shared/infrastructure/repositories/typeorm-signature-verification-code.repository';
+import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
+import { InitiateSignatureUseCase } from '@domains/signature/use-cases/initiate-signature.use-case';
+import { ValidateSignatureCodeUseCase } from '@domains/signature/use-cases/validate-signature-code.use-case';
+import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-signature.use-case';
+import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
+import { SignatureController } from '@presentation/controllers/signature.controller';
+
 // User extra use cases
 import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
 import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
@@ -258,6 +268,8 @@ export class DependencyContainer {
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
   private fileShareRepository!: TypeOrmFileShareRepository;
   private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
+  private signatureRepository!: TypeOrmSignatureRepository;
+  private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
@@ -458,6 +470,17 @@ export class DependencyContainer {
   private bulkTemplateController!: BulkTemplateController;
   private fileShareController!: FileShareController;
   private documentTemplateController!: DocumentTemplateController;
+  private signatureController!: SignatureController;
+
+  // Services - Signature
+  private signatureCryptoService!: SignatureCryptoService;
+
+  // Use Cases - Signature
+  private initiateSignatureUseCase!: InitiateSignatureUseCase;
+  private validateSignatureCodeUseCase!: ValidateSignatureCodeUseCase;
+  private cancelSignatureUseCase!: CancelSignatureUseCase;
+  private getSignatureByDocumentUseCase!: GetSignatureByDocumentUseCase;
+  private getSignatureByTokenHashUseCase!: GetSignatureByTokenHashUseCase;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -494,6 +517,8 @@ export class DependencyContainer {
     this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
     this.fileShareRepository = new TypeOrmFileShareRepository();
     this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
+    this.signatureRepository = new TypeOrmSignatureRepository();
+    this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -981,6 +1006,39 @@ export class DependencyContainer {
       this.createNewDocumentTemplateVersionUseCase,
       this.deleteDocumentTemplateUseCase,
     );
+
+    // Initialize Signature
+    this.signatureCryptoService = new SignatureCryptoService();
+    this.initiateSignatureUseCase = new InitiateSignatureUseCase(
+      this.signatureRepository,
+      this.signatureVerificationCodeRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.userRepository,
+      this.signatureCryptoService,
+      this.emailService,
+    );
+    this.validateSignatureCodeUseCase = new ValidateSignatureCodeUseCase(
+      this.signatureRepository,
+      this.signatureVerificationCodeRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.signatureCryptoService,
+    );
+    this.cancelSignatureUseCase = new CancelSignatureUseCase(
+      this.signatureRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+    );
+    this.getSignatureByDocumentUseCase = new GetSignatureByDocumentUseCase(this.signatureRepository);
+    this.getSignatureByTokenHashUseCase = new GetSignatureByTokenHashUseCase(this.signatureRepository);
+    this.signatureController = new SignatureController(
+      this.initiateSignatureUseCase,
+      this.validateSignatureCodeUseCase,
+      this.cancelSignatureUseCase,
+      this.getSignatureByDocumentUseCase,
+      this.getSignatureByTokenHashUseCase,
+    );
   }
 
   // Getters for controllers
@@ -1150,5 +1208,9 @@ export class DependencyContainer {
 
   public getDocumentTemplateController(): DocumentTemplateController {
     return this.documentTemplateController;
+  }
+
+  public getSignatureController(): SignatureController {
+    return this.signatureController;
   }
 }
