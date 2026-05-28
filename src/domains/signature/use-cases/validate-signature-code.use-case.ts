@@ -1,10 +1,12 @@
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
+import { UserRepository } from '@domains/user/repositories/user.repository';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
+import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface ValidateSignatureCodeParams {
@@ -20,6 +22,8 @@ export class ValidateSignatureCodeUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly cryptoService: SignatureCryptoService,
+    private readonly userRepository: UserRepository,
+    private readonly pdfStampService?: SignaturePdfStampService,
   ) {}
 
   async execute(params: ValidateSignatureCodeParams): Promise<void> {
@@ -96,6 +100,39 @@ export class ValidateSignatureCodeUseCase {
         updatedBy: signature.userId,
         comment: `Documento firmado correctamente. IP: ${ipAddress}`,
       });
+
+      await this.tryStampPdf(document.documentUrl, signature.userId, tokenHash, ipAddress, signedAt);
+    }
+  }
+
+  private async tryStampPdf(
+    documentUrl: string | undefined,
+    userId: string,
+    tokenHash: string,
+    ipAddress: string,
+    signedAt: Date,
+  ): Promise<void> {
+    if (!this.pdfStampService || !documentUrl) return;
+
+    const isPdf = documentUrl.toLowerCase().endsWith('.pdf');
+    if (!isPdf) return;
+
+    try {
+      const user = await this.userRepository.findById(userId);
+      if (!user) return;
+
+      const verifyUrl = `${process.env.FRONTEND_URL ?? ''}/verify/${tokenHash}`;
+
+      await this.pdfStampService.stampPdf(documentUrl, {
+        signerName: `${user.firstName} ${user.lastName}`,
+        signerEmail: String(user.email),
+        signedAt,
+        ipAddress,
+        tokenHash,
+        verifyUrl,
+      });
+    } catch (err) {
+      console.warn('[ValidateSignatureCodeUseCase] PDF stamping failed (non-critical):', err);
     }
   }
 

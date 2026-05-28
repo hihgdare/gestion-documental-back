@@ -219,6 +219,7 @@ import { EmailService } from '@shared/infrastructure/email/email-service.interfa
 import { TypeOrmSignatureRepository } from '@shared/infrastructure/repositories/typeorm-signature.repository';
 import { TypeOrmSignatureVerificationCodeRepository } from '@shared/infrastructure/repositories/typeorm-signature-verification-code.repository';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
+import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { InitiateSignatureUseCase } from '@domains/signature/use-cases/initiate-signature.use-case';
 import { ValidateSignatureCodeUseCase } from '@domains/signature/use-cases/validate-signature-code.use-case';
 import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-signature.use-case';
@@ -474,6 +475,7 @@ export class DependencyContainer {
 
   // Services - Signature
   private signatureCryptoService!: SignatureCryptoService;
+  private signaturePdfStampService!: SignaturePdfStampService;
 
   // Use Cases - Signature
   private initiateSignatureUseCase!: InitiateSignatureUseCase;
@@ -1009,6 +1011,7 @@ export class DependencyContainer {
 
     // Initialize Signature
     this.signatureCryptoService = new SignatureCryptoService();
+    this.signaturePdfStampService = new SignaturePdfStampService();
     this.initiateSignatureUseCase = new InitiateSignatureUseCase(
       this.signatureRepository,
       this.signatureVerificationCodeRepository,
@@ -1024,6 +1027,8 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.signatureCryptoService,
+      this.userRepository,
+      this.signaturePdfStampService,
     );
     this.cancelSignatureUseCase = new CancelSignatureUseCase(
       this.signatureRepository,
