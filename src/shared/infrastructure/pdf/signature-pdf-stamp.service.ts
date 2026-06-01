@@ -5,9 +5,11 @@ import fs from 'fs';
 
 export interface SignatureStampData {
   signerName: string;
+  signerDocumentNumber: string;
   signerEmail: string;
   signedAt: Date;
   ipAddress: string;
+  documentId: string;
   tokenHash: string;
   verifyUrl: string;
 }
@@ -34,7 +36,7 @@ export class SignaturePdfStampService {
     const { width } = lastPage.getSize();
 
     const MARGIN = 20;
-    const STAMP_H = 132;
+    const STAMP_H = 174;
     const PADDING = 8;
     const QR_SIZE = 78;
 
@@ -63,14 +65,15 @@ export class SignaturePdfStampService {
     });
 
     const formattedDate = this.formatSignedAt(data.signedAt);
-    const tokenPreview = data.tokenHash.slice(0, 24) + '...';
 
     const textLines = [
       `Nombre: ${data.signerName}`,
+      `Número de Documento: ${data.signerDocumentNumber}`,
       `Email: ${data.signerEmail}`,
       `Fecha: ${formattedDate}`,
       `IP: ${data.ipAddress}`,
-      `Token: ${tokenPreview}`,
+      `ID del documento: ${data.documentId}`,
+      `Token: ${data.tokenHash}`,
     ];
 
     const LINE_H = 11;
@@ -80,16 +83,16 @@ export class SignaturePdfStampService {
       lastPage.drawText(textLines[i], {
         x: stampX + PADDING,
         y: textStartY - i * LINE_H,
-        size: 8,
+        size: 7.5,
         font,
         color: rgb(0.1, 0.1, 0.15),
         maxWidth: textW,
       });
     }
 
-    lastPage.drawText('Este QR permite validar la información de firma.', {
+    lastPage.drawText('Escanee el QR para verificar la validez de este documento.', {
       x: stampX + PADDING,
-      y: stampY + 14,
+      y: stampY + 10,
       size: 7,
       font,
       color: rgb(0.32, 0.32, 0.32),

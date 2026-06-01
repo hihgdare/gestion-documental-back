@@ -40,6 +40,12 @@ export class TypeOrmSignatureRepository implements SignatureRepository {
     return this.toDomain(entity);
   }
 
+  async findByDocumentIdAndTokenHash(documentId: string, tokenHash: string): Promise<Signature | null> {
+    const entity = await this.repository.findOne({ where: { documentId, tokenHash } });
+    if (!entity) return null;
+    return this.toDomain(entity);
+  }
+
   async save(signature: Signature): Promise<Signature> {
     const entity = this.toEntity(signature);
     const saved = await this.repository.save(entity);

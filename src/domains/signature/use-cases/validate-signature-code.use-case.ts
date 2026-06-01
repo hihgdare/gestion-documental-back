@@ -2,6 +2,7 @@ import { DocumentRepository } from '@domains/document/repositories/document.repo
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
@@ -24,6 +25,7 @@ export class ValidateSignatureCodeUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly userRepository: UserRepository,
+    private readonly colaboratorRepository: ColaboratorRepository,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly fileRepository?: TypeOrmFileRepository,
   ) {}
@@ -115,12 +117,13 @@ export class ValidateSignatureCodeUseCase {
         comment: `Documento firmado correctamente. IP: ${ipAddress}`,
       });
 
-      await this.tryStampPdf(document.documentUrl, signature.userId, tokenHash, ipAddress, signedAt);
+      await this.tryStampPdf(document.documentUrl, signature.documentId, signature.userId, tokenHash, ipAddress, signedAt);
     }
   }
 
   private async tryStampPdf(
     documentUrl: string | undefined,
+    documentId: string,
     userId: string,
     tokenHash: string,
     ipAddress: string,
@@ -135,13 +138,18 @@ export class ValidateSignatureCodeUseCase {
       const user = await this.userRepository.findById(userId);
       if (!user) return;
 
-      const verifyUrl = this.buildVerifyUrl(tokenHash);
+      const colaborator = await this.colaboratorRepository.findByUserId(userId);
+      const signerDocumentNumber = colaborator?.numeroDocumento ?? 'N/A';
+
+      const verifyUrl = this.buildVerifyUrl(documentId, tokenHash);
 
       await this.pdfStampService.stampPdf(pdfPath, {
         signerName: `${user.firstName} ${user.lastName}`,
+        signerDocumentNumber,
         signerEmail: String(user.email),
         signedAt,
         ipAddress,
+        documentId,
         tokenHash,
         verifyUrl,
       });
@@ -175,9 +183,9 @@ export class ValidateSignatureCodeUseCase {
     return file.path;
   }
 
-  private buildVerifyUrl(tokenHash: string): string {
+  private buildVerifyUrl(documentId: string, tokenHash: string): string {
     const baseUrl = (process.env.FRONTEND_URL ?? '').replace(/\/$/, '');
-    return baseUrl ? `${baseUrl}/verify/${tokenHash}` : `/verify/${tokenHash}`;
+    return baseUrl ? `${baseUrl}/verify/${documentId}/${tokenHash}` : `/verify/${documentId}/${tokenHash}`;
   }
 
   private async rejectSignature(

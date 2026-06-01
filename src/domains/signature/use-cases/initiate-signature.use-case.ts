@@ -9,6 +9,7 @@ import { SignatureStatus, SignatureType, SignatureMethod } from '../value-object
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { UserRepository } from '@domains/user/repositories/user.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 const OTP_EXPIRY_MINUTES = 5;
@@ -32,6 +33,7 @@ export class InitiateSignatureUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly userRepository: UserRepository,
+    private readonly colaboratorRepository: ColaboratorRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly emailService: EmailService,
   ) {}
@@ -51,6 +53,13 @@ export class InitiateSignatureUseCase {
 
     if (!user.email) {
       throw new ValidationError('El usuario no tiene un correo electrónico registrado');
+    }
+
+    const colaborator = await this.colaboratorRepository.findByUserId(userId);
+    if (!colaborator) {
+      throw new ValidationError(
+        'El usuario no está asociado a ningún colaborador. No es posible confirmar la identidad del firmante.',
+      );
     }
 
     const signature = Signature.create({

@@ -225,6 +225,7 @@ import { InitiateSignatureUseCase } from '@domains/signature/use-cases/initiate-
 import { ValidateSignatureCodeUseCase } from '@domains/signature/use-cases/validate-signature-code.use-case';
 import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-signature.use-case';
 import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
+import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
 import { SignatureController } from '@presentation/controllers/signature.controller';
 
 // User extra use cases
@@ -485,6 +486,7 @@ export class DependencyContainer {
   private cancelSignatureUseCase!: CancelSignatureUseCase;
   private getSignatureByDocumentUseCase!: GetSignatureByDocumentUseCase;
   private getSignatureByTokenHashUseCase!: GetSignatureByTokenHashUseCase;
+  private verifyDocumentSignatureUseCase!: VerifyDocumentSignatureUseCase;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -1022,6 +1024,7 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.userRepository,
+      this.colaboratorRepository,
       this.signatureCryptoService,
       this.emailService,
     );
@@ -1032,6 +1035,7 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.signatureCryptoService,
       this.userRepository,
+      this.colaboratorRepository,
       this.signaturePdfStampService,
       this.fileRepository,
     );
@@ -1043,12 +1047,18 @@ export class DependencyContainer {
     );
     this.getSignatureByDocumentUseCase = new GetSignatureByDocumentUseCase(this.signatureRepository);
     this.getSignatureByTokenHashUseCase = new GetSignatureByTokenHashUseCase(this.signatureRepository);
+    this.verifyDocumentSignatureUseCase = new VerifyDocumentSignatureUseCase(
+      this.signatureRepository,
+      this.documentRepository,
+    );
     this.signatureController = new SignatureController(
       this.initiateSignatureUseCase,
       this.validateSignatureCodeUseCase,
       this.cancelSignatureUseCase,
       this.getSignatureByDocumentUseCase,
       this.getSignatureByTokenHashUseCase,
+      this.verifyDocumentSignatureUseCase,
+      this.fileRepository,
     );
   }
 

@@ -8,8 +8,10 @@ import { authorize } from '@shared/middleware/authorize.middleware';
 export const createSignatureRoutes = (controller: SignatureController): Router => {
   const router = Router();
 
-  // Public endpoint — verify signature by token hash (for QR code scanning)
+  // Public endpoints — no authentication required
   router.get('/verify/:tokenHash', controller.verifyByToken);
+  router.get('/verify/:documentId/:tokenHash', controller.verifyByDocumentAndToken);
+  router.get('/verify/:documentId/:tokenHash/file', controller.getDocumentFileByVerification);
 
   // Protected endpoints
   router.use(auth);
