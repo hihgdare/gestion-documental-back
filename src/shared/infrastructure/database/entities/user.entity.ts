@@ -7,11 +7,13 @@ import {
   ManyToMany,
   JoinTable,
   DeleteDateColumn,
+  OneToOne,
 } from 'typeorm';
 import { EnumColumn } from '@shared/infrastructure/database/entities/utils/decorators';
 import { RoleEntity } from './role.entity';
 import { User } from '@domains/user/entities/user.entity';
 import { GroupEntity } from './group.entity';
+import { ColaboratorEntity } from './colaborators.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -55,6 +57,9 @@ export class UserEntity {
 
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt?: Date;
+
+  @OneToOne(() => ColaboratorEntity, (colaborator) => colaborator.user, { nullable: true, eager: false })
+  colaborator?: ColaboratorEntity | null;
 
   static fromDomain(user: User): UserEntity {
     const entity = new UserEntity();
