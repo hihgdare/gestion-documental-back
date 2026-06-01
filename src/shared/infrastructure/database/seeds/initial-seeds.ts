@@ -7,6 +7,7 @@ import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
+import { UserStatus } from '@domains/user/value-objects/user-status';
 
 const crudActions = ['create', 'read', 'update', 'delete'];
 const adminSections = [
@@ -42,6 +43,9 @@ const extraPermissions = [
   'user:assign:role',
   'user:change:group',
   'user:empty:group',
+  'signature:create',
+  'signature:read',
+  'signature:delete',
 ];
 
 // Otros permisos que no se deben agregar a los roles de admin
@@ -79,6 +83,7 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
       lastName: 'User',
       password,
       roleIds: adminRole?.id ? [adminRole.id] : [],
+      status: UserStatus.ACTIVE,
     });
   } else if (!existingUser.roles?.some(r => r.id === adminRole!.id)) {
     await assignRoleToUserUseCase.execute({ userId: existingUser.id, roleIds: [adminRole.id] });

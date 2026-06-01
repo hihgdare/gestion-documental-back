@@ -34,72 +34,71 @@ export class SignaturePdfStampService {
     const { width } = lastPage.getSize();
 
     const MARGIN = 20;
-    const STAMP_H = 100;
+    const STAMP_H = 132;
     const PADDING = 8;
-    const QR_SIZE = 80;
-    const HEADER_H = 16;
+    const QR_SIZE = 78;
 
     const stampX = MARGIN;
     const stampY = MARGIN;
     const stampW = width - MARGIN * 2;
     const textW = stampW - QR_SIZE - PADDING * 3;
 
-    // Background
+    // Simple bordered container for the signature proof block.
     lastPage.drawRectangle({
       x: stampX,
       y: stampY,
       width: stampW,
       height: STAMP_H,
-      color: rgb(0.97, 0.97, 0.99),
-      borderColor: rgb(0.2, 0.3, 0.75),
-      borderWidth: 0.75,
-    });
-
-    // Header bar
-    lastPage.drawRectangle({
-      x: stampX,
-      y: stampY + STAMP_H - HEADER_H,
-      width: stampW,
-      height: HEADER_H,
-      color: rgb(0.2, 0.3, 0.75),
-    });
-
-    lastPage.drawText('FIRMA ELECTRONICA SIMPLE', {
-      x: stampX + PADDING,
-      y: stampY + STAMP_H - HEADER_H + 4,
-      size: 7.5,
-      font: boldFont,
       color: rgb(1, 1, 1),
+      borderColor: rgb(0.55, 0.55, 0.55),
+      borderWidth: 0.6,
     });
 
-    const formattedDate = data.signedAt.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+    lastPage.drawText('Firmado electrónicamente por:', {
+      x: stampX + PADDING,
+      y: stampY + STAMP_H - 14,
+      size: 9,
+      font: boldFont,
+      color: rgb(0.08, 0.08, 0.08),
+    });
+
+    const formattedDate = this.formatSignedAt(data.signedAt);
     const tokenPreview = data.tokenHash.slice(0, 24) + '...';
 
     const textLines = [
-      `Firmante: ${data.signerName}`,
+      `Nombre: ${data.signerName}`,
       `Email: ${data.signerEmail}`,
       `Fecha: ${formattedDate}`,
       `IP: ${data.ipAddress}`,
       `Token: ${tokenPreview}`,
     ];
 
-    const LINE_H = 13;
-    const textStartY = stampY + STAMP_H - HEADER_H - 10;
+    const LINE_H = 11;
+    const textStartY = stampY + STAMP_H - 28;
 
     for (let i = 0; i < textLines.length; i++) {
       lastPage.drawText(textLines[i], {
         x: stampX + PADDING,
         y: textStartY - i * LINE_H,
-        size: 7,
+        size: 8,
         font,
         color: rgb(0.1, 0.1, 0.15),
         maxWidth: textW,
       });
     }
 
-    // QR code (centered vertically in text area)
+    lastPage.drawText('Este QR permite validar la información de firma.', {
+      x: stampX + PADDING,
+      y: stampY + 14,
+      size: 7,
+      font,
+      color: rgb(0.32, 0.32, 0.32),
+      maxWidth: textW,
+    });
+
+    // QR code aligned to the right, similar to the provided reference.
     const qrX = stampX + stampW - QR_SIZE - PADDING;
-    const qrY = stampY + (STAMP_H - HEADER_H - QR_SIZE) / 2 + 3;
+    const qrY = stampY + 10;
     lastPage.drawImage(qrImage, {
       x: qrX,
       y: qrY,
@@ -109,6 +108,20 @@ export class SignaturePdfStampService {
 
     const modifiedBytes = await pdfDoc.save();
     await fs.promises.writeFile(fullPath, modifiedBytes);
+  }
+
+  private formatSignedAt(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    const offsetHours = -date.getTimezoneOffset() / 60;
+    const sign = offsetHours >= 0 ? '+' : '-';
+    const tz = `GMT${sign}${Math.abs(offsetHours)}`;
+
+    return `${day}/${month}/${year} a las ${hours}:${minutes} - TZ: ${tz}`;
   }
 
   private resolveLocalPath(filePath: string): string {

@@ -7,6 +7,7 @@ import { SignatureVerificationCodeRepository } from '../repositories/signature-v
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface ValidateSignatureCodeParams {
@@ -24,6 +25,7 @@ export class ValidateSignatureCodeUseCase {
     private readonly cryptoService: SignatureCryptoService,
     private readonly userRepository: UserRepository,
     private readonly pdfStampService?: SignaturePdfStampService,
+    private readonly fileRepository?: TypeOrmFileRepository,
   ) {}
 
   async execute(params: ValidateSignatureCodeParams): Promise<void> {
@@ -44,7 +46,13 @@ export class ValidateSignatureCodeUseCase {
     }
 
     if (verificationCode.isExpired) {
-      await this.rejectSignature(signature.id, signature.documentId, signature.userId, SignatureRejectionCode.CODE_EXPIRED, 'El código de verificación ha expirado');
+      await this.rejectSignature(
+        signature.id,
+        signature.documentId,
+        signature.userId,
+        SignatureRejectionCode.CODE_EXPIRED,
+        'Firma rechazada por tiempo agotado',
+      );
       throw new ValidationError('El código de verificación ha expirado. Inicia el proceso de firma nuevamente.');
     }
 
@@ -55,7 +63,13 @@ export class ValidateSignatureCodeUseCase {
       await this.signatureCodeRepository.update(verificationCode);
 
       if (verificationCode.hasExceededMaxAttempts) {
-        await this.rejectSignature(signature.id, signature.documentId, signature.userId, SignatureRejectionCode.MAX_ATTEMPTS_EXCEEDED, `Número máximo de intentos (${verificationCode.maxAttempts}) alcanzado`);
+        await this.rejectSignature(
+          signature.id,
+          signature.documentId,
+          signature.userId,
+          SignatureRejectionCode.MAX_ATTEMPTS_EXCEEDED,
+          'Firma rechazada por demasiados intentos de ingresar el código terminando en fallo',
+        );
         throw new ValidationError('Has superado el número máximo de intentos. Inicia el proceso de firma nuevamente.');
       }
 
@@ -114,16 +128,16 @@ export class ValidateSignatureCodeUseCase {
   ): Promise<void> {
     if (!this.pdfStampService || !documentUrl) return;
 
-    const isPdf = documentUrl.toLowerCase().endsWith('.pdf');
-    if (!isPdf) return;
+    const pdfPath = await this.resolvePdfPath(documentUrl);
+    if (!pdfPath) return;
 
     try {
       const user = await this.userRepository.findById(userId);
       if (!user) return;
 
-      const verifyUrl = `${process.env.FRONTEND_URL ?? ''}/verify/${tokenHash}`;
+      const verifyUrl = this.buildVerifyUrl(tokenHash);
 
-      await this.pdfStampService.stampPdf(documentUrl, {
+      await this.pdfStampService.stampPdf(pdfPath, {
         signerName: `${user.firstName} ${user.lastName}`,
         signerEmail: String(user.email),
         signedAt,
@@ -134,6 +148,36 @@ export class ValidateSignatureCodeUseCase {
     } catch (err) {
       console.warn('[ValidateSignatureCodeUseCase] PDF stamping failed (non-critical):', err);
     }
+  }
+
+  private async resolvePdfPath(documentUrl: string): Promise<string | null> {
+    if (documentUrl.toLowerCase().endsWith('.pdf')) {
+      return documentUrl;
+    }
+
+    if (!this.fileRepository) return null;
+
+    const file = await this.fileRepository.findById(documentUrl);
+    if (!file) return null;
+
+    const isPdfByMime = (file.mimeType ?? '').toLowerCase().includes('pdf');
+    const isPdfByName = file.originalName.toLowerCase().endsWith('.pdf');
+    const isPdfByPath = file.path.toLowerCase().endsWith('.pdf');
+    const isPdf = isPdfByMime || isPdfByName || isPdfByPath;
+
+    if (!isPdf) return null;
+
+    if (file.storage !== 'local') {
+      console.warn('[ValidateSignatureCodeUseCase] PDF stamping skipped: only local storage is currently supported.');
+      return null;
+    }
+
+    return file.path;
+  }
+
+  private buildVerifyUrl(tokenHash: string): string {
+    const baseUrl = (process.env.FRONTEND_URL ?? '').replace(/\/$/, '');
+    return baseUrl ? `${baseUrl}/verify/${tokenHash}` : `/verify/${tokenHash}`;
   }
 
   private async rejectSignature(

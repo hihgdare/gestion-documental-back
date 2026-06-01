@@ -1029,9 +1029,11 @@ export class DependencyContainer {
       this.signatureCryptoService,
       this.userRepository,
       this.signaturePdfStampService,
+      this.fileRepository,
     );
     this.cancelSignatureUseCase = new CancelSignatureUseCase(
       this.signatureRepository,
+      this.signatureVerificationCodeRepository,
       this.documentRepository,
       this.documentHistoryRepository,
     );

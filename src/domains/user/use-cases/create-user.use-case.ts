@@ -14,6 +14,7 @@ export interface CreateUserRequest {
   password: string;
   roleIds?: number[];
   groupId?: number;
+  status?: UserStatus;
 }
 
 export class CreateUserUseCase {
@@ -50,7 +51,7 @@ export class CreateUserUseCase {
       firstName: request.firstName,
       lastName: request.lastName,
       password: hashedPassword,
-      status: UserStatus.INACTIVE,
+      status: request.status ?? UserStatus.INACTIVE,
       roles: roles.filter((r): r is Role => r !== null),
     });
 

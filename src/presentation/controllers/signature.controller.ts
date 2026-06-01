@@ -5,6 +5,7 @@ import { ValidateSignatureCodeUseCase } from '@domains/signature/use-cases/valid
 import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-signature.use-case';
 import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
 import { Signature } from '@domains/signature/entities/signature.entity';
+import { extractClientIp } from '@shared/utils/ip';
 
 interface SignatureResponseDto {
   id: string;
@@ -50,10 +51,7 @@ export class SignatureController {
 
   validate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { signatureId, code } = req.body;
-    const ipAddress =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      req.socket.remoteAddress ||
-      '0.0.0.0';
+    const ipAddress = extractClientIp(req);
 
     await this.validateSignatureCodeUseCase.execute({
       signatureId,

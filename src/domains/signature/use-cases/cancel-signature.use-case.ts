@@ -2,6 +2,7 @@ import { DocumentRepository } from '@domains/document/repositories/document.repo
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { SignatureRepository } from '../repositories/signature.repository';
+import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
@@ -13,6 +14,7 @@ export interface CancelSignatureParams {
 export class CancelSignatureUseCase {
   constructor(
     private readonly signatureRepository: SignatureRepository,
+    private readonly signatureCodeRepository: SignatureVerificationCodeRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
   ) {}
@@ -29,9 +31,18 @@ export class CancelSignatureUseCase {
       throw new ValidationError('Solo se pueden cancelar procesos de firma en estado pendiente');
     }
 
+    const activeCode = await this.signatureCodeRepository.findActiveBySignatureId(signatureId);
+
+    const effectiveRejectionCode = activeCode?.isExpired
+      ? SignatureRejectionCode.CODE_EXPIRED
+      : SignatureRejectionCode.CANCELLED;
+    const rejectionReason = effectiveRejectionCode === SignatureRejectionCode.CODE_EXPIRED
+      ? 'Firma rechazada por tiempo agotado'
+      : 'Firma cancelada por el usuario';
+
     signature.status = SignatureStatus.REJECTED;
-    signature.rejectionCode = SignatureRejectionCode.CANCELLED;
-    signature.rejectionReason = 'El usuario canceló el proceso de firma';
+    signature.rejectionCode = effectiveRejectionCode;
+    signature.rejectionReason = rejectionReason;
     signature.updatedAt = new Date();
     await this.signatureRepository.update(signature);
 
@@ -52,7 +63,7 @@ export class CancelSignatureUseCase {
         status: document.status,
         action: DocumentAction.SIGNATURE_REJECTED,
         updatedBy: userId,
-        comment: 'Proceso de firma cancelado por el usuario',
+        comment: rejectionReason,
       });
     }
   }
