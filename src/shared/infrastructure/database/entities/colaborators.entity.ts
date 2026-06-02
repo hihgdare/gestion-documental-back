@@ -119,7 +119,7 @@ export class ColaboratorEntity {
   @Column({ name: 'user_id', type: 'varchar', length: 36, nullable: true })
   userId?: string | null;
 
-  @OneToOne(() => UserEntity, (user) => user.colaborator, { nullable: true, eager: false, onDelete: 'SET NULL' })
+  @OneToOne(() => UserEntity, { nullable: true, eager: false, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user?: UserEntity | null;
 

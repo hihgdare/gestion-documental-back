@@ -32,21 +32,25 @@ export class SignaturePdfStampService {
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
     const pages = pdfDoc.getPages();
-    const lastPage = pages[pages.length - 1];
-    const { width } = lastPage.getSize();
+    const { width } = pages[pages.length - 1].getSize();
 
     const MARGIN = 20;
     const STAMP_H = 174;
     const PADDING = 8;
     const QR_SIZE = 78;
 
+    // Add a dedicated new page for the signature stamp so it never overlaps
+    // existing content (e.g. page numbers on the last page).
+    const stampPageHeight = STAMP_H + MARGIN * 4;
+    const stampPage = pdfDoc.addPage([width, stampPageHeight]);
+
     const stampX = MARGIN;
-    const stampY = MARGIN;
+    const stampY = MARGIN * 2;
     const stampW = width - MARGIN * 2;
     const textW = stampW - QR_SIZE - PADDING * 3;
 
     // Simple bordered container for the signature proof block.
-    lastPage.drawRectangle({
+    stampPage.drawRectangle({
       x: stampX,
       y: stampY,
       width: stampW,
@@ -56,7 +60,7 @@ export class SignaturePdfStampService {
       borderWidth: 0.6,
     });
 
-    lastPage.drawText('Firmado electrónicamente por:', {
+    stampPage.drawText('Firmado electrónicamente por:', {
       x: stampX + PADDING,
       y: stampY + STAMP_H - 14,
       size: 9,
@@ -80,7 +84,7 @@ export class SignaturePdfStampService {
     const textStartY = stampY + STAMP_H - 28;
 
     for (let i = 0; i < textLines.length; i++) {
-      lastPage.drawText(textLines[i], {
+      stampPage.drawText(textLines[i], {
         x: stampX + PADDING,
         y: textStartY - i * LINE_H,
         size: 7.5,
@@ -90,7 +94,7 @@ export class SignaturePdfStampService {
       });
     }
 
-    lastPage.drawText('Escanee el QR para verificar la validez de este documento.', {
+    stampPage.drawText('Escanee el QR para verificar la validez de este documento.', {
       x: stampX + PADDING,
       y: stampY + 10,
       size: 7,
@@ -102,7 +106,7 @@ export class SignaturePdfStampService {
     // QR code aligned to the right, similar to the provided reference.
     const qrX = stampX + stampW - QR_SIZE - PADDING;
     const qrY = stampY + 10;
-    lastPage.drawImage(qrImage, {
+    stampPage.drawImage(qrImage, {
       x: qrX,
       y: qrY,
       width: QR_SIZE,
