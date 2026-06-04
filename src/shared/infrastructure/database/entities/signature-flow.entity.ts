@@ -8,7 +8,6 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { DocumentEntity } from './document.entity';
 import { UserEntity } from './user.entity';
 import { EnumColumn } from './utils/decorators';
 import { SignatureFlowOrderType, SignatureFlowStatus } from '@domains/signature-flow/value-objects/signature-flow-enums';
@@ -22,10 +21,6 @@ export class SignatureFlowEntity {
 
   @Column({ name: 'document_id', type: 'varchar', length: 36 })
   documentId!: string;
-
-  @ManyToOne(() => DocumentEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'document_id' })
-  document!: DocumentEntity;
 
   @EnumColumn({
     name: 'order_type',

@@ -99,6 +99,8 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
       updatedByName: entity.updater?.firstName,
       updatedByLastName: entity.updater?.lastName,
       updatedAt: entity.updatedAt,
+      flowParticipantId: entity.flowParticipantId ?? null,
+      actionComment: entity.actionComment ?? null,
     });
   }
 
@@ -118,6 +120,8 @@ export class TypeOrmDocumentHistoryRepository implements DocumentHistoryReposito
       action: history.action,
       updatedBy: history.updatedBy,
       updatedAt: history.updatedAt,
+      flowParticipantId: history.flowParticipantId ?? undefined,
+      actionComment: history.actionComment ?? undefined,
     };
   }
 }

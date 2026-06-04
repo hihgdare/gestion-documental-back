@@ -1,7 +1,9 @@
 export enum DocumentStatus {
   DRAFT = 'draft',
   IN_REVIEW = 'in_review',
+  IN_SIGNING = 'in_signing',
   APPROVED = 'approved',
+  SIGNED = 'signed',
   REJECTED = 'rejected',
   REJECTED_WITH_COMMENTS = 'rejected_with_comments',
   EXPIRED = 'expired',
@@ -24,4 +26,11 @@ export enum DocumentAction {
   SIGNATURE_REJECTED_CANCELLED_BY_USER = 'signature_rejected_cancelled_by_user',
   SIGNATURE_REJECTED_TIMEOUT = 'signature_rejected_timeout',
   SIGNATURE_REJECTED_MAX_ATTEMPTS = 'signature_rejected_max_attempts',
+  FLOW_SENT = 'flow_sent',
+  FLOW_VALIDATED = 'flow_validated',
+  FLOW_REJECTED = 'flow_rejected',
+  FLOW_SIGNED = 'flow_signed',
+  FLOW_PARTICIPANT_REJECTED = 'flow_participant_rejected',
+  FLOW_COMPLETED = 'flow_completed',
+  VERSION_SUPERSEDED = 'version_superseded',
 }

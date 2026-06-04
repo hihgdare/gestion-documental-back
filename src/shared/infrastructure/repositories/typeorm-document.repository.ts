@@ -92,28 +92,21 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   async update(document: Document): Promise<Document> {
+    const existing = await this.repository.findOneOrFail({ where: { id: document.id } });
     const documentEntity = this.toEntity(document);
-    await this.repository.update(document.id, documentEntity as any);
+    Object.assign(existing, documentEntity);
 
-    // Manejar la relación N:M con colaboradores
-    if (document.colaboratorIds && document.colaboratorIds.length > 0) {
-      const colaboratorRepository = AppDataSource.getRepository(ColaboratorEntity);
-      const colaborators = await colaboratorRepository.find({
-        where: { id: In(document.colaboratorIds) },
-      });
-      const updatedEntity = await this.repository.findOne({ where: { id: document.id } });
-      if (updatedEntity) {
-        updatedEntity.colaborators = colaborators;
-        await this.repository.save(updatedEntity);
+    await AppDataSource.transaction(async (manager) => {
+      if (document.colaboratorIds && document.colaboratorIds.length > 0) {
+        const colaborators = await manager.find(ColaboratorEntity, {
+          where: { id: In(document.colaboratorIds) },
+        });
+        existing.colaborators = colaborators;
+      } else {
+        existing.colaborators = [];
       }
-    } else {
-      // Si no hay colaboradores, limpiar la relación
-      const updatedEntity = await this.repository.findOne({ where: { id: document.id } });
-      if (updatedEntity) {
-        updatedEntity.colaborators = [];
-        await this.repository.save(updatedEntity);
-      }
-    }
+      await manager.save(existing);
+    });
 
     return this.findById(document.id) as Promise<Document>;
   }
@@ -198,10 +191,10 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
-      .where('document.expiration_date IS NOT NULL')
-      .andWhere('document.expiration_date > :today', { today })
-      .andWhere('document.expiration_date <= :futureDate', { futureDate })
-      .andWhere('document.deleted_at IS NULL')
+      .where('document.expirationDate IS NOT NULL')
+      .andWhere('document.expirationDate > :today', { today })
+      .andWhere('document.expirationDate <= :futureDate', { futureDate })
+      .andWhere('document.deletedAt IS NULL')
       .orderBy('document.expiration_date', 'ASC')
       .getMany();
 
@@ -272,9 +265,6 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
   }
 
   private toDomain(entity: DocumentEntity): Document {
-    if (!entity.documentModelId && !entity.documentModel) {
-      console.log('TypeOrmDocumentRepository.toDomain: documentModelId and documentModel are missing', JSON.stringify(entity, null, 2));
-    }
     const colaboratorIds = entity.colaborators ? entity.colaborators.map(c => c.id) : [];
     const props: DocumentProps = {
       id: entity.id,
@@ -290,6 +280,9 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       documentUrl: entity.documentUrl,
       status: entity.status,
       signatureStatus: entity.signatureStatus ?? null,
+      signatureFlowId: entity.signatureFlowId ?? null,
+      previousVersionId: entity.previousVersionId ?? null,
+      isSuperseded: entity.isSuperseded ?? false,
       comment: entity.comment,
       groupId: entity.groupId,
       requiredColaboratorsCount: entity.requiredColaboratorsCount,
@@ -322,6 +315,9 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       documentUrl: document.documentUrl,
       status: document.status,
       signatureStatus: document.signatureStatus ?? undefined,
+      signatureFlowId: document.signatureFlowId ?? undefined,
+      previousVersionId: document.previousVersionId ?? undefined,
+      isSuperseded: document.isSuperseded,
       comment: document.comment || undefined,
       groupId: document.groupId,
       requiredColaboratorsCount: document.requiredColaboratorsCount,
