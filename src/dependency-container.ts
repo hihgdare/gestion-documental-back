@@ -228,6 +228,24 @@ import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@
 import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
 import { SignatureController } from '@presentation/controllers/signature.controller';
 
+// SignatureFlow domain
+import { TypeOrmSignatureFlowRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow.repository';
+import { TypeOrmSignatureFlowParticipantRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow-participant.repository';
+import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
+import {
+  GetSignatureFlowByIdUseCase,
+  GetSignatureFlowsByDocumentIdUseCase,
+  GetSignatureFlowParticipantsByFlowIdUseCase,
+  GetSignatureFlowParticipantsByUserIdUseCase,
+} from '@domains/signature-flow/use-cases/get-signature-flow.use-case';
+import {
+  UpdateSignatureFlowUseCase,
+  AddParticipantToFlowUseCase,
+  RemoveParticipantFromFlowUseCase,
+  DeleteSignatureFlowUseCase,
+} from '@domains/signature-flow/use-cases/update-signature-flow.use-case';
+import { SignatureFlowController } from '@presentation/controllers/signature-flow.controller';
+
 // User extra use cases
 import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
 import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
@@ -273,6 +291,8 @@ export class DependencyContainer {
   private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
   private signatureRepository!: TypeOrmSignatureRepository;
   private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
+  private signatureFlowRepository!: TypeOrmSignatureFlowRepository;
+  private signatureFlowParticipantRepository!: TypeOrmSignatureFlowParticipantRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
@@ -475,6 +495,7 @@ export class DependencyContainer {
   private fileShareController!: FileShareController;
   private documentTemplateController!: DocumentTemplateController;
   private signatureController!: SignatureController;
+  private signatureFlowController!: SignatureFlowController;
 
   // Services - Signature
   private signatureCryptoService!: SignatureCryptoService;
@@ -487,6 +508,17 @@ export class DependencyContainer {
   private getSignatureByDocumentUseCase!: GetSignatureByDocumentUseCase;
   private getSignatureByTokenHashUseCase!: GetSignatureByTokenHashUseCase;
   private verifyDocumentSignatureUseCase!: VerifyDocumentSignatureUseCase;
+
+  // Use Cases - SignatureFlow
+  private createSignatureFlowUseCase!: CreateSignatureFlowUseCase;
+  private getSignatureFlowByIdUseCase!: GetSignatureFlowByIdUseCase;
+  private getSignatureFlowsByDocumentIdUseCase!: GetSignatureFlowsByDocumentIdUseCase;
+  private getSignatureFlowParticipantsByFlowIdUseCase!: GetSignatureFlowParticipantsByFlowIdUseCase;
+  private getSignatureFlowParticipantsByUserIdUseCase!: GetSignatureFlowParticipantsByUserIdUseCase;
+  private updateSignatureFlowUseCase!: UpdateSignatureFlowUseCase;
+  private addParticipantToFlowUseCase!: AddParticipantToFlowUseCase;
+  private removeParticipantFromFlowUseCase!: RemoveParticipantFromFlowUseCase;
+  private deleteSignatureFlowUseCase!: DeleteSignatureFlowUseCase;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -525,6 +557,8 @@ export class DependencyContainer {
     this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
     this.signatureRepository = new TypeOrmSignatureRepository();
     this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
+    this.signatureFlowRepository = new TypeOrmSignatureFlowRepository();
+    this.signatureFlowParticipantRepository = new TypeOrmSignatureFlowParticipantRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -1060,6 +1094,44 @@ export class DependencyContainer {
       this.verifyDocumentSignatureUseCase,
       this.fileRepository,
     );
+
+    // Initialize SignatureFlow use cases and controller
+    this.createSignatureFlowUseCase = new CreateSignatureFlowUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+    );
+    this.getSignatureFlowByIdUseCase = new GetSignatureFlowByIdUseCase(this.signatureFlowRepository);
+    this.getSignatureFlowsByDocumentIdUseCase = new GetSignatureFlowsByDocumentIdUseCase(this.signatureFlowRepository);
+    this.getSignatureFlowParticipantsByFlowIdUseCase = new GetSignatureFlowParticipantsByFlowIdUseCase(
+      this.signatureFlowParticipantRepository,
+    );
+    this.getSignatureFlowParticipantsByUserIdUseCase = new GetSignatureFlowParticipantsByUserIdUseCase(
+      this.signatureFlowParticipantRepository,
+    );
+    this.updateSignatureFlowUseCase = new UpdateSignatureFlowUseCase(this.signatureFlowRepository);
+    this.addParticipantToFlowUseCase = new AddParticipantToFlowUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+    );
+    this.removeParticipantFromFlowUseCase = new RemoveParticipantFromFlowUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+    );
+    this.deleteSignatureFlowUseCase = new DeleteSignatureFlowUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+    );
+    this.signatureFlowController = new SignatureFlowController(
+      this.createSignatureFlowUseCase,
+      this.getSignatureFlowByIdUseCase,
+      this.getSignatureFlowsByDocumentIdUseCase,
+      this.getSignatureFlowParticipantsByFlowIdUseCase,
+      this.getSignatureFlowParticipantsByUserIdUseCase,
+      this.updateSignatureFlowUseCase,
+      this.addParticipantToFlowUseCase,
+      this.removeParticipantFromFlowUseCase,
+      this.deleteSignatureFlowUseCase,
+    );
   }
 
   // Getters for controllers
@@ -1233,5 +1305,9 @@ export class DependencyContainer {
 
   public getSignatureController(): SignatureController {
     return this.signatureController;
+  }
+
+  public getSignatureFlowController(): SignatureFlowController {
+    return this.signatureFlowController;
   }
 }

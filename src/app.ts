@@ -30,6 +30,7 @@ import { createAreaRoutes } from '@presentation/routes/area.routes';
 import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { createDocumentTemplateRoutes } from '@presentation/routes/document-template.routes';
 import { createSignatureRoutes } from '@presentation/routes/signature.routes';
+import { createSignatureFlowRoutes } from '@presentation/routes/signature-flow.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seeds/initial-seeds';
 import { RouteError } from '@shared/domain/errors';
@@ -175,6 +176,7 @@ export class App {
     const fileShareController = this.dependencyContainer.getFileShareController();
     const documentTemplateController = this.dependencyContainer.getDocumentTemplateController();
     const signatureController = this.dependencyContainer.getSignatureController();
+    const signatureFlowController = this.dependencyContainer.getSignatureFlowController();
 
     // Get use cases and repositories needed for middleware
     const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
@@ -209,6 +211,7 @@ export class App {
     this.app.use('/api/shared/files', createSharedFileRoutes(fileShareController));
     this.app.use('/api/document-templates', createDocumentTemplateRoutes(documentTemplateController));
     this.app.use('/api/signatures', createSignatureRoutes(signatureController));
+    this.app.use('/api/signature-flows', createSignatureFlowRoutes(signatureFlowController));
 
     // Auth routes
     this.app.use('/api/auth', createAuthRoutes(authController));
