@@ -237,7 +237,9 @@ import {
   GetSignatureFlowByIdUseCase,
   GetSignatureFlowsByDocumentIdUseCase,
   GetSignatureFlowParticipantsByFlowIdUseCase,
-  GetSignatureFlowParticipantsByUserIdUseCase,
+  GetMyPendingSignatureTasksUseCase,
+  GetPendingSignatureDocumentsReportUseCase,
+  GetSignatureProcessTimeReportUseCase,
 } from '@domains/signature-flow/use-cases/get-signature-flow.use-case';
 import {
   UpdateSignatureFlowUseCase,
@@ -516,7 +518,9 @@ export class DependencyContainer {
   private getSignatureFlowByIdUseCase!: GetSignatureFlowByIdUseCase;
   private getSignatureFlowsByDocumentIdUseCase!: GetSignatureFlowsByDocumentIdUseCase;
   private getSignatureFlowParticipantsByFlowIdUseCase!: GetSignatureFlowParticipantsByFlowIdUseCase;
-  private getSignatureFlowParticipantsByUserIdUseCase!: GetSignatureFlowParticipantsByUserIdUseCase;
+  private getMyPendingSignatureTasksUseCase!: GetMyPendingSignatureTasksUseCase;
+  private getPendingSignatureDocumentsReportUseCase!: GetPendingSignatureDocumentsReportUseCase;
+  private getSignatureProcessTimeReportUseCase!: GetSignatureProcessTimeReportUseCase;
   private updateSignatureFlowUseCase!: UpdateSignatureFlowUseCase;
   private addParticipantToFlowUseCase!: AddParticipantToFlowUseCase;
   private removeParticipantFromFlowUseCase!: RemoveParticipantFromFlowUseCase;
@@ -1115,8 +1119,14 @@ export class DependencyContainer {
     this.getSignatureFlowParticipantsByFlowIdUseCase = new GetSignatureFlowParticipantsByFlowIdUseCase(
       this.signatureFlowParticipantRepository,
     );
-    this.getSignatureFlowParticipantsByUserIdUseCase = new GetSignatureFlowParticipantsByUserIdUseCase(
+    this.getMyPendingSignatureTasksUseCase = new GetMyPendingSignatureTasksUseCase(
       this.signatureFlowParticipantRepository,
+    );
+    this.getPendingSignatureDocumentsReportUseCase = new GetPendingSignatureDocumentsReportUseCase(
+      this.signatureFlowRepository,
+    );
+    this.getSignatureProcessTimeReportUseCase = new GetSignatureProcessTimeReportUseCase(
+      this.signatureFlowRepository,
     );
     this.updateSignatureFlowUseCase = new UpdateSignatureFlowUseCase(this.signatureFlowRepository);
     this.addParticipantToFlowUseCase = new AddParticipantToFlowUseCase(
@@ -1136,7 +1146,9 @@ export class DependencyContainer {
       this.getSignatureFlowByIdUseCase,
       this.getSignatureFlowsByDocumentIdUseCase,
       this.getSignatureFlowParticipantsByFlowIdUseCase,
-      this.getSignatureFlowParticipantsByUserIdUseCase,
+      this.getMyPendingSignatureTasksUseCase,
+      this.getPendingSignatureDocumentsReportUseCase,
+      this.getSignatureProcessTimeReportUseCase,
       this.updateSignatureFlowUseCase,
       this.addParticipantToFlowUseCase,
       this.removeParticipantFromFlowUseCase,

@@ -26,6 +26,7 @@ const adminSections = [
   'user',
   'area',
   'division',
+  'signature_flow',
 ];
 const extraPermissions = [
   'admin:groups',

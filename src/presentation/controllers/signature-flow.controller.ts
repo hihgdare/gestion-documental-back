@@ -5,7 +5,9 @@ import {
   GetSignatureFlowByIdUseCase,
   GetSignatureFlowsByDocumentIdUseCase,
   GetSignatureFlowParticipantsByFlowIdUseCase,
-  GetSignatureFlowParticipantsByUserIdUseCase,
+  GetMyPendingSignatureTasksUseCase,
+  GetPendingSignatureDocumentsReportUseCase,
+  GetSignatureProcessTimeReportUseCase,
 } from '@domains/signature-flow/use-cases/get-signature-flow.use-case';
 import {
   UpdateSignatureFlowUseCase,
@@ -22,7 +24,9 @@ export class SignatureFlowController {
     private readonly getSignatureFlowByIdUseCase: GetSignatureFlowByIdUseCase,
     private readonly getSignatureFlowsByDocumentIdUseCase: GetSignatureFlowsByDocumentIdUseCase,
     private readonly getSignatureFlowParticipantsByFlowIdUseCase: GetSignatureFlowParticipantsByFlowIdUseCase,
-    private readonly getSignatureFlowParticipantsByUserIdUseCase: GetSignatureFlowParticipantsByUserIdUseCase,
+    private readonly getMyPendingSignatureTasksUseCase: GetMyPendingSignatureTasksUseCase,
+    private readonly getPendingSignatureDocumentsReportUseCase: GetPendingSignatureDocumentsReportUseCase,
+    private readonly getSignatureProcessTimeReportUseCase: GetSignatureProcessTimeReportUseCase,
     private readonly updateSignatureFlowUseCase: UpdateSignatureFlowUseCase,
     private readonly addParticipantToFlowUseCase: AddParticipantToFlowUseCase,
     private readonly removeParticipantFromFlowUseCase: RemoveParticipantFromFlowUseCase,
@@ -63,8 +67,70 @@ export class SignatureFlowController {
 
   getMyPending = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.auth!.user!.id;
-    const participants = await this.getSignatureFlowParticipantsByUserIdUseCase.execute(userId);
-    res.status(200).json({ success: true, data: participants.map((p) => this.participantToDto(p)), count: participants.length });
+    const groupId = req.auth?.groupId;
+    const tasks = await this.getMyPendingSignatureTasksUseCase.execute(userId, groupId);
+    res.status(200).json({
+      success: true,
+      data: tasks.map((task) => ({
+        participantId: task.participantId,
+        flowId: task.flowId,
+        role: task.role,
+        order: task.order,
+        document: {
+          id: task.documentId,
+          name: task.documentName,
+          status: task.documentStatus,
+          typeName: task.documentTypeName,
+          subtypeName: task.documentSubtypeName,
+          contractNumber: task.contractNumber,
+        },
+        sentAt: task.sentAt?.toISOString() ?? null,
+        sentByName: task.sentByName,
+      })),
+      count: tasks.length,
+    });
+  });
+
+  getPendingDocumentsReport = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const groupId = req.auth?.groupId;
+    const items = await this.getPendingSignatureDocumentsReportUseCase.execute(groupId);
+
+    res.status(200).json({
+      success: true,
+      data: items.map((item) => ({
+        flowId: item.flowId,
+        document: {
+          id: item.documentId,
+          name: item.documentName,
+          status: item.documentStatus,
+          typeName: item.documentTypeName,
+          subtypeName: item.documentSubtypeName,
+          contractNumber: item.contractNumber,
+        },
+        sentAt: item.sentAt?.toISOString() ?? null,
+        sentByName: item.sentByName,
+        currentHolders: item.currentHolders,
+      })),
+      count: items.length,
+    });
+  });
+
+  getSigningTimeReport = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const groupId = req.auth?.groupId;
+    const items = await this.getSignatureProcessTimeReportUseCase.execute(groupId);
+
+    res.status(200).json({
+      success: true,
+      data: items.map((item) => ({
+        flowId: item.flowId,
+        documentId: item.documentId,
+        documentName: item.documentName,
+        sentAt: item.sentAt.toISOString(),
+        signedAt: item.signedAt.toISOString(),
+        elapsedDays: item.elapsedDays,
+      })),
+      count: items.length,
+    });
   });
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {

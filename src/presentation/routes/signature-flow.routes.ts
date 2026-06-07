@@ -23,6 +23,10 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
 
   router.get('/my-pending', authorize('signature_flow:read'), controller.getMyPending);
 
+  router.get('/reports/pending-documents', authorize('signature_flow:read'), controller.getPendingDocumentsReport);
+
+  router.get('/reports/signing-time', authorize('signature_flow:read'), controller.getSigningTimeReport);
+
   router.get('/document/:documentId', authorize('signature_flow:read'), controller.getByDocument);
 
   router.get('/:id', authorize('signature_flow:read'), controller.getById);
