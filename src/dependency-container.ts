@@ -231,6 +231,7 @@ import { SignatureController } from '@presentation/controllers/signature.control
 // SignatureFlow domain
 import { TypeOrmSignatureFlowRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow.repository';
 import { TypeOrmSignatureFlowParticipantRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow-participant.repository';
+import { TypeOrmInAppNotificationRepository } from '@shared/infrastructure/repositories/typeorm-in-app-notification.repository';
 import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
 import {
   GetSignatureFlowByIdUseCase,
@@ -293,6 +294,7 @@ export class DependencyContainer {
   private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
   private signatureFlowRepository!: TypeOrmSignatureFlowRepository;
   private signatureFlowParticipantRepository!: TypeOrmSignatureFlowParticipantRepository;
+  private inAppNotificationRepository!: TypeOrmInAppNotificationRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
@@ -559,6 +561,7 @@ export class DependencyContainer {
     this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
     this.signatureFlowRepository = new TypeOrmSignatureFlowRepository();
     this.signatureFlowParticipantRepository = new TypeOrmSignatureFlowParticipantRepository();
+    this.inAppNotificationRepository = new TypeOrmInAppNotificationRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -1070,6 +1073,8 @@ export class DependencyContainer {
       this.signatureCryptoService,
       this.userRepository,
       this.colaboratorRepository,
+      this.inAppNotificationRepository,
+      this.emailService,
       this.signaturePdfStampService,
       this.fileRepository,
     );
@@ -1099,6 +1104,11 @@ export class DependencyContainer {
     this.createSignatureFlowUseCase = new CreateSignatureFlowUseCase(
       this.signatureFlowRepository,
       this.signatureFlowParticipantRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.userRepository,
+      this.inAppNotificationRepository,
+      this.emailService,
     );
     this.getSignatureFlowByIdUseCase = new GetSignatureFlowByIdUseCase(this.signatureFlowRepository);
     this.getSignatureFlowsByDocumentIdUseCase = new GetSignatureFlowsByDocumentIdUseCase(this.signatureFlowRepository);
