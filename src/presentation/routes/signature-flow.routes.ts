@@ -5,6 +5,7 @@ import {
   createSignatureFlowSchema,
   updateSignatureFlowSchema,
   addSignatureFlowParticipantSchema,
+  processSignatureFlowParticipantActionSchema,
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
@@ -48,6 +49,13 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
   );
 
   router.delete('/:id/participants/:participantId', authorize('signature_flow:update'), controller.removeParticipant);
+
+  router.post(
+    '/participants/:participantId/action',
+    authorize('signature_flow:update'),
+    validateRequest(processSignatureFlowParticipantActionSchema, true),
+    controller.processParticipantAction,
+  );
 
   router.delete('/:id', authorize('signature_flow:delete'), controller.delete);
 

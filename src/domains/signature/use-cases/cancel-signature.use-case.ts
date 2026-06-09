@@ -4,6 +4,7 @@ import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
+import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface CancelSignatureParams {
@@ -17,6 +18,7 @@ export class CancelSignatureUseCase {
     private readonly signatureCodeRepository: SignatureVerificationCodeRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
+    private readonly processFlowParticipantActionUseCase?: ProcessFlowParticipantActionUseCase,
   ) {}
 
   async execute(params: CancelSignatureParams): Promise<void> {
@@ -65,6 +67,8 @@ export class CancelSignatureUseCase {
         updatedBy: userId,
         comment: rejectionReason,
       });
+
+      await this.processFlowParticipantActionUseCase?.markSignerRejectedFromOtp(document.id, signature.userId, rejectionReason);
     }
   }
 }

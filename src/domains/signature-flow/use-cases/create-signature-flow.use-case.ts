@@ -14,6 +14,10 @@ import {
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+import {
+  buildFrontendUrl,
+  buildPrimactaNotificationEmail,
+} from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface CreateSignatureFlowInput {
@@ -51,11 +55,12 @@ export class CreateSignatureFlowUseCase {
     }
 
     const now = new Date();
+    const hasValidators = input.participants.some((participant) => participant.role === SignatureFlowParticipantRole.VALIDATOR);
 
     const flowProps: SignatureFlowProps = {
       documentId: input.documentId,
       orderType: input.orderType,
-      status: SignatureFlowStatus.IN_REVIEW,
+      status: hasValidators ? SignatureFlowStatus.IN_REVIEW : SignatureFlowStatus.IN_SIGNING,
       sentAt: now,
       sentBy: input.sentBy ?? null,
     };
@@ -78,7 +83,7 @@ export class CreateSignatureFlowUseCase {
     }
 
     document.signatureFlowId = flow.id;
-    document.status = DocumentStatus.IN_REVIEW;
+    document.status = hasValidators ? DocumentStatus.IN_REVIEW : DocumentStatus.IN_SIGNING;
     await this.documentRepository.update(document);
 
     await this.documentHistoryRepository.save({
@@ -133,11 +138,20 @@ export class CreateSignatureFlowUseCase {
       const user = await this.userRepository.findById(participant.userId);
       if (!user?.email) continue;
 
+      const actionUrl = buildFrontendUrl(`/signature-flows?documentId=${encodeURIComponent(documentId)}`);
+      const html = buildPrimactaNotificationEmail({
+        title,
+        recipientName: user.firstName,
+        message,
+        actionLabel: 'Ir a pendientes',
+        actionUrl,
+      });
+
       await this.emailService.send({
         to: user.email.toString(),
         subject: title,
-        text: message,
-        html: `<p>${message}</p>`,
+        text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
+        html,
       });
     }
   }

@@ -12,6 +12,11 @@ import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeo
 import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
 import { InAppNotification } from '@domains/notification/entities/in-app-notification.entity';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
+import {
+  buildFrontendUrl,
+  buildPrimactaNotificationEmail,
+} from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface ValidateSignatureCodeParams {
@@ -31,6 +36,7 @@ export class ValidateSignatureCodeUseCase {
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly inAppNotificationRepository: InAppNotificationRepository,
     private readonly emailService: EmailService,
+    private readonly processFlowParticipantActionUseCase?: ProcessFlowParticipantActionUseCase,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly fileRepository?: TypeOrmFileRepository,
   ) {}
@@ -101,6 +107,8 @@ export class ValidateSignatureCodeUseCase {
     signature.signedAt = signedAt;
     signature.updatedAt = signedAt;
     await this.signatureRepository.update(signature);
+
+    await this.processFlowParticipantActionUseCase?.markSignerSignedFromOtp(signature.documentId, signature.userId, signedAt);
 
     const document = await this.documentRepository.findById(signature.documentId);
     if (document) {
@@ -230,6 +238,8 @@ export class ValidateSignatureCodeUseCase {
       });
 
       await this.notifyResponsibleOnRejection(document.id, document.name, document.createdBy, rejectionReason);
+
+      await this.processFlowParticipantActionUseCase?.markSignerRejectedFromOtp(document.id, userId, rejectionReason);
     }
   }
 
@@ -255,11 +265,20 @@ export class ValidateSignatureCodeUseCase {
     const responsibleUser = await this.userRepository.findById(responsibleUserId);
     if (!responsibleUser?.email) return;
 
+    const actionUrl = buildFrontendUrl(`/documents/${documentId}/history`);
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: responsibleUser.firstName,
+      message,
+      actionLabel: 'Ver historial del documento',
+      actionUrl,
+    });
+
     await this.emailService.send({
       to: responsibleUser.email.toString(),
       subject: title,
-      text: message,
-      html: `<p>${message}</p>`,
+      text: actionUrl ? `${message}\n\nVer historial: ${actionUrl}` : message,
+      html,
     });
   }
 }

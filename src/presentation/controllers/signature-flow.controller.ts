@@ -15,6 +15,7 @@ import {
   RemoveParticipantFromFlowUseCase,
   DeleteSignatureFlowUseCase,
 } from '@domains/signature-flow/use-cases/update-signature-flow.use-case';
+import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { SignatureFlow } from '@domains/signature-flow/entities/signature-flow.entity';
 import { SignatureFlowParticipant } from '@domains/signature-flow/entities/signature-flow-participant.entity';
 
@@ -30,6 +31,7 @@ export class SignatureFlowController {
     private readonly updateSignatureFlowUseCase: UpdateSignatureFlowUseCase,
     private readonly addParticipantToFlowUseCase: AddParticipantToFlowUseCase,
     private readonly removeParticipantFromFlowUseCase: RemoveParticipantFromFlowUseCase,
+    private readonly processFlowParticipantActionUseCase: ProcessFlowParticipantActionUseCase,
     private readonly deleteSignatureFlowUseCase: DeleteSignatureFlowUseCase,
   ) {}
 
@@ -158,6 +160,21 @@ export class SignatureFlowController {
     const { participantId } = req.params;
     await this.removeParticipantFromFlowUseCase.execute(participantId);
     res.status(200).json({ success: true, message: 'Participante eliminado' });
+  });
+
+  processParticipantAction = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { participantId } = req.params;
+    const { action, comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+
+    await this.processFlowParticipantActionUseCase.execute({
+      participantId,
+      actorUserId,
+      action,
+      comment,
+    });
+
+    res.status(200).json({ success: true, message: 'Acción aplicada correctamente' });
   });
 
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {

@@ -10,6 +10,14 @@ import { SignatureCryptoService } from '@shared/security/signature-crypto.servic
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
+import { SignatureFlowParticipantRepository } from '@domains/signature-flow/repositories/signature-flow-participant.repository';
+import {
+  SignatureFlowOrderType,
+  SignatureFlowParticipantRole,
+  SignatureFlowParticipantStatus,
+  SignatureFlowStatus,
+} from '@domains/signature-flow/value-objects/signature-flow-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 const OTP_EXPIRY_MINUTES = 5;
@@ -34,6 +42,8 @@ export class InitiateSignatureUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly userRepository: UserRepository,
     private readonly colaboratorRepository: ColaboratorRepository,
+    private readonly signatureFlowRepository: SignatureFlowRepository,
+    private readonly signatureFlowParticipantRepository: SignatureFlowParticipantRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly emailService: EmailService,
   ) {}
@@ -53,6 +63,29 @@ export class InitiateSignatureUseCase {
 
     if (!user.email) {
       throw new ValidationError('El usuario no tiene un correo electrónico registrado');
+    }
+
+    const activeFlow = await this.signatureFlowRepository.findActiveByDocumentId(documentId);
+    if (activeFlow) {
+      if (activeFlow.status === SignatureFlowStatus.IN_REVIEW) {
+        throw new ValidationError('El documento aún está en etapa de revisión y no puede firmarse');
+      }
+
+      if (activeFlow.status !== SignatureFlowStatus.IN_SIGNING) {
+        throw new ValidationError('El flujo de firma no está disponible para firmar en este momento');
+      }
+
+      const participants = await this.signatureFlowParticipantRepository.findByFlowId(activeFlow.id);
+      const pendingSigner = participants.find((participant) => (
+        participant.role === SignatureFlowParticipantRole.SIGNER
+        && participant.userId === userId
+        && participant.status === SignatureFlowParticipantStatus.PENDING
+        && this.isCurrentStepSigner(participant, participants, activeFlow.orderType)
+      ));
+
+      if (!pendingSigner) {
+        throw new ValidationError('No tienes una firma pendiente en el flujo activo para este documento');
+      }
     }
 
     const colaborator = await this.colaboratorRepository.findByUserId(userId);
@@ -118,6 +151,25 @@ export class InitiateSignatureUseCase {
     }
 
     return { signatureId: savedSignature.id };
+  }
+
+  private isCurrentStepSigner(
+    participant: { order: number | null },
+    participants: Array<{ role: string; status: string; order: number | null }>,
+    orderType: SignatureFlowOrderType,
+  ): boolean {
+    if (orderType !== SignatureFlowOrderType.SEQUENTIAL) return true;
+    if (participant.order === null) return true;
+
+    const pendingOrders = participants
+      .filter((p) => p.role === SignatureFlowParticipantRole.SIGNER)
+      .filter((p) => p.status === SignatureFlowParticipantStatus.PENDING)
+      .filter((p) => p.order !== null)
+      .map((p) => p.order as number);
+
+    if (pendingOrders.length === 0) return true;
+
+    return participant.order === Math.min(...pendingOrders);
   }
 
   private buildEmailHtml(code: string, documentName: string, expiryMinutes: number): string {

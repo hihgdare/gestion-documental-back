@@ -247,6 +247,7 @@ import {
   RemoveParticipantFromFlowUseCase,
   DeleteSignatureFlowUseCase,
 } from '@domains/signature-flow/use-cases/update-signature-flow.use-case';
+import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { SignatureFlowController } from '@presentation/controllers/signature-flow.controller';
 
 // User extra use cases
@@ -524,6 +525,7 @@ export class DependencyContainer {
   private updateSignatureFlowUseCase!: UpdateSignatureFlowUseCase;
   private addParticipantToFlowUseCase!: AddParticipantToFlowUseCase;
   private removeParticipantFromFlowUseCase!: RemoveParticipantFromFlowUseCase;
+  private processFlowParticipantActionUseCase!: ProcessFlowParticipantActionUseCase;
   private deleteSignatureFlowUseCase!: DeleteSignatureFlowUseCase;
 
   // Use Cases - FileShare
@@ -1056,6 +1058,16 @@ export class DependencyContainer {
       this.deleteDocumentTemplateUseCase,
     );
 
+    this.processFlowParticipantActionUseCase = new ProcessFlowParticipantActionUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.userRepository,
+      this.inAppNotificationRepository,
+      this.emailService,
+    );
+
     // Initialize Signature
     this.signatureCryptoService = new SignatureCryptoService();
     this.signaturePdfStampService = new SignaturePdfStampService();
@@ -1066,6 +1078,8 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.userRepository,
       this.colaboratorRepository,
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
       this.signatureCryptoService,
       this.emailService,
     );
@@ -1079,6 +1093,7 @@ export class DependencyContainer {
       this.colaboratorRepository,
       this.inAppNotificationRepository,
       this.emailService,
+      this.processFlowParticipantActionUseCase,
       this.signaturePdfStampService,
       this.fileRepository,
     );
@@ -1087,6 +1102,7 @@ export class DependencyContainer {
       this.signatureVerificationCodeRepository,
       this.documentRepository,
       this.documentHistoryRepository,
+      this.processFlowParticipantActionUseCase,
     );
     this.getSignatureByDocumentUseCase = new GetSignatureByDocumentUseCase(this.signatureRepository);
     this.getSignatureByTokenHashUseCase = new GetSignatureByTokenHashUseCase(this.signatureRepository);
@@ -1152,6 +1168,7 @@ export class DependencyContainer {
       this.updateSignatureFlowUseCase,
       this.addParticipantToFlowUseCase,
       this.removeParticipantFromFlowUseCase,
+      this.processFlowParticipantActionUseCase,
       this.deleteSignatureFlowUseCase,
     );
   }

@@ -452,3 +452,8 @@ export const addSignatureFlowParticipantSchema = Joi.object({
   role: Joi.string().valid(...Object.values(SignatureFlowParticipantRole)).required(),
   order: Joi.number().integer().min(1).optional(),
 }).or('userId', 'externalEmail');
+
+export const processSignatureFlowParticipantActionSchema = Joi.object({
+  action: Joi.string().valid('approve', 'reject').required(),
+  comment: Joi.string().max(1000).optional().allow('', null),
+});
