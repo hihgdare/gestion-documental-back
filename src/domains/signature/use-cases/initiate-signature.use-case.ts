@@ -1,6 +1,5 @@
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
-import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
 import { Signature } from '../entities/signature.entity';
@@ -123,21 +122,6 @@ export class InitiateSignatureUseCase {
 
     document.updateSignatureStatus(SignatureStatus.PENDING);
     await this.documentRepository.save(document);
-
-    await this.documentHistoryRepository.save({
-      documentId: document.id,
-      documentModelId: document.documentModelId,
-      name: document.name,
-      issuedDate: document.issuedDate ?? undefined,
-      expirationDate: document.expirationDate,
-      contractId: document.contractId,
-      description: document.description,
-      documentUrl: document.documentUrl,
-      status: document.status,
-      action: DocumentAction.SIGNATURE_INITIATED,
-      updatedBy: userId,
-      comment: `Proceso de firma iniciado. Método: ${signatureMethod}`,
-    });
 
     const emailSent = await this.emailService.send({
       to: user.email.toString(),

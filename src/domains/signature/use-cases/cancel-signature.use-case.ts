@@ -3,7 +3,7 @@ import { DocumentHistoryRepository } from '@domains/document/repositories/docume
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
-import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
+import { SignatureStatus } from '../value-objects/signature-enums';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
@@ -34,23 +34,25 @@ export class CancelSignatureUseCase {
     }
 
     const activeCode = await this.signatureCodeRepository.findActiveBySignatureId(signatureId);
+    const errorReason = activeCode?.isExpired
+      ? 'Error en proceso de firma: codigo expirado'
+      : 'Error en proceso de firma: firma cancelada por el usuario';
 
-    const effectiveRejectionCode = activeCode?.isExpired
-      ? SignatureRejectionCode.CODE_EXPIRED
-      : SignatureRejectionCode.CANCELLED;
-    const rejectionReason = effectiveRejectionCode === SignatureRejectionCode.CODE_EXPIRED
-      ? 'Firma rechazada por tiempo agotado'
-      : 'Firma cancelada por el usuario';
+    // Cancela solo el codigo activo; el flujo y el documento deben permanecer en firma pendiente.
+    if (activeCode) {
+      activeCode.usedAt = new Date();
+      await this.signatureCodeRepository.update(activeCode);
+    }
 
-    signature.status = SignatureStatus.REJECTED;
-    signature.rejectionCode = effectiveRejectionCode;
-    signature.rejectionReason = rejectionReason;
+    signature.status = SignatureStatus.PENDING;
+    signature.rejectionCode = null;
+    signature.rejectionReason = null;
     signature.updatedAt = new Date();
     await this.signatureRepository.update(signature);
 
     const document = await this.documentRepository.findById(signature.documentId);
     if (document) {
-      document.updateSignatureStatus(SignatureStatus.REJECTED);
+      document.updateSignatureStatus(SignatureStatus.PENDING);
       await this.documentRepository.save(document);
 
       await this.documentHistoryRepository.save({
@@ -63,12 +65,10 @@ export class CancelSignatureUseCase {
         description: document.description,
         documentUrl: document.documentUrl,
         status: document.status,
-        action: DocumentAction.SIGNATURE_REJECTED,
+        action: DocumentAction.SIGNATURE_ERROR,
         updatedBy: userId,
-        comment: rejectionReason,
+        comment: errorReason,
       });
-
-      await this.processFlowParticipantActionUseCase?.markSignerRejectedFromOtp(document.id, signature.userId, rejectionReason);
     }
   }
 }

@@ -23,6 +23,7 @@ export enum DocumentAction {
   SIGNATURE_INITIATED = 'signature_initiated',
   SIGNATURE_SIGNED = 'signature_signed',
   SIGNATURE_REJECTED = 'signature_rejected',
+  SIGNATURE_ERROR = 'signature_error',
   SIGNATURE_REJECTED_CANCELLED_BY_USER = 'signature_rejected_cancelled_by_user',
   SIGNATURE_REJECTED_TIMEOUT = 'signature_rejected_timeout',
   SIGNATURE_REJECTED_MAX_ATTEMPTS = 'signature_rejected_max_attempts',

@@ -59,12 +59,12 @@ export class ValidateSignatureCodeUseCase {
     }
 
     if (verificationCode.isExpired) {
-      await this.rejectSignature(
+      await this.registerSignatureError(
         signature.id,
         signature.documentId,
         signature.userId,
         SignatureRejectionCode.CODE_EXPIRED,
-        'Firma rechazada por tiempo agotado',
+        'Error en proceso de firma: codigo expirado',
       );
       throw new ValidationError('El código de verificación ha expirado. Inicia el proceso de firma nuevamente.');
     }
@@ -76,15 +76,23 @@ export class ValidateSignatureCodeUseCase {
       await this.signatureCodeRepository.update(verificationCode);
 
       if (verificationCode.hasExceededMaxAttempts) {
-        await this.rejectSignature(
+        await this.registerSignatureError(
           signature.id,
           signature.documentId,
           signature.userId,
           SignatureRejectionCode.MAX_ATTEMPTS_EXCEEDED,
-          'Firma rechazada por demasiados intentos de ingresar el código terminando en fallo',
+          'Error en proceso de firma: maximo de intentos alcanzado',
         );
         throw new ValidationError('Has superado el número máximo de intentos. Inicia el proceso de firma nuevamente.');
       }
+
+      await this.registerSignatureError(
+        signature.id,
+        signature.documentId,
+        signature.userId,
+        undefined,
+        'Error en proceso de firma: codigo ingresado incorrecto',
+      );
 
       const remaining = verificationCode.maxAttempts - verificationCode.attempts;
       throw new ValidationError(`Código incorrecto. Te quedan ${remaining} intento(s).`);
@@ -114,21 +122,6 @@ export class ValidateSignatureCodeUseCase {
     if (document) {
       document.updateSignatureStatus(SignatureStatus.SIGNED);
       await this.documentRepository.save(document);
-
-      await this.documentHistoryRepository.save({
-        documentId: document.id,
-        documentModelId: document.documentModelId,
-        name: document.name,
-        issuedDate: document.issuedDate ?? undefined,
-        expirationDate: document.expirationDate,
-        contractId: document.contractId,
-        description: document.description,
-        documentUrl: document.documentUrl,
-        status: document.status,
-        action: DocumentAction.SIGNATURE_SIGNED,
-        updatedBy: signature.userId,
-        comment: `Documento firmado correctamente. IP: ${ipAddress}`,
-      });
 
       await this.tryStampPdf(document.documentUrl, signature.documentId, signature.userId, tokenHash, ipAddress, signedAt);
     }
@@ -201,25 +194,31 @@ export class ValidateSignatureCodeUseCase {
     return baseUrl ? `${baseUrl}/verify/${documentId}/${tokenHash}` : `/verify/${documentId}/${tokenHash}`;
   }
 
-  private async rejectSignature(
+  private async registerSignatureError(
     signatureId: string,
     documentId: string,
     userId: string,
-    rejectionCode: SignatureRejectionCode,
-    rejectionReason: string,
+    rejectionCode: SignatureRejectionCode | undefined,
+    errorReason: string,
   ): Promise<void> {
     const signature = await this.signatureRepository.findById(signatureId);
     if (!signature) return;
 
-    signature.status = SignatureStatus.REJECTED;
-    signature.rejectionCode = rejectionCode;
-    signature.rejectionReason = rejectionReason;
+    signature.status = SignatureStatus.PENDING;
+    signature.rejectionCode = rejectionCode ?? null;
+    signature.rejectionReason = null;
     signature.updatedAt = new Date();
     await this.signatureRepository.update(signature);
 
+    const activeCode = await this.signatureCodeRepository.findActiveBySignatureId(signatureId);
+    if (activeCode && (activeCode.isExpired || activeCode.hasExceededMaxAttempts)) {
+      activeCode.usedAt = new Date();
+      await this.signatureCodeRepository.update(activeCode);
+    }
+
     const document = await this.documentRepository.findById(documentId);
     if (document) {
-      document.updateSignatureStatus(SignatureStatus.REJECTED);
+      document.updateSignatureStatus(SignatureStatus.PENDING);
       await this.documentRepository.save(document);
 
       await this.documentHistoryRepository.save({
@@ -232,14 +231,10 @@ export class ValidateSignatureCodeUseCase {
         description: document.description,
         documentUrl: document.documentUrl,
         status: document.status,
-        action: DocumentAction.SIGNATURE_REJECTED,
+        action: DocumentAction.SIGNATURE_ERROR,
         updatedBy: userId,
-        comment: rejectionReason,
+        comment: errorReason,
       });
-
-      await this.notifyResponsibleOnRejection(document.id, document.name, document.createdBy, rejectionReason);
-
-      await this.processFlowParticipantActionUseCase?.markSignerRejectedFromOtp(document.id, userId, rejectionReason);
     }
   }
 
