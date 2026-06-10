@@ -415,6 +415,7 @@ export const initiateSignatureSchema = Joi.object({
   documentId: Joi.string().uuid().required(),
   signatureType: Joi.string().valid(...Object.values(SignatureType)).optional(),
   signatureMethod: Joi.string().valid(...Object.values(SignatureMethod)).optional(),
+  phoneNumber: Joi.string().trim().min(7).max(30).optional(),
 });
 
 export const validateSignatureCodeSchema = Joi.object({

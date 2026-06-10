@@ -27,6 +27,7 @@ export interface InitiateSignatureParams {
   userId: string;
   signatureType?: SignatureType;
   signatureMethod?: SignatureMethod;
+  phoneNumber?: string;
 }
 
 export interface InitiateSignatureResult {
@@ -48,7 +49,13 @@ export class InitiateSignatureUseCase {
   ) {}
 
   async execute(params: InitiateSignatureParams): Promise<InitiateSignatureResult> {
-    const { documentId, userId, signatureType = SignatureType.SIMPLE, signatureMethod = SignatureMethod.EMAIL } = params;
+    const {
+      documentId,
+      userId,
+      signatureType = SignatureType.SIMPLE,
+      signatureMethod = SignatureMethod.EMAIL,
+      phoneNumber,
+    } = params;
 
     const document = await this.documentRepository.findById(documentId);
     if (!document) {
@@ -60,7 +67,7 @@ export class InitiateSignatureUseCase {
       throw new NotFoundError('Usuario no encontrado');
     }
 
-    if (!user.email) {
+    if (signatureMethod === SignatureMethod.EMAIL && !user.email) {
       throw new ValidationError('El usuario no tiene un correo electrónico registrado');
     }
 
@@ -123,15 +130,27 @@ export class InitiateSignatureUseCase {
     document.updateSignatureStatus(SignatureStatus.PENDING);
     await this.documentRepository.save(document);
 
-    const emailSent = await this.emailService.send({
-      to: user.email.toString(),
-      subject: 'Código de verificación para firma de documento',
-      html: this.buildEmailHtml(otpCode, document.name, OTP_EXPIRY_MINUTES),
-      text: `Su código de verificación es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
-    });
+    if (signatureMethod === SignatureMethod.SMS) {
+      const resolvedPhone = (phoneNumber?.trim() || colaborator.telefono?.trim() || '');
+      if (!resolvedPhone) {
+        throw new ValidationError('No existe un telefono disponible para enviar el codigo SMS.');
+      }
 
-    if (!emailSent) {
-      console.warn(`[InitiateSignatureUseCase] No se pudo enviar el email al usuario ${userId} para el documento ${documentId}`);
+      const smsSent = await this.sendSmsCode(resolvedPhone, otpCode);
+      if (!smsSent) {
+        console.warn(`[InitiateSignatureUseCase] No se pudo enviar SMS al usuario ${userId} para el documento ${documentId}`);
+      }
+    } else {
+      const emailSent = await this.emailService.send({
+        to: user.email.toString(),
+        subject: 'Código de verificación para firma de documento',
+        html: this.buildEmailHtml(otpCode, document.name, OTP_EXPIRY_MINUTES),
+        text: `Su código de verificación es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+      });
+
+      if (!emailSent) {
+        console.warn(`[InitiateSignatureUseCase] No se pudo enviar el email al usuario ${userId} para el documento ${documentId}`);
+      }
     }
 
     return { signatureId: savedSignature.id };
@@ -174,5 +193,34 @@ export class InitiateSignatureUseCase {
         </p>
       </div>
     `;
+  }
+
+  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<boolean> {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+    const smsProvider = process.env.SMS_PROVIDER?.toLowerCase();
+
+    if (smsProvider !== 'twilio') {
+      throw new ValidationError('El proveedor SMS configurado no es compatible. Usa SMS_PROVIDER=twilio.');
+    }
+
+    if (!accountSid || !authToken || !fromNumber) {
+      throw new ValidationError('Configuracion incompleta de Twilio para envio de SMS.');
+    }
+
+    try {
+      const twilioModule = await import('twilio');
+      const client = twilioModule.default(accountSid, authToken);
+      await client.messages.create({
+        body: `Tu codigo de verificacion es: ${otpCode}`,
+        from: fromNumber,
+        to: phoneNumber,
+      });
+      return true;
+    } catch (error) {
+      console.warn('[InitiateSignatureUseCase] Error al enviar SMS por Twilio:', error);
+      return false;
+    }
   }
 }

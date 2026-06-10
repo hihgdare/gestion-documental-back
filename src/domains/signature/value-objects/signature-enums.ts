@@ -10,6 +10,7 @@ export enum SignatureType {
 
 export enum SignatureMethod {
   EMAIL = 'email',
+  SMS = 'sms',
 }
 
 export enum SignatureRejectionCode {

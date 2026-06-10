@@ -7,6 +7,7 @@ import { ValidateSignatureCodeUseCase } from '@domains/signature/use-cases/valid
 import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-signature.use-case';
 import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
 import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
+import { GetSignatureSmsPhoneUseCase } from '@domains/signature/use-cases/get-signature-sms-phone.use-case';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { Signature } from '@domains/signature/entities/signature.entity';
 import { extractClientIp } from '@shared/utils/ip';
@@ -36,11 +37,12 @@ export class SignatureController {
     private readonly getSignatureByDocumentUseCase: GetSignatureByDocumentUseCase,
     private readonly getSignatureByTokenHashUseCase: GetSignatureByTokenHashUseCase,
     private readonly verifyDocumentSignatureUseCase: VerifyDocumentSignatureUseCase,
+    private readonly getSignatureSmsPhoneUseCase: GetSignatureSmsPhoneUseCase,
     private readonly fileRepository?: TypeOrmFileRepository,
   ) {}
 
   initiate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { documentId, signatureType, signatureMethod } = req.body;
+    const { documentId, signatureType, signatureMethod, phoneNumber } = req.body;
     const userId = req.auth!.user!.id;
 
     const result = await this.initiateSignatureUseCase.execute({
@@ -48,6 +50,7 @@ export class SignatureController {
       userId,
       signatureType,
       signatureMethod,
+      phoneNumber,
     });
 
     res.status(201).json({
@@ -81,6 +84,16 @@ export class SignatureController {
     res.status(200).json({
       success: true,
       message: 'Proceso de firma cancelado',
+    });
+  });
+
+  getDefaultSmsPhone = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.auth!.user!.id;
+    const result = await this.getSignatureSmsPhoneUseCase.execute(userId);
+
+    res.status(200).json({
+      success: true,
+      data: result,
     });
   });
 
