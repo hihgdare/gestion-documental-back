@@ -1,4 +1,4 @@
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { AppDataSource } from '../database/typeorm.config';
 import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
 import { InAppNotification } from '@domains/notification/entities/in-app-notification.entity';
@@ -34,6 +34,21 @@ export class TypeOrmInAppNotificationRepository implements InAppNotificationRepo
       { id: notificationId, userId },
       { readAt: new Date() },
     );
+  }
+
+  async deleteById(notificationId: string, userId: string): Promise<void> {
+    await this.repository.delete({ id: notificationId, userId });
+  }
+
+  async deleteByIds(notificationIds: string[], userId: string): Promise<number> {
+    if (notificationIds.length === 0) return 0;
+
+    const result = await this.repository.delete({
+      id: In(notificationIds),
+      userId,
+    });
+
+    return result.affected ?? 0;
   }
 
   private toDomain(entity: InAppNotificationEntity): InAppNotification {

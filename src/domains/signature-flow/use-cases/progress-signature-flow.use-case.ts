@@ -199,6 +199,17 @@ export class ProcessFlowParticipantActionUseCase {
 
     const hasRejected = participants.some((p) => p.status === SignatureFlowParticipantStatus.REJECTED);
     if (hasRejected) {
+      const rejectedParticipants = participants
+        .filter((p) => p.status === SignatureFlowParticipantStatus.REJECTED)
+        .sort((a, b) => {
+          const aTime = a.actionAt?.getTime() ?? 0;
+          const bTime = b.actionAt?.getTime() ?? 0;
+          return bTime - aTime;
+        });
+
+      const rejectionReason = rejectedParticipants[0]?.rejectionComment?.trim()
+        || 'Sin motivo proporcionado';
+
       flow.status = SignatureFlowStatus.REJECTED;
       document.status = participants.some((p) => !!p.rejectionComment)
         ? DocumentStatus.REJECTED_WITH_COMMENTS
@@ -219,10 +230,15 @@ export class ProcessFlowParticipantActionUseCase {
         status: document.status,
         action: DocumentAction.FLOW_REJECTED,
         updatedBy: flow.sentBy || 'system',
-        comment: 'El flujo fue rechazado por un participante',
+        comment: `El flujo fue rechazado por un participante. Motivo: ${rejectionReason}`,
       });
 
-      await this.notifyResponsibleOnRejection(document.id, document.name, document.createdBy, 'El flujo de firma fue rechazado.');
+      await this.notifyResponsibleOnRejection(
+        document.id,
+        document.name,
+        document.createdBy,
+        rejectionReason,
+      );
       return;
     }
 

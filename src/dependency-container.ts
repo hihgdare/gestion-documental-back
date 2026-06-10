@@ -1014,6 +1014,8 @@ export class DependencyContainer {
       this.updateUserUseCase,
       this.changePasswordUseCase,
       this.groupRepository,
+      this.inAppNotificationRepository,
+      this.documentRepository,
       this.setPasswordUseCase,
       jwtSecret,
     );
