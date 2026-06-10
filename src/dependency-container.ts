@@ -233,6 +233,7 @@ import { SignatureController } from '@presentation/controllers/signature.control
 import { TypeOrmSignatureFlowRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow.repository';
 import { TypeOrmSignatureFlowParticipantRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow-participant.repository';
 import { TypeOrmInAppNotificationRepository } from '@shared/infrastructure/repositories/typeorm-in-app-notification.repository';
+import { SignatureFlowNotificationService } from '@domains/signature-flow/services/signature-flow-notification.service';
 import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
 import {
   GetSignatureFlowByIdUseCase,
@@ -506,6 +507,7 @@ export class DependencyContainer {
   // Services - Signature
   private signatureCryptoService!: SignatureCryptoService;
   private signaturePdfStampService!: SignaturePdfStampService;
+  private signatureFlowNotificationService!: SignatureFlowNotificationService;
 
   // Use Cases - Signature
   private initiateSignatureUseCase!: InitiateSignatureUseCase;
@@ -1061,14 +1063,18 @@ export class DependencyContainer {
       this.deleteDocumentTemplateUseCase,
     );
 
+    this.signatureFlowNotificationService = new SignatureFlowNotificationService(
+      this.userRepository,
+      this.inAppNotificationRepository,
+      this.emailService,
+    );
+
     this.processFlowParticipantActionUseCase = new ProcessFlowParticipantActionUseCase(
       this.signatureFlowRepository,
       this.signatureFlowParticipantRepository,
       this.documentRepository,
       this.documentHistoryRepository,
-      this.userRepository,
-      this.inAppNotificationRepository,
-      this.emailService,
+      this.signatureFlowNotificationService,
     );
 
     // Initialize Signature
@@ -1094,8 +1100,6 @@ export class DependencyContainer {
       this.signatureCryptoService,
       this.userRepository,
       this.colaboratorRepository,
-      this.inAppNotificationRepository,
-      this.emailService,
       this.processFlowParticipantActionUseCase,
       this.signaturePdfStampService,
       this.fileRepository,
@@ -1131,9 +1135,7 @@ export class DependencyContainer {
       this.signatureFlowParticipantRepository,
       this.documentRepository,
       this.documentHistoryRepository,
-      this.userRepository,
-      this.inAppNotificationRepository,
-      this.emailService,
+      this.signatureFlowNotificationService,
     );
     this.getSignatureFlowByIdUseCase = new GetSignatureFlowByIdUseCase(this.signatureFlowRepository);
     this.getSignatureFlowsByDocumentIdUseCase = new GetSignatureFlowsByDocumentIdUseCase(this.signatureFlowRepository);

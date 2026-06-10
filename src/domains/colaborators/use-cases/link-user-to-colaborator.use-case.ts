@@ -16,7 +16,7 @@ export class LinkUserToColaboratorUseCase {
   async execute(colaboratorId: string, userId: string | null): Promise<Colaborator> {
     const colaborator = await this.colaboratorRepository.findById(colaboratorId);
     if (!colaborator) {
-      throw new NotFoundError(`Colaborator with id ${colaboratorId} not found`);
+      throw new NotFoundError(`Colaborador con id ${colaboratorId} no encontrado`);
     }
 
     if (userId === null) {
@@ -26,13 +26,12 @@ export class LinkUserToColaboratorUseCase {
 
     const user = await this.userRepository.findById(userId);
     if (!user) {
-      throw new NotFoundError(`User with id ${userId} not found`);
+      throw new NotFoundError(`Usuario con id ${userId} no encontrado`);
     }
 
-    // Ensure the target user is not already linked to a different colaborator
     const existingColaborator = await this.colaboratorRepository.findByUserId(userId);
     if (existingColaborator && existingColaborator.id !== colaboratorId) {
-      throw new ConflictError(`User is already linked to another colaborator`);
+      throw new ConflictError('El usuario ya está vinculado a otro colaborador');
     }
 
     colaborator.linkUser(userId);

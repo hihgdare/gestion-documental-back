@@ -9,14 +9,7 @@ import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signat
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
-import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
-import { InAppNotification } from '@domains/notification/entities/in-app-notification.entity';
-import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
-import {
-  buildFrontendUrl,
-  buildPrimactaNotificationEmail,
-} from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface ValidateSignatureCodeParams {
@@ -34,8 +27,6 @@ export class ValidateSignatureCodeUseCase {
     private readonly cryptoService: SignatureCryptoService,
     private readonly userRepository: UserRepository,
     private readonly colaboratorRepository: ColaboratorRepository,
-    private readonly inAppNotificationRepository: InAppNotificationRepository,
-    private readonly emailService: EmailService,
     private readonly processFlowParticipantActionUseCase?: ProcessFlowParticipantActionUseCase,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly fileRepository?: TypeOrmFileRepository,
@@ -204,6 +195,7 @@ export class ValidateSignatureCodeUseCase {
     const signature = await this.signatureRepository.findById(signatureId);
     if (!signature) return;
 
+    // Signature keeps PENDING status to allow the user to re-initiate after failure
     signature.status = SignatureStatus.PENDING;
     signature.rejectionCode = rejectionCode ?? null;
     signature.rejectionReason = null;
@@ -236,44 +228,5 @@ export class ValidateSignatureCodeUseCase {
         comment: errorReason,
       });
     }
-  }
-
-  private async notifyResponsibleOnRejection(
-    documentId: string,
-    documentName: string,
-    responsibleUserId: string | null,
-    rejectionReason: string,
-  ): Promise<void> {
-    if (!responsibleUserId) return;
-
-    const title = 'Documento rechazado';
-    const message = `El documento ${documentName} fue rechazado. Motivo: ${rejectionReason}`;
-
-    await this.inAppNotificationRepository.save(new InAppNotification({
-      userId: responsibleUserId,
-      title,
-      message,
-      entityType: 'document',
-      entityId: documentId,
-    }));
-
-    const responsibleUser = await this.userRepository.findById(responsibleUserId);
-    if (!responsibleUser?.email) return;
-
-    const actionUrl = buildFrontendUrl(`/documents/${documentId}/history`);
-    const html = buildPrimactaNotificationEmail({
-      title,
-      recipientName: responsibleUser.firstName,
-      message,
-      actionLabel: 'Ver historial del documento',
-      actionUrl,
-    });
-
-    await this.emailService.send({
-      to: responsibleUser.email.toString(),
-      subject: title,
-      text: actionUrl ? `${message}\n\nVer historial: ${actionUrl}` : message,
-      html,
-    });
   }
 }

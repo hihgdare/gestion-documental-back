@@ -17,7 +17,7 @@ import {
   SignatureFlowParticipantStatus,
   SignatureFlowStatus,
 } from '@domains/signature-flow/value-objects/signature-flow-enums';
-import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError, ServerError } from '@shared/domain/errors';
 
 const OTP_EXPIRY_MINUTES = 5;
 const MAX_ATTEMPTS = 3;
@@ -202,18 +202,18 @@ export class InitiateSignatureUseCase {
     const smsProvider = process.env.SMS_PROVIDER?.toLowerCase();
 
     if (smsProvider !== 'twilio') {
-      throw new ValidationError('El proveedor SMS configurado no es compatible. Usa SMS_PROVIDER=twilio.');
+      throw new ServerError('El proveedor SMS configurado no es compatible. Configura SMS_PROVIDER=twilio.');
     }
 
     if (!accountSid || !authToken || !fromNumber) {
-      throw new ValidationError('Configuracion incompleta de Twilio para envio de SMS.');
+      throw new ServerError('Configuracion incompleta de Twilio. Revisa las variables de entorno del servidor.');
     }
 
     try {
       const twilioModule = await import('twilio');
       const client = twilioModule.default(accountSid, authToken);
       await client.messages.create({
-        body: `Tú código de verificación para firmar tú documento en Primacta es: ${otpCode}`,
+        body: `Tu código de verificación para firmar tu documento en Primacta es: ${otpCode}`,
         from: fromNumber,
         to: phoneNumber,
       });

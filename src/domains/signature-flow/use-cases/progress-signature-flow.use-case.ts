@@ -1,10 +1,6 @@
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { DocumentAction, DocumentStatus } from '@domains/document/value-objects/document-enums';
-import { InAppNotification } from '@domains/notification/entities/in-app-notification.entity';
-import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
-import { UserRepository } from '@domains/user/repositories/user.repository';
-import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { SignatureFlowParticipant } from '../entities/signature-flow-participant.entity';
 import { SignatureFlowRepository } from '../repositories/signature-flow.repository';
@@ -15,10 +11,7 @@ import {
   SignatureFlowParticipantStatus,
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
-import {
-  buildFrontendUrl,
-  buildPrimactaNotificationEmail,
-} from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
 
 export interface ProcessFlowParticipantActionInput {
   participantId: string;
@@ -33,9 +26,7 @@ export class ProcessFlowParticipantActionUseCase {
     private readonly participantRepository: SignatureFlowParticipantRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
-    private readonly userRepository: UserRepository,
-    private readonly inAppNotificationRepository: InAppNotificationRepository,
-    private readonly emailService: EmailService,
+    private readonly notificationService: SignatureFlowNotificationService,
   ) {}
 
   async execute(input: ProcessFlowParticipantActionInput): Promise<void> {
@@ -201,21 +192,13 @@ export class ProcessFlowParticipantActionUseCase {
     if (hasRejected) {
       const rejectedParticipants = participants
         .filter((p) => p.status === SignatureFlowParticipantStatus.REJECTED)
-        .sort((a, b) => {
-          const aTime = a.actionAt?.getTime() ?? 0;
-          const bTime = b.actionAt?.getTime() ?? 0;
-          return bTime - aTime;
-        });
+        .sort((a, b) => (b.actionAt?.getTime() ?? 0) - (a.actionAt?.getTime() ?? 0));
 
-      const rejectionReason = rejectedParticipants[0]?.rejectionComment?.trim()
-        || 'Sin motivo proporcionado';
-
+      const rejectionReason = rejectedParticipants[0]?.rejectionComment?.trim() || 'Sin motivo proporcionado';
       const hasComment = participants.some((p) => !!p.rejectionComment);
 
       flow.status = SignatureFlowStatus.REJECTED;
-      document.status = hasComment
-        ? DocumentStatus.REJECTED_WITH_COMMENTS
-        : DocumentStatus.REJECTED;
+      document.status = hasComment ? DocumentStatus.REJECTED_WITH_COMMENTS : DocumentStatus.REJECTED;
       document.comment = hasComment ? rejectionReason : null;
 
       await this.flowRepository.update(flow);
@@ -236,7 +219,7 @@ export class ProcessFlowParticipantActionUseCase {
         comment: `El flujo fue rechazado por un participante. Motivo: ${rejectionReason}`,
       });
 
-      await this.notifyResponsibleOnRejection(
+      await this.notificationService.notifyResponsibleOnRejection(
         document.id,
         document.name,
         document.createdBy,
@@ -269,7 +252,8 @@ export class ProcessFlowParticipantActionUseCase {
         comment: 'Validación completada. Documento enviado a etapa de firma',
       });
 
-      await this.notifyParticipantsForCurrentStep(document.id, document.name, flow.orderType, signers);
+      const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
+      await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.orderType);
       return;
     }
 
@@ -314,107 +298,5 @@ export class ProcessFlowParticipantActionUseCase {
     if (pendingSameRole.length === 0) return true;
 
     return participant.order === Math.min(...pendingSameRole);
-  }
-
-  private async notifyParticipantsForCurrentStep(
-    documentId: string,
-    documentName: string,
-    orderType: SignatureFlowOrderType,
-    participants: SignatureFlowParticipant[],
-  ): Promise<void> {
-    const pendingParticipants = participants.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
-    const participantsToNotify = this.pickParticipantsToNotify(orderType, pendingParticipants);
-
-    for (const participant of participantsToNotify) {
-      if (!participant.userId) continue;
-
-      const title = 'Documento pendiente de firma';
-      const message = `Tienes un documento pendiente de firmar: ${documentName}`;
-
-      await this.inAppNotificationRepository.save(new InAppNotification({
-        userId: participant.userId,
-        title,
-        message,
-        entityType: 'document',
-        entityId: documentId,
-      }));
-
-      const user = await this.userRepository.findById(participant.userId);
-      if (!user?.email) continue;
-
-      const actionUrl = buildFrontendUrl(`/signature-flows?documentId=${encodeURIComponent(documentId)}`);
-      const html = buildPrimactaNotificationEmail({
-        title,
-        recipientName: user.firstName,
-        message,
-        actionLabel: 'Ir a pendientes',
-        actionUrl,
-      });
-
-      await this.emailService.send({
-        to: user.email.toString(),
-        subject: title,
-        text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
-        html,
-      });
-    }
-  }
-
-  private pickParticipantsToNotify(
-    orderType: SignatureFlowOrderType,
-    participants: SignatureFlowParticipant[],
-  ): SignatureFlowParticipant[] {
-    if (orderType !== SignatureFlowOrderType.SEQUENTIAL) {
-      return participants;
-    }
-
-    const orderedParticipants = participants.filter((participant) => participant.order !== null);
-    if (orderedParticipants.length === 0) {
-      return participants;
-    }
-
-    const firstOrder = Math.min(...orderedParticipants.map((participant) => participant.order as number));
-    const firstBatch = participants.filter((participant) => participant.order === firstOrder);
-
-    return firstBatch.length > 0 ? firstBatch : participants;
-  }
-
-  private async notifyResponsibleOnRejection(
-    documentId: string,
-    documentName: string,
-    responsibleUserId: string | null,
-    rejectionReason: string,
-  ): Promise<void> {
-    if (!responsibleUserId) return;
-
-    const title = 'Documento rechazado';
-    const message = `El documento ${documentName} fue rechazado. Motivo: ${rejectionReason}`;
-
-    await this.inAppNotificationRepository.save(new InAppNotification({
-      userId: responsibleUserId,
-      title,
-      message,
-      entityType: 'document',
-      entityId: documentId,
-    }));
-
-    const responsibleUser = await this.userRepository.findById(responsibleUserId);
-    if (!responsibleUser?.email) return;
-
-    const actionUrl = buildFrontendUrl(`/documents/${documentId}/history`);
-    const html = buildPrimactaNotificationEmail({
-      title,
-      recipientName: responsibleUser.firstName,
-      message,
-      actionLabel: 'Ver historial del documento',
-      actionUrl,
-    });
-
-    await this.emailService.send({
-      to: responsibleUser.email.toString(),
-      subject: title,
-      text: actionUrl ? `${message}\n\nVer historial: ${actionUrl}` : message,
-      html,
-    });
   }
 }
