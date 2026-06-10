@@ -210,10 +210,13 @@ export class ProcessFlowParticipantActionUseCase {
       const rejectionReason = rejectedParticipants[0]?.rejectionComment?.trim()
         || 'Sin motivo proporcionado';
 
+      const hasComment = participants.some((p) => !!p.rejectionComment);
+
       flow.status = SignatureFlowStatus.REJECTED;
-      document.status = participants.some((p) => !!p.rejectionComment)
+      document.status = hasComment
         ? DocumentStatus.REJECTED_WITH_COMMENTS
         : DocumentStatus.REJECTED;
+      document.comment = hasComment ? rejectionReason : null;
 
       await this.flowRepository.update(flow);
       await this.documentRepository.update(document);
