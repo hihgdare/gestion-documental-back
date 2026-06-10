@@ -22,6 +22,12 @@ export class TypeOrmFileRepository {
     return FileEntity.toDomain(entity);
   }
 
+  async findByIdIncludingDeleted(id: string): Promise<File | null> {
+    const entity = await this.repository.findOne({ where: { id }, withDeleted: true });
+    if (!entity) return null;
+    return FileEntity.toDomain(entity);
+  }
+
   async softDelete(id: string): Promise<void> {
     await this.repository.softDelete(id);
   }

@@ -7,7 +7,6 @@ import { DocumentAction } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -26,13 +25,21 @@ export interface UpdateDocumentRequest {
   fieldValues?: DocumentFieldValue[];
 }
 
+interface DocumentChangeDetail {
+  field: string;
+  label: string;
+  before: string | null;
+  after: string | null;
+  beforeFileId?: string;
+  afterFileId?: string;
+}
+
 export class UpdateDocumentUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
-    private readonly fileRepository: TypeOrmFileRepository,
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
   ) {}
 
@@ -41,6 +48,19 @@ export class UpdateDocumentUseCase {
     if (!document) {
       throw new NotFoundError('Documento', id);
     }
+
+    const previousState = {
+      name: document.name,
+      documentModelId: document.documentModelId,
+      issuedDate: document.issuedDate,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description || null,
+      documentUrl: document.documentUrl || null,
+      groupId: document.groupId,
+      requiredColaboratorsCount: document.requiredColaboratorsCount,
+      colaboratorIds: [...document.colaboratorIds].sort(),
+    };
 
     // Update fields
     if (request.name !== undefined) {
@@ -80,13 +100,7 @@ export class UpdateDocumentUseCase {
     }
 
     if (request.documentUrl !== undefined) {
-      // Delete old file if exists and is different from new one
-      const oldFileId = document.documentUrl;
-      if (oldFileId && oldFileId !== request.documentUrl) {
-        await this.fileRepository.softDelete(oldFileId).catch((error) => {
-          console.error('Error deleting old file:', error);
-        });
-      }
+      // Keep old file available for history preview when replacing it.
       document.updateDocumentUrl(request.documentUrl);
     }
 
@@ -150,6 +164,44 @@ export class UpdateDocumentUseCase {
     }
 
     // Crear entrada de historial
+    const changeDetails: DocumentChangeDetail[] = [];
+
+    const pushChange = (field: string, label: string, before: string | null, after: string | null) => {
+      if (before === after) return;
+      changeDetails.push({ field, label, before, after });
+    };
+
+    const formatDate = (date?: Date | null): string | null => (date ? date.toISOString().slice(0, 10) : null);
+
+    pushChange('name', 'Nombre', previousState.name, updatedDocument.name);
+    pushChange('documentModelId', 'Modelo de documento', previousState.documentModelId, updatedDocument.documentModelId);
+    pushChange('issuedDate', 'Fecha de emision', formatDate(previousState.issuedDate), formatDate(updatedDocument.issuedDate));
+    pushChange('expirationDate', 'Fecha de vencimiento', formatDate(previousState.expirationDate), formatDate(updatedDocument.expirationDate));
+    pushChange('contractId', 'Contrato', previousState.contractId, updatedDocument.contractId);
+    pushChange('description', 'Descripcion', previousState.description, updatedDocument.description || null);
+    pushChange('groupId', 'Grupo', String(previousState.groupId), String(updatedDocument.groupId));
+    pushChange(
+      'requiredColaboratorsCount',
+      'Cantidad requerida de colaboradores',
+      String(previousState.requiredColaboratorsCount),
+      String(updatedDocument.requiredColaboratorsCount),
+    );
+
+    const previousColaborators = previousState.colaboratorIds.join(',');
+    const currentColaborators = [...updatedDocument.colaboratorIds].sort().join(',');
+    pushChange('colaboratorIds', 'Colaboradores', previousColaborators || null, currentColaborators || null);
+
+    if (previousState.documentUrl !== (updatedDocument.documentUrl || null)) {
+      changeDetails.push({
+        field: 'documentUrl',
+        label: 'Archivo',
+        before: previousState.documentUrl ? 'Archivo anterior' : null,
+        after: updatedDocument.documentUrl ? 'Archivo reemplazado' : null,
+        beforeFileId: previousState.documentUrl || undefined,
+        afterFileId: updatedDocument.documentUrl || undefined,
+      });
+    }
+
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
       documentModelId: updatedDocument.documentModelId || document.documentModelId,
@@ -161,6 +213,7 @@ export class UpdateDocumentUseCase {
       documentUrl: updatedDocument.documentUrl,
       status: updatedDocument.status,
       comment: request.comment || null,
+      actionComment: changeDetails.length > 0 ? JSON.stringify({ changes: changeDetails }) : null,
       action: DocumentAction.UPDATED,
       updatedBy: request.updatedBy || 'system',
     };
