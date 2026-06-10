@@ -213,7 +213,7 @@ export class InitiateSignatureUseCase {
       const twilioModule = await import('twilio');
       const client = twilioModule.default(accountSid, authToken);
       await client.messages.create({
-        body: `Tu codigo de verificacion es: ${otpCode}`,
+        body: `Tú código de verificación para firmar tú documento en Primacta es: ${otpCode}`,
         from: fromNumber,
         to: phoneNumber,
       });
