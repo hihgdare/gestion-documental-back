@@ -233,8 +233,16 @@ import { SignatureController } from '@presentation/controllers/signature.control
 import { TypeOrmSignatureFlowRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow.repository';
 import { TypeOrmSignatureFlowParticipantRepository } from '@shared/infrastructure/repositories/typeorm-signature-flow-participant.repository';
 import { TypeOrmInAppNotificationRepository } from '@shared/infrastructure/repositories/typeorm-in-app-notification.repository';
+import { TypeOrmExternalParticipantTokenRepository } from '@shared/infrastructure/repositories/typeorm-external-participant-token.repository';
 import { SignatureFlowNotificationService } from '@domains/signature-flow/services/signature-flow-notification.service';
 import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
+import {
+  GetExternalParticipantAccessUseCase,
+  SubmitExternalParticipantActionUseCase,
+  RequestExternalSignerOtpUseCase,
+  ValidateExternalSignerOtpUseCase,
+} from '@domains/signature-flow/use-cases/external-participant-access.use-case';
+import { ExternalParticipantController } from '@presentation/controllers/external-participant.controller';
 import {
   GetSignatureFlowByIdUseCase,
   GetSignatureFlowsByDocumentIdUseCase,
@@ -300,6 +308,7 @@ export class DependencyContainer {
   private signatureFlowRepository!: TypeOrmSignatureFlowRepository;
   private signatureFlowParticipantRepository!: TypeOrmSignatureFlowParticipantRepository;
   private inAppNotificationRepository!: TypeOrmInAppNotificationRepository;
+  private externalParticipantTokenRepository!: TypeOrmExternalParticipantTokenRepository;
 
   // Use Cases - BulkTemplate
   private manageBulkTemplateUseCase!: ManageBulkTemplateUseCase;
@@ -503,6 +512,7 @@ export class DependencyContainer {
   private documentTemplateController!: DocumentTemplateController;
   private signatureController!: SignatureController;
   private signatureFlowController!: SignatureFlowController;
+  private externalParticipantController!: ExternalParticipantController;
 
   // Services - Signature
   private signatureCryptoService!: SignatureCryptoService;
@@ -572,6 +582,7 @@ export class DependencyContainer {
     this.signatureFlowRepository = new TypeOrmSignatureFlowRepository();
     this.signatureFlowParticipantRepository = new TypeOrmSignatureFlowParticipantRepository();
     this.inAppNotificationRepository = new TypeOrmInAppNotificationRepository();
+    this.externalParticipantTokenRepository = new TypeOrmExternalParticipantTokenRepository();
 
     // Initialize User use cases
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
@@ -1069,17 +1080,23 @@ export class DependencyContainer {
       this.emailService,
     );
 
+    // Initialize Signature crypto and stamp service first (needed by flow use case)
+    this.signatureCryptoService = new SignatureCryptoService();
+    this.signaturePdfStampService = new SignaturePdfStampService();
+
     this.processFlowParticipantActionUseCase = new ProcessFlowParticipantActionUseCase(
       this.signatureFlowRepository,
       this.signatureFlowParticipantRepository,
       this.documentRepository,
       this.documentHistoryRepository,
       this.signatureFlowNotificationService,
+      this.userRepository,
+      this.colaboratorRepository,
+      this.signatureRepository,
+      this.fileRepository,
+      this.signaturePdfStampService,
+      this.externalParticipantTokenRepository,
     );
-
-    // Initialize Signature
-    this.signatureCryptoService = new SignatureCryptoService();
-    this.signaturePdfStampService = new SignaturePdfStampService();
     this.initiateSignatureUseCase = new InitiateSignatureUseCase(
       this.signatureRepository,
       this.signatureVerificationCodeRepository,
@@ -1136,6 +1153,7 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.signatureFlowNotificationService,
+      this.externalParticipantTokenRepository,
     );
     this.getSignatureFlowByIdUseCase = new GetSignatureFlowByIdUseCase(this.signatureFlowRepository);
     this.getSignatureFlowsByDocumentIdUseCase = new GetSignatureFlowsByDocumentIdUseCase(this.signatureFlowRepository);
@@ -1164,6 +1182,40 @@ export class DependencyContainer {
       this.signatureFlowRepository,
       this.signatureFlowParticipantRepository,
     );
+    // External participant access
+    const getExternalAccessUseCase = new GetExternalParticipantAccessUseCase(
+      this.externalParticipantTokenRepository,
+      this.signatureFlowParticipantRepository,
+      this.signatureFlowRepository,
+      this.documentRepository,
+    );
+    const submitExternalActionUseCase = new SubmitExternalParticipantActionUseCase(
+      this.externalParticipantTokenRepository,
+      this.signatureFlowParticipantRepository,
+      this.signatureFlowRepository,
+      this.processFlowParticipantActionUseCase,
+    );
+    const requestExternalOtpUseCase = new RequestExternalSignerOtpUseCase(
+      this.externalParticipantTokenRepository,
+      this.signatureFlowParticipantRepository,
+      this.signatureFlowRepository,
+      this.signatureCryptoService,
+      this.emailService,
+    );
+    const validateExternalOtpUseCase = new ValidateExternalSignerOtpUseCase(
+      this.externalParticipantTokenRepository,
+      this.signatureFlowParticipantRepository,
+      this.signatureCryptoService,
+      this.processFlowParticipantActionUseCase,
+    );
+    this.externalParticipantController = new ExternalParticipantController(
+      getExternalAccessUseCase,
+      submitExternalActionUseCase,
+      requestExternalOtpUseCase,
+      validateExternalOtpUseCase,
+      this.fileRepository,
+    );
+
     this.signatureFlowController = new SignatureFlowController(
       this.createSignatureFlowUseCase,
       this.getSignatureFlowByIdUseCase,
@@ -1355,5 +1407,9 @@ export class DependencyContainer {
 
   public getSignatureFlowController(): SignatureFlowController {
     return this.signatureFlowController;
+  }
+
+  public getExternalParticipantController(): ExternalParticipantController {
+    return this.externalParticipantController;
   }
 }

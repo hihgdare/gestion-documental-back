@@ -1,0 +1,258 @@
+import { randomBytes } from 'crypto';
+import { DocumentRepository } from '@domains/document/repositories/document.repository';
+import { ValidationError } from '@shared/domain/errors';
+import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
+import { SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
+import { SignatureFlowRepository } from '../repositories/signature-flow.repository';
+import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus, SignatureFlowStatus } from '../value-objects/signature-flow-enums';
+import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
+import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+import { buildPrimactaNotificationEmail } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { ProcessFlowParticipantActionUseCase } from './progress-signature-flow.use-case';
+
+const EXTERNAL_TOKEN_EXPIRY_HOURS = parseInt(process.env.EXTERNAL_PARTICIPANT_TOKEN_EXPIRY_HOURS ?? '168', 10);
+const OTP_EXPIRY_MINUTES = 10;
+const OTP_MAX_ATTEMPTS = 3;
+
+export interface ExternalAccessInfo {
+  status: 'valid' | 'expired' | 'already_used' | 'invalid';
+  participant: {
+    id: string;
+    role: string;
+    name: string;
+    email: string;
+    status: string;
+    canAct: boolean;
+  } | null;
+  document: {
+    id: string;
+    name: string;
+    documentUrl: string | null;
+  } | null;
+  flow: {
+    id: string;
+    status: string;
+  } | null;
+  expiresAt: Date | null;
+}
+
+export class GetExternalParticipantAccessUseCase {
+  constructor(
+    private readonly tokenRepository: ExternalParticipantTokenRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly flowRepository: SignatureFlowRepository,
+    private readonly documentRepository: DocumentRepository,
+  ) {}
+
+  async execute(token: string): Promise<ExternalAccessInfo> {
+    const tokenRecord = await this.tokenRepository.findByToken(token);
+    if (!tokenRecord) {
+      return { status: 'invalid', participant: null, document: null, flow: null, expiresAt: null };
+    }
+
+    if (tokenRecord.isExpired) {
+      return { status: 'expired', participant: null, document: null, flow: null, expiresAt: tokenRecord.expiresAt };
+    }
+
+    if (tokenRecord.isUsed) {
+      return { status: 'already_used', participant: null, document: null, flow: null, expiresAt: tokenRecord.expiresAt };
+    }
+
+    const participant = await this.participantRepository.findById(tokenRecord.participantId);
+    if (!participant) {
+      return { status: 'invalid', participant: null, document: null, flow: null, expiresAt: null };
+    }
+
+    const flow = await this.flowRepository.findById(participant.flowId);
+    if (!flow) {
+      return { status: 'invalid', participant: null, document: null, flow: null, expiresAt: null };
+    }
+
+    const document = await this.documentRepository.findById(flow.documentId);
+    if (!document) {
+      return { status: 'invalid', participant: null, document: null, flow: null, expiresAt: null };
+    }
+
+    const isValidator = participant.role === SignatureFlowParticipantRole.VALIDATOR;
+    const isSigner = participant.role === SignatureFlowParticipantRole.SIGNER;
+
+    const canAct = participant.status === SignatureFlowParticipantStatus.PENDING
+      && ((isValidator && flow.status === SignatureFlowStatus.IN_REVIEW)
+        || (isSigner && flow.status === SignatureFlowStatus.IN_SIGNING));
+
+    return {
+      status: 'valid',
+      participant: {
+        id: participant.id,
+        role: participant.role,
+        name: participant.externalName ?? 'Participante externo',
+        email: participant.externalEmail ?? '',
+        status: participant.status,
+        canAct,
+      },
+      document: { id: document.id, name: document.name, documentUrl: document.documentUrl ?? null },
+      flow: { id: flow.id, status: flow.status },
+      expiresAt: tokenRecord.expiresAt,
+    };
+  }
+}
+
+export class SubmitExternalParticipantActionUseCase {
+  constructor(
+    private readonly tokenRepository: ExternalParticipantTokenRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly flowRepository: SignatureFlowRepository,
+    private readonly processFlowUseCase: ProcessFlowParticipantActionUseCase,
+  ) {}
+
+  async execute(token: string, action: 'approve' | 'reject', comment?: string): Promise<void> {
+    const tokenRecord = await this.tokenRepository.findByToken(token);
+    if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
+      throw new ValidationError('El enlace de acceso no es válido o ya fue utilizado.');
+    }
+
+    const participant = await this.participantRepository.findById(tokenRecord.participantId);
+    if (!participant || participant.role !== SignatureFlowParticipantRole.VALIDATOR) {
+      throw new ValidationError('Esta acción no está disponible para este participante.');
+    }
+
+    if (participant.status !== SignatureFlowParticipantStatus.PENDING) {
+      throw new ValidationError('Este participante ya realizó su acción.');
+    }
+
+    await this.processFlowUseCase.executeForExternal({
+      participantId: participant.id,
+      action,
+      comment,
+    });
+
+    tokenRecord.usedAt = new Date();
+    await this.tokenRepository.update(tokenRecord);
+  }
+}
+
+export class RequestExternalSignerOtpUseCase {
+  constructor(
+    private readonly tokenRepository: ExternalParticipantTokenRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly flowRepository: SignatureFlowRepository,
+    private readonly cryptoService: SignatureCryptoService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  async execute(token: string): Promise<{ redactedEmail: string }> {
+    const tokenRecord = await this.tokenRepository.findByToken(token);
+    if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
+      throw new ValidationError('El enlace de acceso no es válido o ha expirado.');
+    }
+
+    const participant = await this.participantRepository.findById(tokenRecord.participantId);
+    if (!participant || participant.role !== SignatureFlowParticipantRole.SIGNER) {
+      throw new ValidationError('Esta acción no está disponible para este participante.');
+    }
+
+    const flow = await this.flowRepository.findById(participant.flowId);
+    if (!flow || flow.status !== SignatureFlowStatus.IN_SIGNING) {
+      throw new ValidationError('El documento no está en etapa de firma actualmente.');
+    }
+
+    if (participant.status !== SignatureFlowParticipantStatus.PENDING) {
+      throw new ValidationError('Este participante ya completó su firma.');
+    }
+
+    const externalEmail = participant.externalEmail;
+    if (!externalEmail) throw new ValidationError('No hay correo electrónico asociado al participante.');
+
+    const otpCode = this.cryptoService.generateOtpCode();
+    const otpHash = this.cryptoService.hashCode(otpCode, tokenRecord.id);
+    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    tokenRecord.otpHash = otpHash;
+    tokenRecord.otpExpiresAt = otpExpiresAt;
+    tokenRecord.otpAttempts = 0;
+    await this.tokenRepository.update(tokenRecord);
+
+    const title = 'Código de firma electrónica';
+    const message = `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: participant.externalName ?? 'Participante',
+      message,
+      actionLabel: undefined,
+      actionUrl: undefined,
+    });
+
+    await this.emailService.send({
+      to: externalEmail,
+      subject: title,
+      text: message,
+      html,
+    });
+
+    const [user, domain] = externalEmail.split('@');
+    const redactedEmail = `${user.substring(0, 2)}***@${domain}`;
+    return { redactedEmail };
+  }
+}
+
+export class ValidateExternalSignerOtpUseCase {
+  constructor(
+    private readonly tokenRepository: ExternalParticipantTokenRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly cryptoService: SignatureCryptoService,
+    private readonly processFlowUseCase: ProcessFlowParticipantActionUseCase,
+  ) {}
+
+  async execute(token: string, code: string, ipAddress: string): Promise<void> {
+    const tokenRecord = await this.tokenRepository.findByToken(token);
+    if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
+      throw new ValidationError('El enlace de acceso no es válido o ha expirado.');
+    }
+
+    if (!tokenRecord.otpHash || tokenRecord.isOtpExpired) {
+      throw new ValidationError('No hay un código activo. Solicita uno nuevo.');
+    }
+
+    const participant = await this.participantRepository.findById(tokenRecord.participantId);
+    if (!participant || participant.role !== SignatureFlowParticipantRole.SIGNER) {
+      throw new ValidationError('Participante no encontrado.');
+    }
+
+    const isValid = this.cryptoService.verifyCode(code, tokenRecord.otpHash, tokenRecord.id);
+
+    if (!isValid) {
+      tokenRecord.otpAttempts += 1;
+      await this.tokenRepository.update(tokenRecord);
+
+      if (tokenRecord.otpAttempts >= OTP_MAX_ATTEMPTS) {
+        throw new ValidationError('Has superado el número máximo de intentos. Solicita un nuevo código.');
+      }
+      const remaining = OTP_MAX_ATTEMPTS - tokenRecord.otpAttempts;
+      throw new ValidationError(`Código incorrecto. Te quedan ${remaining} intento(s).`);
+    }
+
+    const signedAt = new Date();
+    const signatureTokenHash = this.cryptoService.generateTokenHash({
+      documentId: participant.flowId,
+      userId: participant.externalEmail ?? participant.id,
+      signedAt,
+      ipAddress,
+    });
+
+    tokenRecord.signatureTokenHash = signatureTokenHash;
+    tokenRecord.ipAddress = ipAddress;
+    tokenRecord.usedAt = signedAt;
+    tokenRecord.otpHash = null;
+    await this.tokenRepository.update(tokenRecord);
+
+    await this.processFlowUseCase.markExternalSignerSignedFromToken(participant.id, signedAt);
+  }
+}
+
+export function generateExternalToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+export function buildExternalTokenExpiry(): Date {
+  return new Date(Date.now() + EXTERNAL_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+}

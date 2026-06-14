@@ -12,6 +12,21 @@ import {
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
 import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { UserRepository } from '@domains/user/repositories/user.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { SignatureRepository } from '@domains/signature/repositories/signature.repository';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import {
+  SignaturePdfStampService,
+  SignerStampData,
+  ValidatorStampData,
+} from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
+import { Document } from '@domains/document/entities/document.entity';
+import { SignatureFlow } from '../entities/signature-flow.entity';
+import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
+import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
+import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
+import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 
 export interface ProcessFlowParticipantActionInput {
   participantId: string;
@@ -27,6 +42,12 @@ export class ProcessFlowParticipantActionUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly notificationService: SignatureFlowNotificationService,
+    private readonly userRepository?: UserRepository,
+    private readonly colaboratorRepository?: ColaboratorRepository,
+    private readonly signatureRepository?: SignatureRepository,
+    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly pdfStampService?: SignaturePdfStampService,
+    private readonly externalTokenRepository?: ExternalParticipantTokenRepository,
   ) {}
 
   async execute(input: ProcessFlowParticipantActionInput): Promise<void> {
@@ -95,9 +116,11 @@ export class ProcessFlowParticipantActionUseCase {
     await this.reconcileFlow(flow.id);
   }
 
-  async markSignerSignedFromOtp(documentId: string, userId: string, signedAt: Date): Promise<void> {
+  // Returns true if the signer was found in an active flow and marked as signed.
+  // The caller can use this to skip per-signer PDF stamping when a flow is involved.
+  async markSignerSignedFromOtp(documentId: string, userId: string, signedAt: Date): Promise<boolean> {
     const flow = await this.flowRepository.findActiveByDocumentId(documentId);
-    if (!flow || flow.status !== SignatureFlowStatus.IN_SIGNING) return;
+    if (!flow || flow.status !== SignatureFlowStatus.IN_SIGNING) return false;
 
     const participants = await this.participantRepository.findByFlowId(flow.id);
     const participant = participants.find((p) => (
@@ -107,7 +130,7 @@ export class ProcessFlowParticipantActionUseCase {
       && this.isParticipantEnabledInCurrentStep(flow.orderType, p, participants)
     ));
 
-    if (!participant) return;
+    if (!participant) return false;
 
     participant.status = SignatureFlowParticipantStatus.SIGNED;
     participant.actionAt = signedAt;
@@ -128,6 +151,98 @@ export class ProcessFlowParticipantActionUseCase {
         action: DocumentAction.FLOW_SIGNED,
         updatedBy: userId,
         comment: 'Firmante completó la firma con código de verificación',
+        flowParticipantId: participant.id,
+      });
+    }
+
+    await this.reconcileFlow(flow.id);
+    return true;
+  }
+
+  // Used by external (no-account) validators — bypasses userId ownership check.
+  async executeForExternal(input: { participantId: string; action: 'approve' | 'reject'; comment?: string }): Promise<void> {
+    const participant = await this.participantRepository.findById(input.participantId);
+    if (!participant) throw new NotFoundError('Participante del flujo no encontrado');
+
+    const flow = await this.flowRepository.findById(participant.flowId);
+    if (!flow) throw new NotFoundError('Flujo de firma no encontrado');
+
+    const document = await this.documentRepository.findById(flow.documentId);
+    if (!document) throw new NotFoundError('Documento no encontrado');
+
+    if (participant.status !== SignatureFlowParticipantStatus.PENDING) {
+      throw new ValidationError('El participante no está pendiente de acción');
+    }
+
+    if (participant.role !== SignatureFlowParticipantRole.VALIDATOR) {
+      throw new ValidationError('Solo los validadores pueden usar esta acción');
+    }
+
+    if (flow.status !== SignatureFlowStatus.IN_REVIEW) {
+      throw new ValidationError('El flujo no está en etapa de revisión');
+    }
+
+    participant.status = input.action === 'approve'
+      ? SignatureFlowParticipantStatus.APPROVED
+      : SignatureFlowParticipantStatus.REJECTED;
+
+    if (input.action === 'reject') {
+      participant.rejectionComment = input.comment?.trim() || null;
+    }
+
+    participant.actionAt = new Date();
+    await this.participantRepository.update(participant);
+
+    await this.documentHistoryRepository.save({
+      documentId: document.id,
+      documentModelId: document.documentModelId,
+      name: document.name,
+      issuedDate: document.issuedDate ?? undefined,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description,
+      documentUrl: document.documentUrl,
+      status: document.status,
+      action: input.action === 'approve' ? DocumentAction.FLOW_VALIDATED : DocumentAction.FLOW_PARTICIPANT_REJECTED,
+      updatedBy: participant.externalEmail ?? participant.id,
+      comment: input.comment?.trim() || null,
+      flowParticipantId: participant.id,
+      actionComment: input.comment?.trim() || null,
+    });
+
+    await this.reconcileFlow(flow.id);
+  }
+
+  // Used when an external signer completes signing via OTP.
+  // signatureTokenHash and ipAddress are already stored in ExternalParticipantToken by the caller.
+  async markExternalSignerSignedFromToken(participantId: string, signedAt: Date): Promise<void> {
+    const participant = await this.participantRepository.findById(participantId);
+    if (!participant) return;
+
+    const flow = await this.flowRepository.findById(participant.flowId);
+    if (!flow || flow.status !== SignatureFlowStatus.IN_SIGNING) return;
+
+    if (participant.status !== SignatureFlowParticipantStatus.PENDING) return;
+
+    participant.status = SignatureFlowParticipantStatus.SIGNED;
+    participant.actionAt = signedAt;
+    await this.participantRepository.update(participant);
+
+    const document = await this.documentRepository.findById(flow.documentId);
+    if (document) {
+      await this.documentHistoryRepository.save({
+        documentId: document.id,
+        documentModelId: document.documentModelId,
+        name: document.name,
+        issuedDate: document.issuedDate ?? undefined,
+        expirationDate: document.expirationDate,
+        contractId: document.contractId,
+        description: document.description,
+        documentUrl: document.documentUrl,
+        status: document.status,
+        action: DocumentAction.FLOW_SIGNED,
+        updatedBy: participant.externalEmail ?? participantId,
+        comment: 'Firmante externo completó la firma con código de verificación',
         flowParticipantId: participant.id,
       });
     }
@@ -254,6 +369,9 @@ export class ProcessFlowParticipantActionUseCase {
 
       const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
       await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.orderType);
+
+      const externalSigners = pendingSigners.filter((p) => p.isExternal && p.externalEmail);
+      await this.notifyExternalParticipants(externalSigners, document.name);
       return;
     }
 
@@ -280,7 +398,155 @@ export class ProcessFlowParticipantActionUseCase {
         updatedBy: flow.sentBy || 'system',
         comment: 'Todos los firmantes completaron la firma',
       });
+
+      await this.tryStampConsolidatedPdf(flow, document, participants);
+
+      await this.notificationService.notifyResponsibleOnCompletion(
+        document.id,
+        document.name,
+        document.createdBy,
+      );
     }
+  }
+
+  private async tryStampConsolidatedPdf(
+    _flow: SignatureFlow,
+    document: Document,
+    participants: SignatureFlowParticipant[],
+  ): Promise<void> {
+    if (!this.pdfStampService || !this.userRepository || !this.signatureRepository || !document.documentUrl) return;
+
+    try {
+      const pdfPath = await this.resolvePdfPath(document.documentUrl);
+      if (!pdfPath) return;
+
+      const approvedValidators = participants.filter(
+        (p) => p.role === SignatureFlowParticipantRole.VALIDATOR
+          && p.status === SignatureFlowParticipantStatus.APPROVED,
+      );
+      const signedSigners = participants.filter(
+        (p) => p.role === SignatureFlowParticipantRole.SIGNER
+          && p.status === SignatureFlowParticipantStatus.SIGNED,
+      );
+
+      const validatorData: ValidatorStampData[] = [];
+      for (const v of approvedValidators) {
+        const name = v.userId
+          ? await this.resolveUserName(v.userId)
+          : (v.externalName ?? 'Validador externo');
+        validatorData.push({ validatorName: name, actionAt: v.actionAt ?? new Date() });
+      }
+
+      const documentSignatures = await this.signatureRepository.findByDocumentId(document.id);
+      const signerData: SignerStampData[] = [];
+      for (const s of signedSigners) {
+        if (s.userId) {
+          // Internal signer — look up Signature record for tokenHash/IP
+          const user = await this.userRepository.findById(s.userId);
+          if (!user) continue;
+
+          const signature = documentSignatures.find(
+            (sig) => sig.userId === s.userId && sig.tokenHash,
+          );
+          if (!signature?.tokenHash) continue;
+
+          const colaborator = this.colaboratorRepository
+            ? await this.colaboratorRepository.findByUserId(s.userId)
+            : null;
+
+          signerData.push({
+            signerName: `${user.firstName} ${user.lastName}`,
+            signerDocumentNumber: colaborator?.numeroDocumento ?? 'N/A',
+            signerEmail: String(user.email),
+            signedAt: signature.signedAt ?? s.actionAt ?? new Date(),
+            ipAddress: signature.ipAddress ?? 'N/A',
+            tokenHash: signature.tokenHash,
+            verifyUrl: this.buildVerifyUrl(document.id, signature.tokenHash),
+          });
+        } else if (s.externalEmail) {
+          // External signer — look up ExternalParticipantToken for tokenHash/IP
+          const extToken = this.externalTokenRepository
+            ? await this.externalTokenRepository.findByParticipantId(s.id)
+            : null;
+
+          signerData.push({
+            signerName: s.externalName ?? 'Firmante externo',
+            signerDocumentNumber: 'N/A',
+            signerEmail: s.externalEmail,
+            signedAt: s.actionAt ?? new Date(),
+            ipAddress: extToken?.ipAddress ?? 'N/A',
+            tokenHash: extToken?.signatureTokenHash ?? 'N/A',
+            verifyUrl: extToken?.signatureTokenHash
+              ? this.buildVerifyUrl(document.id, extToken.signatureTokenHash)
+              : '',
+          });
+        }
+      }
+
+      if (signerData.length === 0) return;
+
+      await this.pdfStampService.stampConsolidatedPdf(pdfPath, {
+        documentId: document.id,
+        completedAt: new Date(),
+        validators: validatorData,
+        signers: signerData,
+      });
+    } catch (err) {
+      console.warn('[ProcessFlowParticipantActionUseCase] Consolidated PDF stamping failed (non-critical):', err);
+    }
+  }
+
+  private async notifyExternalParticipants(
+    participants: SignatureFlowParticipant[],
+    documentName: string,
+  ): Promise<void> {
+    if (!this.externalTokenRepository) return;
+    for (const p of participants) {
+      const email = p.externalEmail;
+      if (!email) continue;
+      await this.externalTokenRepository.deleteByParticipantId(p.id);
+      const token = ExternalParticipantToken.create({
+        participantId: p.id,
+        token: generateExternalToken(),
+        expiresAt: buildExternalTokenExpiry(),
+      });
+      const saved = await this.externalTokenRepository.save(token);
+      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
+      if (!accessUrl) continue;
+      await this.notificationService.notifyExternalParticipant(
+        email,
+        p.externalName,
+        p.role,
+        documentName,
+        accessUrl,
+      );
+    }
+  }
+
+  private async resolveUserName(userId: string): Promise<string> {
+    if (!this.userRepository) return userId;
+    const user = await this.userRepository.findById(userId);
+    return user ? `${user.firstName} ${user.lastName}` : userId;
+  }
+
+  private buildVerifyUrl(documentId: string, tokenHash: string): string {
+    const baseUrl = (process.env.FRONTEND_URL ?? '').replace(/\/$/, '');
+    return baseUrl ? `${baseUrl}/verify/${documentId}/${tokenHash}` : `/verify/${documentId}/${tokenHash}`;
+  }
+
+  private async resolvePdfPath(documentUrl: string): Promise<string | null> {
+    if (documentUrl.toLowerCase().endsWith('.pdf')) return documentUrl;
+    if (!this.fileRepository) return null;
+
+    const file = await this.fileRepository.findById(documentUrl);
+    if (!file) return null;
+
+    const isPdf = (file.mimeType ?? '').toLowerCase().includes('pdf')
+      || file.originalName.toLowerCase().endsWith('.pdf')
+      || file.path.toLowerCase().endsWith('.pdf');
+
+    if (!isPdf || file.storage !== 'local') return null;
+    return file.path;
   }
 
   private isParticipantEnabledInCurrentStep(

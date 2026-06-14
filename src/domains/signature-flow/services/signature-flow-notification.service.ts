@@ -79,6 +79,73 @@ export class SignatureFlowNotificationService {
     }
   }
 
+  async notifyResponsibleOnCompletion(
+    documentId: string,
+    documentName: string,
+    responsibleUserId: string | null,
+  ): Promise<void> {
+    if (!responsibleUserId) return;
+
+    const title = 'Documento firmado';
+    const message = `El documento ${documentName} completó el proceso de firma exitosamente.`;
+
+    await this.inAppNotificationRepository.save(new InAppNotification({
+      userId: responsibleUserId,
+      title,
+      message,
+      entityType: 'document',
+      entityId: documentId,
+    }));
+
+    const responsibleUser = await this.userRepository.findById(responsibleUserId);
+    if (!responsibleUser?.email) return;
+
+    const actionUrl = buildFrontendUrl(`/documents`);
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: responsibleUser.firstName,
+      message,
+      actionLabel: 'Ver documentos',
+      actionUrl,
+    });
+
+    await this.emailService.send({
+      to: responsibleUser.email.toString(),
+      subject: title,
+      text: actionUrl ? `${message}\n\nVer documentos: ${actionUrl}` : message,
+      html,
+    });
+  }
+
+  async notifyExternalParticipant(
+    externalEmail: string,
+    externalName: string | null,
+    role: string,
+    documentName: string,
+    accessUrl: string,
+  ): Promise<void> {
+    const isValidator = role === 'validator';
+    const title = isValidator ? 'Documento pendiente de revisión' : 'Documento pendiente de firma';
+    const action = isValidator ? 'revisar y aprobar' : 'firmar';
+    const actionLabel = isValidator ? 'Ir a revisar' : 'Ir a firmar';
+    const message = `Has sido invitado a ${action} el documento: ${documentName}. El enlace es válido por tiempo limitado.`;
+
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: externalName ?? 'Participante',
+      message,
+      actionLabel,
+      actionUrl: accessUrl,
+    });
+
+    await this.emailService.send({
+      to: externalEmail,
+      subject: title,
+      text: `${message}\n\n${actionLabel}: ${accessUrl}`,
+      html,
+    });
+  }
+
   async notifyResponsibleOnRejection(
     documentId: string,
     documentName: string,

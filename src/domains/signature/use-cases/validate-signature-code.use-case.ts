@@ -107,14 +107,18 @@ export class ValidateSignatureCodeUseCase {
     signature.updatedAt = signedAt;
     await this.signatureRepository.update(signature);
 
-    await this.processFlowParticipantActionUseCase?.markSignerSignedFromOtp(signature.documentId, signature.userId, signedAt);
+    const wasPartOfFlow = this.processFlowParticipantActionUseCase
+      ? await this.processFlowParticipantActionUseCase.markSignerSignedFromOtp(signature.documentId, signature.userId, signedAt)
+      : false;
 
     const document = await this.documentRepository.findById(signature.documentId);
     if (document) {
       document.updateSignatureStatus(SignatureStatus.SIGNED);
       await this.documentRepository.save(document);
 
-      await this.tryStampPdf(document.documentUrl, signature.documentId, signature.userId, tokenHash, ipAddress, signedAt);
+      if (!wasPartOfFlow) {
+        await this.tryStampPdf(document.documentUrl, signature.documentId, signature.userId, tokenHash, ipAddress, signedAt);
+      }
     }
   }
 

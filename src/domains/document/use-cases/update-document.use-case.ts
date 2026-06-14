@@ -3,7 +3,7 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { DocumentFieldValueRepository } from '../repositories/document-field-value.repository';
 import { Document, DocumentFieldValue } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
-import { DocumentAction } from '../value-objects/document-enums';
+import { DocumentAction, DocumentStatus } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
@@ -49,6 +49,7 @@ export class UpdateDocumentUseCase {
       throw new NotFoundError('Documento', id);
     }
 
+    const previousStatus = document.status;
     const previousState = {
       name: document.name,
       documentModelId: document.documentModelId,
@@ -149,7 +150,18 @@ export class UpdateDocumentUseCase {
       }
     }
 
-    // Al editar un documento, siempre vuelve a estado borrador
+    // Al editar un documento, siempre vuelve a estado borrador.
+    // Si venía de un estado rechazado por flujo de firma y se cambia el archivo,
+    // se desvincula el flujo anterior para permitir iniciar uno nuevo.
+    const wasRejectedByFlow = previousStatus === DocumentStatus.REJECTED
+      || previousStatus === DocumentStatus.REJECTED_WITH_COMMENTS;
+    const fileWillChange = request.documentUrl !== undefined
+      && (request.documentUrl || null) !== previousState.documentUrl;
+
+    if (wasRejectedByFlow && fileWillChange) {
+      document.signatureFlowId = null;
+    }
+
     document.setToDraft();
 
     // Actualizar documento
@@ -202,6 +214,11 @@ export class UpdateDocumentUseCase {
       });
     }
 
+    const fileChanged = previousState.documentUrl !== (updatedDocument.documentUrl || null);
+    const historyAction = (wasRejectedByFlow && fileChanged)
+      ? DocumentAction.VERSION_SUPERSEDED
+      : DocumentAction.UPDATED;
+
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
       documentModelId: updatedDocument.documentModelId || document.documentModelId,
@@ -214,7 +231,7 @@ export class UpdateDocumentUseCase {
       status: updatedDocument.status,
       comment: request.comment || null,
       actionComment: changeDetails.length > 0 ? JSON.stringify({ changes: changeDetails }) : null,
-      action: DocumentAction.UPDATED,
+      action: historyAction,
       updatedBy: request.updatedBy || 'system',
     };
 

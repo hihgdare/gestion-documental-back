@@ -11,6 +11,10 @@ import {
 } from '../value-objects/signature-flow-enums';
 import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
+import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
+import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
+import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 
 export interface CreateSignatureFlowInput {
   documentId: string;
@@ -32,6 +36,7 @@ export class CreateSignatureFlowUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly notificationService: SignatureFlowNotificationService,
+    private readonly externalTokenRepository?: ExternalParticipantTokenRepository,
   ) {}
 
   async execute(input: CreateSignatureFlowInput): Promise<SignatureFlow> {
@@ -102,6 +107,37 @@ export class CreateSignatureFlowUseCase {
     const toNotify = validators.length > 0 ? validators : signers;
     await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, flow.orderType);
 
+    // Generate access tokens and send emails for external participants in the first active step
+    const firstStepExternal = toNotify.filter((p) => p.isExternal && p.externalEmail);
+    await this.notifyExternalParticipants(firstStepExternal, document.name);
+
     return flow;
+  }
+
+  private async notifyExternalParticipants(
+    participants: SignatureFlowParticipant[],
+    documentName: string,
+  ): Promise<void> {
+    if (!this.externalTokenRepository) return;
+    for (const p of participants) {
+      const email = p.externalEmail;
+      if (!email) continue;
+      await this.externalTokenRepository.deleteByParticipantId(p.id);
+      const token = ExternalParticipantToken.create({
+        participantId: p.id,
+        token: generateExternalToken(),
+        expiresAt: buildExternalTokenExpiry(),
+      });
+      const saved = await this.externalTokenRepository.save(token);
+      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
+      if (!accessUrl) continue;
+      await this.notificationService.notifyExternalParticipant(
+        email,
+        p.externalName,
+        p.role,
+        documentName,
+        accessUrl,
+      );
+    }
   }
 }
