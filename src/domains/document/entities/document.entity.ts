@@ -319,6 +319,15 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public approveDirectly(): void {
+    if (this.status !== DocumentStatus.DRAFT && this.status !== DocumentStatus.IN_REVIEW) {
+      throw new ValidationError('Solo los documentos en borrador o revisión pueden aprobarse directamente');
+    }
+    this.status = DocumentStatus.APPROVED;
+    this.comment = null;
+    this.updatedAt = new Date();
+  }
+
   public reject(): void {
     if (this.status !== DocumentStatus.IN_REVIEW) {
       throw new ValidationError('Solo los documentos en revisión pueden rechazarse');

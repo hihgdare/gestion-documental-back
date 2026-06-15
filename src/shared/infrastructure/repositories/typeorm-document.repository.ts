@@ -201,15 +201,23 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return documentEntities.map(entity => this.toDomain(entity));
   }
 
-  async existsByModelAndColaborator(documentModelId: string, colaboratorIds: string[], excludeId?: string): Promise<boolean> {
+  async existsByModelAndColaborator(documentModelId: string, colaboratorIds: string[], name: string, excludeId?: string): Promise<boolean> {
     if (colaboratorIds.length === 0) return false;
 
+    const count = colaboratorIds.length;
     const query = this.repository
       .createQueryBuilder('document')
-      .leftJoin('document.colaborators', 'colaborators')
       .where('document.documentModelId = :documentModelId', { documentModelId })
+      .andWhere('document.name = :name', { name })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
+      .andWhere(
+        `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id AND dc.colaborator_id IN (:...colaboratorIds)) = :count`,
+        { colaboratorIds, count },
+      )
+      .andWhere(
+        `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id) = :count`,
+        { count },
+      );
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });
@@ -223,17 +231,26 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     documentModelId: string,
     contractId: string,
     colaboratorIds: string[],
+    name: string,
     excludeId?: string,
   ): Promise<boolean> {
     if (colaboratorIds.length === 0) return false;
 
+    const count = colaboratorIds.length;
     const query = this.repository
       .createQueryBuilder('document')
-      .leftJoin('document.colaborators', 'colaborators')
       .where('document.documentModelId = :documentModelId', { documentModelId })
       .andWhere('document.contract_id = :contractId', { contractId })
+      .andWhere('document.name = :name', { name })
       .andWhere('document.deleted_at IS NULL')
-      .andWhere('colaborators.id IN (:...colaboratorIds)', { colaboratorIds });
+      .andWhere(
+        `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id AND dc.colaborator_id IN (:...colaboratorIds)) = :count`,
+        { colaboratorIds, count },
+      )
+      .andWhere(
+        `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id) = :count`,
+        { count },
+      );
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });

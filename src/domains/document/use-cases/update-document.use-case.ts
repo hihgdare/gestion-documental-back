@@ -135,18 +135,20 @@ export class UpdateDocumentUseCase {
           finalDocumentModelId,
           finalContractId,
           finalColaboratorIds,
+          document.name,
           document.id,
         );
       } else {
         exists = await this.documentRepository.existsByModelAndColaborator(
           finalDocumentModelId,
           finalColaboratorIds,
+          document.name,
           document.id,
         );
       }
 
       if (exists) {
-        throw new ValidationError(`Ya existe un documento de este modelo para los colaboradores seleccionados${finalContractId ? ' en este contrato' : ''}.`);
+        throw new ValidationError(`Ya existe un documento con el mismo nombre, modelo y colaboradores${finalContractId ? ' en este contrato' : ''}.`);
       }
     }
 

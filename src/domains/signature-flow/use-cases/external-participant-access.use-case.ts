@@ -140,7 +140,7 @@ export class RequestExternalSignerOtpUseCase {
     private readonly emailService: EmailService,
   ) {}
 
-  async execute(token: string): Promise<{ redactedEmail: string }> {
+  async execute(token: string, method: 'email' | 'sms' = 'email', phoneNumber?: string): Promise<{ redactedEmail: string; redactedPhone?: string }> {
     const tokenRecord = await this.tokenRepository.findByToken(token);
     if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
       throw new ValidationError('El enlace de acceso no es válido o ha expirado.');
@@ -172,6 +172,21 @@ export class RequestExternalSignerOtpUseCase {
     tokenRecord.otpAttempts = 0;
     await this.tokenRepository.update(tokenRecord);
 
+    const [user, domain] = externalEmail.split('@');
+    const redactedEmail = `${user.substring(0, 2)}***@${domain}`;
+
+    if (method === 'sms') {
+      if (!phoneNumber?.trim()) {
+        throw new ValidationError('Debe proporcionar un número de teléfono para recibir el código por SMS.');
+      }
+      const phone = phoneNumber.trim();
+      await this.sendSmsCode(phone, otpCode);
+      const redactedPhone = phone.length > 4
+        ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
+        : '****';
+      return { redactedEmail, redactedPhone };
+    }
+
     const title = 'Código de firma electrónica';
     const message = `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
     const html = buildPrimactaNotificationEmail({
@@ -189,9 +204,34 @@ export class RequestExternalSignerOtpUseCase {
       html,
     });
 
-    const [user, domain] = externalEmail.split('@');
-    const redactedEmail = `${user.substring(0, 2)}***@${domain}`;
     return { redactedEmail };
+  }
+
+  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<void> {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+    const smsProvider = process.env.SMS_PROVIDER?.toLowerCase();
+
+    if (smsProvider !== 'twilio') {
+      throw new ValidationError('El proveedor SMS no está configurado. Usa el método por correo electrónico.');
+    }
+
+    if (!accountSid || !authToken || !fromNumber) {
+      throw new ValidationError('La configuración de SMS no está disponible. Usa el método por correo electrónico.');
+    }
+
+    try {
+      const twilioModule = await import('twilio');
+      const client = twilioModule.default(accountSid, authToken);
+      await client.messages.create({
+        body: `Tu código de firma electrónica es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+        from: fromNumber,
+        to: phoneNumber,
+      });
+    } catch {
+      throw new ValidationError('No se pudo enviar el SMS. Intenta con el método por correo electrónico.');
+    }
   }
 }
 
@@ -245,7 +285,13 @@ export class ValidateExternalSignerOtpUseCase {
     tokenRecord.otpHash = null;
     await this.tokenRepository.update(tokenRecord);
 
-    await this.processFlowUseCase.markExternalSignerSignedFromToken(participant.id, signedAt);
+    try {
+      await this.processFlowUseCase.markExternalSignerSignedFromToken(participant.id, signedAt);
+    } catch (err) {
+      // Token is already committed as used — signing intent is recorded.
+      // Post-signing side effects (notifications, PDF stamping) are non-critical.
+      console.error('[ValidateExternalSignerOtpUseCase] Post-signing flow processing failed (non-critical):', err);
+    }
   }
 }
 

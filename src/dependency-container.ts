@@ -58,6 +58,7 @@ import {
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
 import { SendToReviewDocumentUseCase } from '@domains/document/use-cases/send-to-review-document.use-case';
 import { ApproveDocumentUseCase } from '@domains/document/use-cases/approve-document.use-case';
+import { DirectApproveDocumentUseCase } from '@domains/document/use-cases/direct-approve-document.use-case';
 import { RejectDocumentUseCase } from '@domains/document/use-cases/reject-document.use-case';
 import { RejectDocumentWithCommentsUseCase } from '@domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentHistoryUseCase as _CreateDocumentHistoryUseCase } from '@domains/document/use-cases/create-document-history.use-case';
@@ -364,6 +365,7 @@ export class DependencyContainer {
   private deleteDocumentUseCase!: DeleteDocumentUseCase;
   private sendToReviewDocumentUseCase!: SendToReviewDocumentUseCase;
   private approveDocumentUseCase!: ApproveDocumentUseCase;
+  private directApproveDocumentUseCase!: DirectApproveDocumentUseCase;
   private rejectDocumentUseCase!: RejectDocumentUseCase;
   private rejectDocumentWithCommentsUseCase!: RejectDocumentWithCommentsUseCase;
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
@@ -660,6 +662,7 @@ export class DependencyContainer {
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.approveDocumentUseCase = new ApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
+    this.directApproveDocumentUseCase = new DirectApproveDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.rejectDocumentUseCase = new RejectDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
     this.rejectDocumentWithCommentsUseCase = new RejectDocumentWithCommentsUseCase(this.documentRepository, this.documentHistoryRepository);
     this.getDocumentHistoryUseCase = new GetDocumentHistoryUseCase(this.documentHistoryRepository);
@@ -849,6 +852,7 @@ export class DependencyContainer {
       this.deleteDocumentUseCase,
       this.sendToReviewDocumentUseCase,
       this.approveDocumentUseCase,
+      this.directApproveDocumentUseCase,
       this.rejectDocumentUseCase,
       this.rejectDocumentWithCommentsUseCase,
       this.contractReviewerRepository,

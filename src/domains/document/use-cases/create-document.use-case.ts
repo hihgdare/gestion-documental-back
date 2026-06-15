@@ -61,10 +61,11 @@ export class CreateDocumentUseCase {
         request.documentModelId,
         contractId,
         request.colaboratorIds,
+        request.name,
       );
 
       if (exists) {
-        throw new ValidationError('Ya existe un documento de este modelo para los colaboradores seleccionados en este contrato.');
+        throw new ValidationError('Ya existe un documento con el mismo nombre, modelo y colaboradores en este contrato.');
       }
     }
 

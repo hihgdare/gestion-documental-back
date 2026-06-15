@@ -21,7 +21,6 @@ export interface SignerStampData {
   signedAt: Date;
   ipAddress: string;
   tokenHash: string;
-  verifyUrl: string;
 }
 
 export interface ValidatorStampData {
@@ -32,6 +31,7 @@ export interface ValidatorStampData {
 export interface ConsolidatedStampData {
   documentId: string;
   completedAt: Date;
+  verifyUrl: string;
   validators: ValidatorStampData[];
   signers: SignerStampData[];
 }
@@ -161,32 +161,29 @@ export class SignaturePdfStampService {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Pre-generate all QR images before page layout
-    const qrImages = [];
-    for (const signer of data.signers) {
-      const qrBuffer: Buffer = await QRCode.toBuffer(signer.verifyUrl, {
-        errorCorrectionLevel: 'M',
-        width: 150,
-        margin: 1,
-      });
-      qrImages.push(await pdfDoc.embedPng(qrBuffer));
-    }
+    // Single QR for the whole document
+    const qrBuffer: Buffer = await QRCode.toBuffer(data.verifyUrl || 'N/A', {
+      errorCorrectionLevel: 'M',
+      width: 200,
+      margin: 1,
+    });
+    const qrImage = await pdfDoc.embedPng(qrBuffer);
 
     const pages = pdfDoc.getPages();
     const { width: docWidth } = pages[pages.length - 1].getSize();
 
     const MARGIN = 20;
     const PADDING = 8;
-    const QR_SIZE = 62;
-    const SIGNER_BLOCK_H = 75; // height consumed per signer (rect + gap below)
+    const QR_SIZE = 70;
+    const HEADER_H = QR_SIZE + 20; // tall enough to fit the QR with vertical padding
+    const SIGNER_ROW_H = 60; // per signer (rect + gap below), no QR needed
     const VALIDATOR_ROW_H = 12;
     const hasValidators = data.validators.length > 0;
 
-    // Compute page height dynamically
     const pageHeight = MARGIN * 2
-      + 46 // header section (title + separator + docId + date)
+      + HEADER_H
       + (hasValidators ? 20 + data.validators.length * VALIDATOR_ROW_H : 0)
-      + 14 + data.signers.length * SIGNER_BLOCK_H // signers section
+      + 14 + data.signers.length * SIGNER_ROW_H
       + 21; // footer
 
     const stampPage = pdfDoc.addPage([docWidth, pageHeight]);
@@ -199,9 +196,15 @@ export class SignaturePdfStampService {
 
     const contentX = MARGIN;
     const contentW = docWidth - MARGIN * 2;
-    const textW = contentW - QR_SIZE - PADDING * 3;
+    // Header text stays left of the QR
+    const headerTextW = contentW - QR_SIZE - PADDING * 2;
 
-    // y = baseline cursor descending from top
+    // ── QR: top-right corner, drawn independently ──
+    const qrX = contentX + contentW - QR_SIZE;
+    const qrY = pageHeight - MARGIN - QR_SIZE;
+    stampPage.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
+
+    // y cursor descends from top
     let y = pageHeight - MARGIN;
 
     // ── HEADER ──
@@ -212,20 +215,27 @@ export class SignaturePdfStampService {
     y -= 5;
 
     stampPage.drawLine({
-      start: { x: contentX, y }, end: { x: contentX + contentW, y },
+      start: { x: contentX, y }, end: { x: contentX + headerTextW, y },
       thickness: 0.6, color: rgb(0.7, 0.7, 0.7),
     });
     y -= 7;
 
     stampPage.drawText(`ID del documento: ${data.documentId}`, {
-      x: contentX, y, size: 7, font, color: rgb(0.35, 0.35, 0.35),
+      x: contentX, y, size: 7, font, color: rgb(0.35, 0.35, 0.35), maxWidth: headerTextW,
     });
     y -= 11;
 
     stampPage.drawText(`Completado el: ${this.formatSignedAt(data.completedAt)}`, {
-      x: contentX, y, size: 7, font, color: rgb(0.35, 0.35, 0.35),
+      x: contentX, y, size: 7, font, color: rgb(0.35, 0.35, 0.35), maxWidth: headerTextW,
     });
-    y -= 14;
+    y -= 11;
+
+    stampPage.drawText('Escanee el QR para verificar la autenticidad de este documento.', {
+      x: contentX, y, size: 6.5, font, color: rgb(0.45, 0.45, 0.45), maxWidth: headerTextW,
+    });
+
+    // Advance y past the full header section (including QR height)
+    y = pageHeight - MARGIN - HEADER_H;
 
     // ── VALIDATORS ──
     if (hasValidators) {
@@ -244,19 +254,17 @@ export class SignaturePdfStampService {
       y -= 6;
     }
 
-    // ── SIGNERS ──
+    // ── SIGNERS (compact rows, no individual QR) ──
     stampPage.drawText('FIRMANTES', {
       x: contentX, y, size: 8, font: boldFont, color: rgb(0.2, 0.2, 0.2),
     });
     y -= 14;
 
-    for (let i = 0; i < data.signers.length; i++) {
-      const signer = data.signers[i];
-
-      const rectBottom = y - (SIGNER_BLOCK_H - PADDING);
+    for (const signer of data.signers) {
+      const rectBottom = y - (SIGNER_ROW_H - PADDING);
       stampPage.drawRectangle({
         x: contentX, y: rectBottom,
-        width: contentW, height: SIGNER_BLOCK_H - PADDING,
+        width: contentW, height: SIGNER_ROW_H - PADDING,
         color: rgb(1, 1, 1),
         borderColor: rgb(0.75, 0.75, 0.75),
         borderWidth: 0.5,
@@ -267,39 +275,31 @@ export class SignaturePdfStampService {
       ty -= 9;
       stampPage.drawText(signer.signerName, {
         x: contentX + PADDING, y: ty, size: 9, font: boldFont,
-        color: rgb(0.08, 0.08, 0.08), maxWidth: textW,
+        color: rgb(0.08, 0.08, 0.08), maxWidth: contentW - PADDING * 2,
       });
-      ty -= 4;
 
-      ty -= 7;
-      stampPage.drawText(`Email: ${signer.signerEmail}`, {
+      ty -= 11;
+      stampPage.drawText(`${signer.signerEmail}  •  Doc: ${signer.signerDocumentNumber}`, {
         x: contentX + PADDING, y: ty, size: 7, font,
-        color: rgb(0.2, 0.2, 0.2), maxWidth: textW,
+        color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2,
       });
-      ty -= 3;
 
-      ty -= 7;
+      ty -= 10;
       stampPage.drawText(
-        `Doc: ${signer.signerDocumentNumber}  •  Fecha: ${this.formatSignedAt(signer.signedAt)}  •  IP: ${signer.ipAddress}`,
-        { x: contentX + PADDING, y: ty, size: 7, font, color: rgb(0.2, 0.2, 0.2), maxWidth: textW },
+        `Fecha: ${this.formatSignedAt(signer.signedAt)}  •  IP: ${signer.ipAddress}`,
+        { x: contentX + PADDING, y: ty, size: 7, font, color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2 },
       );
-      ty -= 3;
 
-      ty -= 6.5;
-      const shortToken = signer.tokenHash.length > 32
-        ? `${signer.tokenHash.substring(0, 32)}...`
+      ty -= 10;
+      const shortToken = signer.tokenHash.length > 48
+        ? `${signer.tokenHash.substring(0, 48)}...`
         : signer.tokenHash;
       stampPage.drawText(`Token: ${shortToken}`, {
         x: contentX + PADDING, y: ty, size: 6.5, font,
-        color: rgb(0.45, 0.45, 0.45), maxWidth: textW,
+        color: rgb(0.45, 0.45, 0.45), maxWidth: contentW - PADDING * 2,
       });
 
-      // QR code on the right, vertically centered in the block
-      const qrX = contentX + contentW - QR_SIZE - PADDING;
-      const qrY = rectBottom + ((SIGNER_BLOCK_H - PADDING - QR_SIZE) / 2);
-      stampPage.drawImage(qrImages[i], { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
-
-      y -= SIGNER_BLOCK_H;
+      y -= SIGNER_ROW_H;
     }
 
     // ── FOOTER ──
@@ -310,7 +310,7 @@ export class SignaturePdfStampService {
     });
     y -= 8;
 
-    stampPage.drawText('Escanee el código QR de cada firmante para verificar su firma digital.', {
+    stampPage.drawText(`Verificar en: ${data.verifyUrl}`, {
       x: contentX, y, size: 6.5, font, color: rgb(0.45, 0.45, 0.45), maxWidth: contentW,
     });
 

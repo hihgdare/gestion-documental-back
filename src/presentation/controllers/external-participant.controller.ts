@@ -4,7 +4,9 @@ import { SubmitExternalParticipantActionUseCase } from '@domains/signature-flow/
 import { RequestExternalSignerOtpUseCase } from '@domains/signature-flow/use-cases/external-participant-access.use-case';
 import { ValidateExternalSignerOtpUseCase } from '@domains/signature-flow/use-cases/external-participant-access.use-case';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
-import { ValidationError } from '@shared/domain/errors';
+import { ServerError, ValidationError } from '@shared/domain/errors';
+import { Bucket } from '@shared/utils/Bucket';
+import FileUtils from '@shared/utils/FileUtils';
 import path from 'path';
 import fs from 'fs';
 
@@ -49,7 +51,7 @@ export class ExternalParticipantController {
         return;
       }
 
-      await this.serveDocumentFile(documentUrl, true, res, next);
+      await this.serveDocumentFile(documentUrl, res, next);
     } catch (err) {
       next(err);
     }
@@ -74,8 +76,9 @@ export class ExternalParticipantController {
   async requestOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { token } = req.params;
-      const result = await this.requestOtpUseCase.execute(token);
-      res.json({ success: true, redactedEmail: result.redactedEmail });
+      const { method, phoneNumber } = req.body as { method?: 'email' | 'sms'; phoneNumber?: string };
+      const result = await this.requestOtpUseCase.execute(token, method ?? 'email', phoneNumber);
+      res.json({ success: true, redactedEmail: result.redactedEmail, redactedPhone: result.redactedPhone });
     } catch (err) {
       next(err);
     }
@@ -100,38 +103,64 @@ export class ExternalParticipantController {
     }
   }
 
-  async serveDocumentFile(
-    documentUrl: string,
-    inline: boolean,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  private async serveDocumentFile(documentUrl: string, res: Response, next: NextFunction): Promise<void> {
     try {
+      // Look up the file by UUID in the repository (same as FileShareController)
       const file = await this.fileRepository.findById(documentUrl);
-      if (!file) {
-        res.status(404).json({ message: 'Archivo no encontrado.' });
+
+      if (file) {
+        if (file.storage === 's3') {
+          const buffer = await this.downloadFromS3(file.path);
+          res.setHeader('Content-Type', file.mimeType || 'application/pdf');
+          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
+          res.send(buffer);
+        } else {
+          // Use file.path directly — same as FileShareController.preview (no upload-dir join)
+          if (!fs.existsSync(file.path)) {
+            res.status(404).json({ message: 'Archivo físico no encontrado.' });
+            return;
+          }
+          res.setHeader('Content-Type', file.mimeType || 'application/pdf');
+          res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
+          fs.createReadStream(file.path).pipe(res);
+        }
         return;
       }
 
-      if (file.storage !== 'local') {
-        res.status(400).json({ message: 'Solo se admiten archivos locales.' });
+      // Fallback: documentUrl might be an absolute path (legacy documents)
+      if (path.isAbsolute(documentUrl) && fs.existsSync(documentUrl)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="document.pdf"');
+        fs.createReadStream(documentUrl).pipe(res);
         return;
       }
 
-      const uploadDir = process.env.FILE_STORAGE_LOCAL_PATH ?? './uploads';
-      const fullPath = path.isAbsolute(file.path) ? file.path : path.join(uploadDir, file.path);
-
-      if (!fs.existsSync(fullPath)) {
-        res.status(404).json({ message: 'Archivo físico no encontrado.' });
-        return;
-      }
-
-      const disposition = inline ? 'inline' : `attachment; filename="${encodeURIComponent(file.originalName)}"`;
-      res.setHeader('Content-Type', file.mimeType ?? 'application/octet-stream');
-      res.setHeader('Content-Disposition', disposition);
-      fs.createReadStream(fullPath).pipe(res);
+      res.status(404).json({ message: 'Archivo no encontrado.' });
     } catch (err) {
       next(err);
     }
+  }
+
+  private async downloadFromS3(filePath: string): Promise<Buffer> {
+    const bucketName = process.env.AWS_S3_BUCKET;
+    const region = process.env.AWS_DEFAULT_REGION;
+    const accessKeyId = process.env.AWS_S3_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY;
+
+    if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
+      throw new ServerError('S3 configuration incomplete');
+    }
+
+    const bucket = new Bucket({ bucket: bucketName, region, credentials: { accessKeyId, secretAccessKey } });
+
+    const tempDir = FileUtils.buildPath('temp');
+    await fs.promises.mkdir(tempDir, { recursive: true });
+    const tempPath = path.join(tempDir, `ext-doc-${Date.now()}`);
+
+    const buffer = await bucket.downloadFile({ source: filePath });
+    await fs.promises.writeFile(tempPath, buffer);
+    const data = await fs.promises.readFile(tempPath);
+    await FileUtils.delete(tempPath).catch(() => {});
+    return data;
   }
 }

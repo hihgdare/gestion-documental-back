@@ -12,6 +12,7 @@ import {
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '../../domains/document/use-cases/update-document.use-case';
 import { SendToReviewDocumentUseCase } from '../../domains/document/use-cases/send-to-review-document.use-case';
 import { ApproveDocumentUseCase } from '../../domains/document/use-cases/approve-document.use-case';
+import { DirectApproveDocumentUseCase } from '../../domains/document/use-cases/direct-approve-document.use-case';
 import { RejectDocumentUseCase } from '../../domains/document/use-cases/reject-document.use-case';
 import { RejectDocumentWithCommentsUseCase } from '../../domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentDto } from '../dto/document/create-document.dto';
@@ -42,6 +43,7 @@ export class DocumentController {
     private deleteDocumentUseCase: DeleteDocumentUseCase,
     private sendToReviewDocumentUseCase: SendToReviewDocumentUseCase,
     private approveDocumentUseCase: ApproveDocumentUseCase,
+    private directApproveDocumentUseCase: DirectApproveDocumentUseCase,
     private rejectDocumentUseCase: RejectDocumentUseCase,
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
     private contractReviewerRepository: ContractReviewerRepository,
@@ -285,6 +287,19 @@ export class DocumentController {
     await this.approveDocumentUseCase.execute(id, req.auth.user?.id || 'system');
 
     // Obtener el documento actualizado
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento aprobado exitosamente',
+    });
+  });
+
+  directApproveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await this.directApproveDocumentUseCase.execute(id, req.auth.user?.id || 'system');
+
     const document = await this.getDocumentByIdUseCase.execute(id);
 
     res.status(200).json({

@@ -241,7 +241,7 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_SIGNED,
-        updatedBy: participant.externalEmail ?? participantId,
+        updatedBy: participant.userId ?? undefined,
         comment: 'Firmante externo completó la firma con código de verificación',
         flowParticipantId: participant.id,
       });
@@ -330,16 +330,20 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_REJECTED,
-        updatedBy: flow.sentBy || 'system',
+        updatedBy: flow.sentBy || undefined,
         comment: `El flujo fue rechazado por un participante. Motivo: ${rejectionReason}`,
       });
 
-      await this.notificationService.notifyResponsibleOnRejection(
-        document.id,
-        document.name,
-        document.createdBy,
-        rejectionReason,
-      );
+      try {
+        await this.notificationService.notifyResponsibleOnRejection(
+          document.id,
+          document.name,
+          document.createdBy,
+          rejectionReason,
+        );
+      } catch (err) {
+        console.warn('[reconcileFlow] notifyResponsibleOnRejection failed (non-critical):', err);
+      }
       return;
     }
 
@@ -363,15 +367,23 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_VALIDATED,
-        updatedBy: flow.sentBy || 'system',
+        updatedBy: flow.sentBy || undefined,
         comment: 'Validación completada. Documento enviado a etapa de firma',
       });
 
       const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
-      await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.orderType);
+      try {
+        await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.orderType);
+      } catch (err) {
+        console.warn('[reconcileFlow] notifyParticipantsForCurrentStep failed (non-critical):', err);
+      }
 
       const externalSigners = pendingSigners.filter((p) => p.isExternal && p.externalEmail);
-      await this.notifyExternalParticipants(externalSigners, document.name);
+      try {
+        await this.notifyExternalParticipants(externalSigners, document.name);
+      } catch (err) {
+        console.warn('[reconcileFlow] notifyExternalParticipants failed (non-critical):', err);
+      }
       return;
     }
 
@@ -395,17 +407,21 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_COMPLETED,
-        updatedBy: flow.sentBy || 'system',
+        updatedBy: flow.sentBy || undefined,
         comment: 'Todos los firmantes completaron la firma',
       });
 
       await this.tryStampConsolidatedPdf(flow, document, participants);
 
-      await this.notificationService.notifyResponsibleOnCompletion(
-        document.id,
-        document.name,
-        document.createdBy,
-      );
+      try {
+        await this.notificationService.notifyResponsibleOnCompletion(
+          document.id,
+          document.name,
+          document.createdBy,
+        );
+      } catch (err) {
+        console.warn('[reconcileFlow] notifyResponsibleOnCompletion failed (non-critical):', err);
+      }
     }
   }
 
@@ -461,7 +477,6 @@ export class ProcessFlowParticipantActionUseCase {
             signedAt: signature.signedAt ?? s.actionAt ?? new Date(),
             ipAddress: signature.ipAddress ?? 'N/A',
             tokenHash: signature.tokenHash,
-            verifyUrl: this.buildVerifyUrl(document.id, signature.tokenHash),
           });
         } else if (s.externalEmail) {
           // External signer — look up ExternalParticipantToken for tokenHash/IP
@@ -476,18 +491,18 @@ export class ProcessFlowParticipantActionUseCase {
             signedAt: s.actionAt ?? new Date(),
             ipAddress: extToken?.ipAddress ?? 'N/A',
             tokenHash: extToken?.signatureTokenHash ?? 'N/A',
-            verifyUrl: extToken?.signatureTokenHash
-              ? this.buildVerifyUrl(document.id, extToken.signatureTokenHash)
-              : '',
           });
         }
       }
 
       if (signerData.length === 0) return;
 
+      const verifyUrl = buildFrontendUrl(`/verificar?id=${document.id}`) ?? `/verificar?id=${document.id}`;
+
       await this.pdfStampService.stampConsolidatedPdf(pdfPath, {
         documentId: document.id,
         completedAt: new Date(),
+        verifyUrl,
         validators: validatorData,
         signers: signerData,
       });
@@ -527,11 +542,6 @@ export class ProcessFlowParticipantActionUseCase {
     if (!this.userRepository) return userId;
     const user = await this.userRepository.findById(userId);
     return user ? `${user.firstName} ${user.lastName}` : userId;
-  }
-
-  private buildVerifyUrl(documentId: string, tokenHash: string): string {
-    const baseUrl = (process.env.FRONTEND_URL ?? '').replace(/\/$/, '');
-    return baseUrl ? `${baseUrl}/verify/${documentId}/${tokenHash}` : `/verify/${documentId}/${tokenHash}`;
   }
 
   private async resolvePdfPath(documentUrl: string): Promise<string | null> {
