@@ -228,6 +228,7 @@ import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-sign
 import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
 import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
 import { GetSignatureSmsPhoneUseCase } from '@domains/signature/use-cases/get-signature-sms-phone.use-case';
+import { GetPublicDocumentVerificationUseCase } from '@domains/signature-flow/use-cases/get-public-document-verification.use-case';
 import { SignatureController } from '@presentation/controllers/signature.controller';
 
 // SignatureFlow domain
@@ -529,6 +530,7 @@ export class DependencyContainer {
   private getSignatureByTokenHashUseCase!: GetSignatureByTokenHashUseCase;
   private verifyDocumentSignatureUseCase!: VerifyDocumentSignatureUseCase;
   private getSignatureSmsPhoneUseCase!: GetSignatureSmsPhoneUseCase;
+  private getPublicDocumentVerificationUseCase!: GetPublicDocumentVerificationUseCase;
 
   // Use Cases - SignatureFlow
   private createSignatureFlowUseCase!: CreateSignatureFlowUseCase;
@@ -1139,6 +1141,15 @@ export class DependencyContainer {
       this.documentRepository,
     );
     this.getSignatureSmsPhoneUseCase = new GetSignatureSmsPhoneUseCase(this.colaboratorRepository);
+    this.getPublicDocumentVerificationUseCase = new GetPublicDocumentVerificationUseCase(
+      this.documentRepository,
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.externalParticipantTokenRepository,
+      this.signatureRepository,
+      this.userRepository,
+      this.colaboratorRepository,
+    );
     this.signatureController = new SignatureController(
       this.initiateSignatureUseCase,
       this.validateSignatureCodeUseCase,
@@ -1148,6 +1159,7 @@ export class DependencyContainer {
       this.verifyDocumentSignatureUseCase,
       this.getSignatureSmsPhoneUseCase,
       this.fileRepository,
+      this.getPublicDocumentVerificationUseCase,
     );
 
     // Initialize SignatureFlow use cases and controller

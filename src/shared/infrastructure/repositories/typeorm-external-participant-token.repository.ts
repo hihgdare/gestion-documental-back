@@ -50,6 +50,7 @@ export class TypeOrmExternalParticipantTokenRepository implements ExternalPartic
       usedAt: entity.usedAt ?? null,
       signatureTokenHash: entity.signatureTokenHash ?? null,
       ipAddress: entity.ipAddress ?? null,
+      documentNumber: entity.documentNumber ?? null,
       createdAt: entity.createdAt,
     };
     return ExternalParticipantToken.create(props);
@@ -67,6 +68,7 @@ export class TypeOrmExternalParticipantTokenRepository implements ExternalPartic
       usedAt: token.usedAt ?? undefined,
       signatureTokenHash: token.signatureTokenHash ?? undefined,
       ipAddress: token.ipAddress ?? undefined,
+      documentNumber: token.documentNumber ?? undefined,
     };
   }
 }

@@ -11,6 +11,7 @@ export interface ExternalParticipantTokenProps {
   usedAt?: Date | null;
   signatureTokenHash?: string | null;
   ipAddress?: string | null;
+  documentNumber?: string | null;
   createdAt?: Date;
 }
 
@@ -25,6 +26,7 @@ export class ExternalParticipantToken {
   usedAt: Date | null;
   signatureTokenHash: string | null;
   ipAddress: string | null;
+  documentNumber: string | null;
   createdAt: Date;
 
   constructor(props: ExternalParticipantTokenProps) {
@@ -36,6 +38,7 @@ export class ExternalParticipantToken {
       usedAt: 'datetimeNullable',
       signatureTokenHash: (v?: string | null) => v ?? null,
       ipAddress: (v?: string | null) => v ?? null,
+      documentNumber: (v?: string | null) => v ?? null,
       createdAt: 'datetime',
     });
   }

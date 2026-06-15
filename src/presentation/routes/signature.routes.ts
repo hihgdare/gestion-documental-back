@@ -9,6 +9,8 @@ export const createSignatureRoutes = (controller: SignatureController): Router =
   const router = Router();
 
   // Public endpoints — no authentication required
+  router.get('/verify/document/:documentId', controller.verifyDocumentById);
+  router.get('/verify/document/:documentId/file', controller.getDocumentFilePublic);
   router.get('/verify/:tokenHash', controller.verifyByToken);
   router.get('/verify/:documentId/:tokenHash', controller.verifyByDocumentAndToken);
   router.get('/verify/:documentId/:tokenHash/file', controller.getDocumentFileByVerification);

@@ -47,6 +47,9 @@ export class ExternalParticipantTokenEntity {
   @Column({ name: 'ip_address', type: 'varchar', length: 100, nullable: true })
   ipAddress?: string;
 
+  @Column({ name: 'document_number', type: 'varchar', length: 50, nullable: true })
+  documentNumber?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

@@ -8,6 +8,7 @@ import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-sign
 import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
 import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
 import { GetSignatureSmsPhoneUseCase } from '@domains/signature/use-cases/get-signature-sms-phone.use-case';
+import { GetPublicDocumentVerificationUseCase } from '@domains/signature-flow/use-cases/get-public-document-verification.use-case';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { Signature } from '@domains/signature/entities/signature.entity';
 import { extractClientIp } from '@shared/utils/ip';
@@ -39,6 +40,7 @@ export class SignatureController {
     private readonly verifyDocumentSignatureUseCase: VerifyDocumentSignatureUseCase,
     private readonly getSignatureSmsPhoneUseCase: GetSignatureSmsPhoneUseCase,
     private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly getPublicDocumentVerificationUseCase?: GetPublicDocumentVerificationUseCase,
   ) {}
 
   initiate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -163,6 +165,40 @@ export class SignatureController {
     } catch {
       throw new ServerError('Error al servir el archivo del documento');
     }
+  });
+
+  verifyDocumentById = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentId } = req.params;
+    if (!this.getPublicDocumentVerificationUseCase) {
+      throw new ServerError('Verificación pública no disponible');
+    }
+    const result = await this.getPublicDocumentVerificationUseCase.execute(documentId);
+    res.status(200).json({ success: true, data: result });
+  });
+
+  getDocumentFilePublic = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentId } = req.params;
+    if (!this.getPublicDocumentVerificationUseCase) {
+      throw new ServerError('Verificación pública no disponible');
+    }
+    const result = await this.getPublicDocumentVerificationUseCase.execute(documentId);
+    const documentUrl = result.document.documentUrl;
+    if (!documentUrl) {
+      throw new NotFoundError('El documento no tiene archivo asociado');
+    }
+    const filePath = await this.resolveFilePath(documentUrl);
+    if (!filePath) {
+      throw new NotFoundError('Archivo del documento no disponible');
+    }
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundError('Archivo del documento no encontrado en el servidor');
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeType = ext === '.pdf' ? 'application/pdf' : 'application/octet-stream';
+    const fileName = path.basename(filePath);
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+    fs.createReadStream(filePath).pipe(res);
   });
 
   private async resolveFilePath(documentUrl: string): Promise<string | null> {

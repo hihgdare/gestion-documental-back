@@ -486,7 +486,7 @@ export class ProcessFlowParticipantActionUseCase {
 
           signerData.push({
             signerName: s.externalName ?? 'Firmante externo',
-            signerDocumentNumber: 'N/A',
+            signerDocumentNumber: extToken?.documentNumber ?? 'N/A',
             signerEmail: s.externalEmail,
             signedAt: s.actionAt ?? new Date(),
             ipAddress: extToken?.ipAddress ?? 'N/A',
