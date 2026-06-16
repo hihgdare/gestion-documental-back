@@ -7,6 +7,8 @@ import { DocumentAction, DocumentStatus } from '../value-objects/document-enums'
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -41,6 +43,8 @@ export class UpdateDocumentUseCase {
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
+    private readonly colaboratorRepository?: ColaboratorRepository,
+    private readonly contractRepository?: ContractRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -156,7 +160,8 @@ export class UpdateDocumentUseCase {
     // Si venía de un estado rechazado por flujo de firma y se cambia el archivo,
     // se desvincula el flujo anterior para permitir iniciar uno nuevo.
     const wasRejectedByFlow = previousStatus === DocumentStatus.REJECTED
-      || previousStatus === DocumentStatus.REJECTED_WITH_COMMENTS;
+      || previousStatus === DocumentStatus.REJECTED_WITH_COMMENTS
+      || previousStatus === DocumentStatus.REJECTED_FOR_SIGN;
     const fileWillChange = request.documentUrl !== undefined
       && (request.documentUrl || null) !== previousState.documentUrl;
 
@@ -187,13 +192,67 @@ export class UpdateDocumentUseCase {
 
     const formatDate = (date?: Date | null): string | null => (date ? date.toISOString().slice(0, 10) : null);
 
+    // Resolve model names for human-readable history
+    const resolveModelName = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      try {
+        const model = await this.documentModelRepository.findById(id);
+        if (!model) return id;
+        return [model.documentTypeName, model.documentSubtypeName].filter(Boolean).join(' / ') || id;
+      } catch { return id; }
+    };
+
+    const resolveGroupName = async (id: number | null): Promise<string | null> => {
+      if (!id) return null;
+      try {
+        const group = await this.groupRepository.findById(id);
+        return (group as { name?: string })?.name ?? String(id);
+      } catch { return String(id); }
+    };
+
+    const resolveColaboratorNames = async (ids: string[]): Promise<string | null> => {
+      if (!ids.length) return null;
+      if (!this.colaboratorRepository) return ids.join(', ');
+      try {
+        const colabs = await this.colaboratorRepository.findIn(ids);
+        const nameMap = new Map(colabs.map((c) => [c.id, c.getNombreCompleto()]));
+        return ids.map((id) => nameMap.get(id) ?? id).join(', ');
+      } catch { return ids.join(', '); }
+    };
+
+    const resolveContractLabel = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      if (!this.contractRepository) return id;
+      try {
+        const contract = await this.contractRepository.findById(id);
+        return contract ? `${contract.contractNumber}${contract.nombreProyecto ? ` — ${contract.nombreProyecto}` : ''}` : id;
+      } catch { return id; }
+    };
+
+    const [prevModelName, currModelName] = await Promise.all([
+      resolveModelName(previousState.documentModelId),
+      resolveModelName(updatedDocument.documentModelId),
+    ]);
+    const [prevGroupName, currGroupName] = await Promise.all([
+      resolveGroupName(previousState.groupId),
+      resolveGroupName(updatedDocument.groupId),
+    ]);
+    const [prevColabNames, currColabNames] = await Promise.all([
+      resolveColaboratorNames(previousState.colaboratorIds),
+      resolveColaboratorNames([...updatedDocument.colaboratorIds].sort()),
+    ]);
+    const [prevContractLabel, currContractLabel] = await Promise.all([
+      resolveContractLabel(previousState.contractId),
+      resolveContractLabel(updatedDocument.contractId),
+    ]);
+
     pushChange('name', 'Nombre', previousState.name, updatedDocument.name);
-    pushChange('documentModelId', 'Modelo de documento', previousState.documentModelId, updatedDocument.documentModelId);
+    pushChange('documentModelId', 'Modelo de documento', prevModelName, currModelName);
     pushChange('issuedDate', 'Fecha de emision', formatDate(previousState.issuedDate), formatDate(updatedDocument.issuedDate));
     pushChange('expirationDate', 'Fecha de vencimiento', formatDate(previousState.expirationDate), formatDate(updatedDocument.expirationDate));
-    pushChange('contractId', 'Contrato', previousState.contractId, updatedDocument.contractId);
+    pushChange('contractId', 'Contrato', prevContractLabel, currContractLabel);
     pushChange('description', 'Descripcion', previousState.description, updatedDocument.description || null);
-    pushChange('groupId', 'Grupo', String(previousState.groupId), String(updatedDocument.groupId));
+    pushChange('groupId', 'Grupo', prevGroupName, currGroupName);
     pushChange(
       'requiredColaboratorsCount',
       'Cantidad requerida de colaboradores',
@@ -201,9 +260,7 @@ export class UpdateDocumentUseCase {
       String(updatedDocument.requiredColaboratorsCount),
     );
 
-    const previousColaborators = previousState.colaboratorIds.join(',');
-    const currentColaborators = [...updatedDocument.colaboratorIds].sort().join(',');
-    pushChange('colaboratorIds', 'Colaboradores', previousColaborators || null, currentColaborators || null);
+    pushChange('colaboratorIds', 'Colaboradores', prevColabNames, currColabNames);
 
     if (previousState.documentUrl !== (updatedDocument.documentUrl || null)) {
       changeDetails.push({

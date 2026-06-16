@@ -310,11 +310,10 @@ export class ProcessFlowParticipantActionUseCase {
         .sort((a, b) => (b.actionAt?.getTime() ?? 0) - (a.actionAt?.getTime() ?? 0));
 
       const rejectionReason = rejectedParticipants[0]?.rejectionComment?.trim() || 'Sin motivo proporcionado';
-      const hasComment = participants.some((p) => !!p.rejectionComment);
 
       flow.status = SignatureFlowStatus.REJECTED;
-      document.status = hasComment ? DocumentStatus.REJECTED_WITH_COMMENTS : DocumentStatus.REJECTED;
-      document.comment = hasComment ? rejectionReason : null;
+      document.status = DocumentStatus.REJECTED_FOR_SIGN;
+      document.comment = rejectionReason;
 
       await this.flowRepository.update(flow);
       await this.documentRepository.update(document);
@@ -349,6 +348,41 @@ export class ProcessFlowParticipantActionUseCase {
 
     const validatorsCompleted = validators.length === 0
       || validators.every((p) => p.status === SignatureFlowParticipantStatus.APPROVED);
+
+    // Sequential flow: notify the next pending validator after one approves
+    if (
+      flow.status === SignatureFlowStatus.IN_REVIEW
+      && !validatorsCompleted
+      && flow.orderType === SignatureFlowOrderType.SEQUENTIAL
+    ) {
+      const pendingValidators = validators.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
+      const nextValidator = pendingValidators
+        .filter((p) => p.order !== null)
+        .sort((a, b) => (a.order as number) - (b.order as number))[0]
+        ?? pendingValidators[0];
+
+      if (nextValidator) {
+        try {
+          await this.notificationService.notifyParticipantsForCurrentStep(
+            [nextValidator],
+            document.id,
+            document.name,
+            flow.orderType,
+          );
+        } catch (err) {
+          console.warn('[reconcileFlow] notify next sequential validator failed (non-critical):', err);
+        }
+
+        if (nextValidator.isExternal && nextValidator.externalEmail) {
+          try {
+            await this.notifyExternalParticipants([nextValidator], document.name);
+          } catch (err) {
+            console.warn('[reconcileFlow] notifyExternalParticipants for next validator failed (non-critical):', err);
+          }
+        }
+      }
+      return;
+    }
 
     if (flow.status === SignatureFlowStatus.IN_REVIEW && validatorsCompleted) {
       flow.status = SignatureFlowStatus.IN_SIGNING;

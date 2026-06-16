@@ -1,11 +1,13 @@
 export enum DocumentStatus {
   DRAFT = 'draft',
   IN_REVIEW = 'in_review',
+  IN_REVIEW_FOR_SIGN = 'in_review_for_sign',
   IN_SIGNING = 'in_signing',
   APPROVED = 'approved',
   SIGNED = 'signed',
   REJECTED = 'rejected',
   REJECTED_WITH_COMMENTS = 'rejected_with_comments',
+  REJECTED_FOR_SIGN = 'rejected_for_sign',
   EXPIRED = 'expired',
   OBSOLETE = 'obsolete',
   ARCHIVED = 'archived',

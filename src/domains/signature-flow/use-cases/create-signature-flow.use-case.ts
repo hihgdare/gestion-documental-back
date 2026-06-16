@@ -84,7 +84,7 @@ export class CreateSignatureFlowUseCase {
     }
 
     document.signatureFlowId = flow.id;
-    document.status = hasValidators ? DocumentStatus.IN_REVIEW : DocumentStatus.IN_SIGNING;
+    document.status = hasValidators ? DocumentStatus.IN_REVIEW_FOR_SIGN : DocumentStatus.IN_SIGNING;
     await this.documentRepository.update(document);
 
     await this.documentHistoryRepository.save({
