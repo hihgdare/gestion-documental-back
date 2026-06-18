@@ -374,6 +374,7 @@ export const createDocumentModelSchema = Joi.object({
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
   requiredExpirationDate: Joi.boolean().optional().default(false),
+  requiresApproval: Joi.boolean().optional().default(true),
 });
 
 export const updateDocumentModelSchema = Joi.object({
@@ -383,6 +384,7 @@ export const updateDocumentModelSchema = Joi.object({
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
   requiredExpirationDate: Joi.boolean().optional(),
+  requiresApproval: Joi.boolean().optional(),
 }).min(1);
 
 const documentTemplateFieldSchema = Joi.object({

@@ -1,5 +1,6 @@
 export enum DocumentStatus {
   DRAFT = 'draft',
+  UPLOADED = 'uploaded',
   IN_REVIEW = 'in_review',
   IN_REVIEW_FOR_SIGN = 'in_review_for_sign',
   IN_SIGNING = 'in_signing',

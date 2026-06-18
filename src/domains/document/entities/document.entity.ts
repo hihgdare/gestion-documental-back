@@ -352,6 +352,12 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public setToUploaded(): void {
+    this.status = DocumentStatus.UPLOADED;
+    this.comment = null;
+    this.updatedAt = new Date();
+  }
+
   public updateSignatureStatus(status: SignatureStatus | null): void {
     this.signatureStatus = status;
     this.updatedAt = new Date();

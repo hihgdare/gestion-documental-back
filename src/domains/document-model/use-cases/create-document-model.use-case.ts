@@ -11,6 +11,7 @@ export interface CreateDocumentModelRequest {
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
   requiredExpirationDate?: boolean;
+  requiresApproval?: boolean;
 }
 
 export class CreateDocumentModelUseCase {
@@ -48,6 +49,7 @@ export class CreateDocumentModelUseCase {
       requiredForContract: request.requiredForContract,
       requiredForColaborator: request.requiredForColaborator,
       requiredExpirationDate: request.requiredExpirationDate,
+      requiresApproval: request.requiresApproval ?? true,
     };
 
     const documentModel = DocumentModel.create(documentModelProps);

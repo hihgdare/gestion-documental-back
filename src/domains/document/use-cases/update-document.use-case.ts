@@ -156,7 +156,7 @@ export class UpdateDocumentUseCase {
       }
     }
 
-    // Al editar un documento, siempre vuelve a estado borrador.
+    // Al editar un documento, vuelve a borrador (o a "cargado" si el modelo no requiere aprobación).
     // Si venía de un estado rechazado por flujo de firma y se cambia el archivo,
     // se desvincula el flujo anterior para permitir iniciar uno nuevo.
     const wasRejectedByFlow = previousStatus === DocumentStatus.REJECTED
@@ -169,7 +169,11 @@ export class UpdateDocumentUseCase {
       document.signatureFlowId = null;
     }
 
-    document.setToDraft();
+    if (documentModel.requiresApproval === false) {
+      document.setToUploaded();
+    } else {
+      document.setToDraft();
+    }
 
     // Actualizar documento
     const updatedDocument = await this.documentRepository.update(document);

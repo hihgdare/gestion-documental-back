@@ -10,6 +10,7 @@ export interface DocumentModelProps {
   requiredForContract?: boolean;
   requiredForColaborator?: boolean;
   requiredExpirationDate?: boolean;
+  requiresApproval?: boolean;
   familyName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
@@ -27,6 +28,7 @@ export class DocumentModel {
   requiredForContract: boolean;
   requiredForColaborator: boolean;
   requiredExpirationDate: boolean;
+  requiresApproval: boolean;
   familyName?: string;
   documentTypeName?: string;
   documentSubtypeName?: string;
@@ -43,6 +45,7 @@ export class DocumentModel {
       requiredForContract: (value?: boolean) => value ?? false,
       requiredForColaborator: (value?: boolean) => value ?? false,
       requiredExpirationDate: (value?: boolean) => value ?? false,
+      requiresApproval: (value?: boolean) => value ?? true,
       createdAt: 'date',
       updatedAt: 'date',
       deletedAt: 'dateNullable',
@@ -78,6 +81,7 @@ export class DocumentModel {
     requiredForContract?: boolean;
     requiredForColaborator?: boolean;
     requiredExpirationDate?: boolean;
+    requiresApproval?: boolean;
   }): void {
     if (props.groupId !== undefined) {
       if (!props.groupId) {
@@ -112,6 +116,10 @@ export class DocumentModel {
       this.requiredExpirationDate = props.requiredExpirationDate;
     }
 
+    if (props.requiresApproval !== undefined) {
+      this.requiresApproval = props.requiresApproval;
+    }
+
     this.updatedAt = new Date();
   }
 
@@ -125,6 +133,7 @@ export class DocumentModel {
       requiredForContract: this.requiredForContract,
       requiredForColaborator: this.requiredForColaborator,
       requiredExpirationDate: this.requiredExpirationDate,
+      requiresApproval: this.requiresApproval,
       documentTypeName: this.documentTypeName,
       documentSubtypeName: this.documentSubtypeName,
       createdAt: this.createdAt,

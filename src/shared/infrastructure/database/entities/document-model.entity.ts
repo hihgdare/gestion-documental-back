@@ -39,6 +39,9 @@ export class DocumentModelEntity {
   @Column({ name: 'required_expiration_date', type: 'boolean', default: false })
   requiredExpirationDate!: boolean;
 
+  @Column({ name: 'requires_approval', type: 'boolean', default: true })
+  requiresApproval!: boolean;
+
   @ManyToOne(() => GroupEntity)
   @JoinColumn({ name: 'group_id' })
   group?: GroupEntity;
