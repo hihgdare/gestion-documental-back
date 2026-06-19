@@ -71,9 +71,11 @@ export class UserController {
     const previousUser = await this.getUserByIdUseCase.execute(id);
     const user = await this.updateUserUseCase.execute({ id, ...req.body });
 
-    // Send activation email when a user is activated for the first time
+    // Send activation email when a user is activated for the first time (unless explicitly skipped)
     let emailWarning: string | undefined;
+    const skipEmail = req.body.skipEmail === true;
     if (
+      !skipEmail &&
       req.body.status === UserStatus.ACTIVE &&
       previousUser?.status !== UserStatus.ACTIVE
     ) {
