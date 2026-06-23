@@ -10,6 +10,7 @@ export interface UpdateDocumentModelRequest {
   requiredForColaborator?: boolean;
   requiredExpirationDate?: boolean;
   requiresApproval?: boolean;
+  requiresSignature?: boolean;
 }
 
 export class UpdateDocumentModelUseCase {

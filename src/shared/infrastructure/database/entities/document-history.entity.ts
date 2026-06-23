@@ -74,6 +74,9 @@ export class DocumentHistoryEntity {
   @JoinColumn({ name: 'updated_by' })
   updater?: UserEntity;
 
+  @Column({ name: 'updated_by_name', type: 'varchar', length: 255, nullable: true })
+  updatedByName?: string;
+
   @Column({ name: 'flow_participant_id', type: 'varchar', length: 36, nullable: true })
   flowParticipantId?: string;
 

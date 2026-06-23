@@ -193,6 +193,10 @@ export class ProcessFlowParticipantActionUseCase {
     participant.actionAt = new Date();
     await this.participantRepository.update(participant);
 
+    const externalDisplayName = participant.externalName
+      ? `${participant.externalName} (Externo)`
+      : 'Participante externo';
+
     await this.documentHistoryRepository.save({
       documentId: document.id,
       documentModelId: document.documentModelId,
@@ -204,7 +208,8 @@ export class ProcessFlowParticipantActionUseCase {
       documentUrl: document.documentUrl,
       status: document.status,
       action: input.action === 'approve' ? DocumentAction.FLOW_VALIDATED : DocumentAction.FLOW_PARTICIPANT_REJECTED,
-      updatedBy: participant.externalEmail ?? participant.id,
+      updatedBy: undefined,
+      updatedByName: externalDisplayName,
       comment: input.comment?.trim() || null,
       flowParticipantId: participant.id,
       actionComment: input.comment?.trim() || null,
@@ -230,6 +235,10 @@ export class ProcessFlowParticipantActionUseCase {
 
     const document = await this.documentRepository.findById(flow.documentId);
     if (document) {
+      const externalDisplayName = participant.externalName
+        ? `${participant.externalName} (Externo)`
+        : 'Firmante externo';
+
       await this.documentHistoryRepository.save({
         documentId: document.id,
         documentModelId: document.documentModelId,
@@ -241,7 +250,8 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_SIGNED,
-        updatedBy: participant.userId ?? undefined,
+        updatedBy: undefined,
+        updatedByName: externalDisplayName,
         comment: 'Firmante externo completó la firma con código de verificación',
         flowParticipantId: participant.id,
       });
@@ -329,7 +339,8 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_REJECTED,
-        updatedBy: flow.sentBy || undefined,
+        updatedBy: undefined,
+        updatedByName: 'Sistema',
         comment: `El flujo fue rechazado por un participante. Motivo: ${rejectionReason}`,
       });
 
@@ -401,7 +412,8 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_VALIDATED,
-        updatedBy: flow.sentBy || undefined,
+        updatedBy: undefined,
+        updatedByName: 'Sistema',
         comment: 'Validación completada. Documento enviado a etapa de firma',
       });
 
@@ -441,7 +453,8 @@ export class ProcessFlowParticipantActionUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_COMPLETED,
-        updatedBy: flow.sentBy || undefined,
+        updatedBy: undefined,
+        updatedByName: 'Sistema',
         comment: 'Todos los firmantes completaron la firma',
       });
 

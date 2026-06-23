@@ -107,8 +107,9 @@ export class CreateSignatureFlowUseCase {
     const toNotify = validators.length > 0 ? validators : signers;
     await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, flow.orderType);
 
-    // Generate access tokens and send emails for external participants in the first active step
-    const firstStepExternal = toNotify.filter((p) => p.isExternal && p.externalEmail);
+    // Generate access tokens and send emails only for the first active step (respects sequential ordering)
+    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(flow.orderType, toNotify);
+    const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
     await this.notifyExternalParticipants(firstStepExternal, document.name);
 
     return flow;
