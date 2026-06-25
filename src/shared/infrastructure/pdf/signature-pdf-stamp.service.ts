@@ -245,7 +245,7 @@ export class SignaturePdfStampService {
       y -= 14;
 
       for (const v of data.validators) {
-        stampPage.drawText(`✓  ${v.validatorName}  •  Aprobado: ${this.formatSignedAt(v.actionAt)}`, {
+        stampPage.drawText(`${v.validatorName}  -  Aprobado: ${this.formatSignedAt(v.actionAt)}`, {
           x: contentX + PADDING, y, size: 7, font,
           color: rgb(0.1, 0.45, 0.15), maxWidth: contentW - PADDING,
         });
@@ -279,14 +279,14 @@ export class SignaturePdfStampService {
       });
 
       ty -= 11;
-      stampPage.drawText(`${signer.signerEmail}  •  Doc: ${signer.signerDocumentNumber}`, {
+      stampPage.drawText(`${signer.signerEmail}  |  Doc: ${signer.signerDocumentNumber}`, {
         x: contentX + PADDING, y: ty, size: 7, font,
         color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2,
       });
 
       ty -= 10;
       stampPage.drawText(
-        `Fecha: ${this.formatSignedAt(signer.signedAt)}  •  IP: ${signer.ipAddress}`,
+        `Fecha: ${this.formatSignedAt(signer.signedAt)}  |  IP: ${signer.ipAddress}`,
         { x: contentX + PADDING, y: ty, size: 7, font, color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2 },
       );
 
