@@ -136,10 +136,7 @@ export class InitiateSignatureUseCase {
         throw new ValidationError('No existe un telefono disponible para enviar el codigo SMS.');
       }
 
-      const smsSent = await this.sendSmsCode(resolvedPhone, otpCode);
-      if (!smsSent) {
-        console.warn(`[InitiateSignatureUseCase] No se pudo enviar SMS al usuario ${userId} para el documento ${documentId}`);
-      }
+      await this.sendSmsCode(resolvedPhone, otpCode);
     } else {
       const emailSent = await this.emailService.send({
         to: user.email.toString(),
@@ -149,7 +146,7 @@ export class InitiateSignatureUseCase {
       });
 
       if (!emailSent) {
-        console.warn(`[InitiateSignatureUseCase] No se pudo enviar el email al usuario ${userId} para el documento ${documentId}`);
+        throw new ServerError('No se pudo enviar el correo con el código de verificación. Intenta nuevamente.');
       }
     }
 
@@ -195,7 +192,7 @@ export class InitiateSignatureUseCase {
     `;
   }
 
-  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<boolean> {
+  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<void> {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -217,10 +214,13 @@ export class InitiateSignatureUseCase {
         from: fromNumber,
         to: phoneNumber,
       });
-      return true;
     } catch (error) {
       console.warn('[InitiateSignatureUseCase] Error al enviar SMS por Twilio:', error);
-      return false;
+      const twilioCode = (error as { code?: number })?.code;
+      const friendlyMessage = twilioCode === 21608
+        ? 'No se pudo enviar el SMS. Verifica que el número de teléfono sea correcto o intenta con el método por correo.'
+        : 'No se pudo enviar el SMS con el código de verificación. Intenta nuevamente o usa el método por correo.';
+      throw new ServerError(friendlyMessage);
     }
   }
 }

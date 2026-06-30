@@ -17,47 +17,47 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
 
   router.post(
     '/',
-    authorize('signature_flow:create'),
+    authorize('signature-flow:create'),
     validateRequest(createSignatureFlowSchema, true),
     controller.create,
   );
 
-  router.get('/my-pending', authorize('signature_flow:read'), controller.getMyPending);
+  router.get('/my-pending', authorize('signature-flow:read'), controller.getMyPending);
 
-  router.get('/reports/pending-documents', authorize('signature_flow:read'), controller.getPendingDocumentsReport);
+  router.get('/reports/pending-documents', authorize('signature-flow:report:read'), controller.getPendingDocumentsReport);
 
-  router.get('/reports/signing-time', authorize('signature_flow:read'), controller.getSigningTimeReport);
+  router.get('/reports/signing-time', authorize('signature-flow:report:read'), controller.getSigningTimeReport);
 
-  router.get('/document/:documentId', authorize('signature_flow:read'), controller.getByDocument);
+  router.get('/document/:documentId', authorize('signature-flow:read'), controller.getByDocument);
 
-  router.get('/:id', authorize('signature_flow:read'), controller.getById);
+  router.get('/:id', authorize('signature-flow:read'), controller.getById);
 
-  router.get('/:id/participants', authorize('signature_flow:read'), controller.getParticipants);
+  router.get('/:id/participants', authorize('signature-flow:read'), controller.getParticipants);
 
   router.put(
     '/:id',
-    authorize('signature_flow:update'),
+    authorize('signature-flow:update'),
     validateRequest(updateSignatureFlowSchema, true),
     controller.update,
   );
 
   router.post(
     '/:id/participants',
-    authorize('signature_flow:update'),
+    authorize('signature-flow:update'),
     validateRequest(addSignatureFlowParticipantSchema, true),
     controller.addParticipant,
   );
 
-  router.delete('/:id/participants/:participantId', authorize('signature_flow:update'), controller.removeParticipant);
+  router.delete('/:id/participants/:participantId', authorize('signature-flow:update'), controller.removeParticipant);
 
   router.post(
     '/participants/:participantId/action',
-    authorize('signature_flow:update'),
+    authorize('signature-flow:update'),
     validateRequest(processSignatureFlowParticipantActionSchema, true),
     controller.processParticipantAction,
   );
 
-  router.delete('/:id', authorize('signature_flow:delete'), controller.delete);
+  router.delete('/:id', authorize('signature-flow:delete'), controller.delete);
 
   return router;
 };

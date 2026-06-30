@@ -26,7 +26,7 @@ const adminSections = [
   'user',
   'area',
   'division',
-  'signature_flow',
+  'signature-flow',
 ];
 const extraPermissions = [
   'admin:groups',
@@ -47,6 +47,7 @@ const extraPermissions = [
   'signature:create',
   'signature:read',
   'signature:delete',
+  'signature-flow:report:read',
 ];
 
 // Otros permisos que no se deben agregar a los roles de admin

@@ -8,7 +8,7 @@
 
 ### ─── Crear flujo de firma ───────────────────────────────────────────────────
 # POST /api/signature-flows
-# Permisos requeridos: signature_flow:create
+# Permisos requeridos: signature-flow:create
 # Crea un flujo con participantes; el usuario autenticado es el responsable.
 
 POST {{baseUrl}}/api/signature-flows
@@ -59,7 +59,7 @@ Content-Type: application/json
 
 ### ─── Obtener flujo por ID ────────────────────────────────────────────────────
 # GET /api/signature-flows/:id
-# Permisos requeridos: signature_flow:read
+# Permisos requeridos: signature-slow:read
 
 GET {{baseUrl}}/api/signature-flows/{{flowId}}
 Authorization: {{token}}
@@ -68,7 +68,7 @@ Authorization: {{token}}
 
 ### ─── Obtener flujos por documento ───────────────────────────────────────────
 # GET /api/signature-flows/document/:documentId
-# Permisos requeridos: signature_flow:read
+# Permisos requeridos: signature-flow:read
 
 GET {{baseUrl}}/api/signature-flows/document/{{documentId}}
 Authorization: {{token}}
@@ -77,7 +77,7 @@ Authorization: {{token}}
 
 ### ─── Obtener participantes de un flujo ───────────────────────────────────────
 # GET /api/signature-flows/:id/participants
-# Permisos requeridos: signature_flow:read
+# Permisos requeridos: signature-flow:read
 
 GET {{baseUrl}}/api/signature-flows/{{flowId}}/participants
 Authorization: {{token}}
@@ -86,7 +86,7 @@ Authorization: {{token}}
 
 ### ─── Mis documentos pendientes de acción ─────────────────────────────────────
 # GET /api/signature-flows/my-pending
-# Permisos requeridos: signature_flow:read
+# Permisos requeridos: signature-flow:read
 # Devuelve participaciones del usuario autenticado (como firmante/validador)
 
 GET {{baseUrl}}/api/signature-flows/my-pending
@@ -96,7 +96,7 @@ Authorization: {{token}}
 
 ### ─── Actualizar tipo de orden del flujo ─────────────────────────────────────
 # PUT /api/signature-flows/:id
-# Permisos requeridos: signature_flow:update
+# Permisos requeridos: signature-flow:update
 # Solo funciona en flujos en estado "draft"
 
 PUT {{baseUrl}}/api/signature-flows/{{flowId}}
@@ -111,7 +111,7 @@ Content-Type: application/json
 
 ### ─── Agregar participante al flujo ──────────────────────────────────────────
 # POST /api/signature-flows/:id/participants
-# Permisos requeridos: signature_flow:update
+# Permisos requeridos: signature-flow:update
 # Solo funciona en flujos en estado "draft"
 
 POST {{baseUrl}}/api/signature-flows/{{flowId}}/participants
@@ -129,7 +129,7 @@ Content-Type: application/json
 
 ### ─── Eliminar participante del flujo ────────────────────────────────────────
 # DELETE /api/signature-flows/:id/participants/:participantId
-# Permisos requeridos: signature_flow:update
+# Permisos requeridos: signature-flow:update
 # Solo funciona en flujos en estado "draft"
 
 DELETE {{baseUrl}}/api/signature-flows/{{flowId}}/participants/{{participantId}}
@@ -139,7 +139,7 @@ Authorization: {{token}}
 
 ### ─── Eliminar flujo de firma ────────────────────────────────────────────────
 # DELETE /api/signature-flows/:id
-# Permisos requeridos: signature_flow:delete
+# Permisos requeridos: signature-flow:delete
 # Solo funciona en flujos en estado "draft"
 
 DELETE {{baseUrl}}/api/signature-flows/{{flowId}}
