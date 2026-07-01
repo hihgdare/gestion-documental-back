@@ -216,6 +216,8 @@ import { FileShareController } from '@presentation/controllers/file-share.contro
 // Email
 import { NodemailerEmailService } from '@shared/infrastructure/email/nodemailer-email.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
+import { EmailQueueProcessor } from '@shared/infrastructure/email/email-queue.processor';
 
 // Signature domain
 import { TypeOrmSignatureRepository } from '@shared/infrastructure/repositories/typeorm-signature.repository';
@@ -279,6 +281,7 @@ import {
 } from '@domains/document-template/use-cases/update-document-template.use-case';
 import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
 import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
+import { EmailQueueController } from '@presentation/controllers/email-queue.controller';
 
 export class DependencyContainer {
   // Repositories
@@ -516,6 +519,7 @@ export class DependencyContainer {
   private signatureController!: SignatureController;
   private signatureFlowController!: SignatureFlowController;
   private externalParticipantController!: ExternalParticipantController;
+  private emailQueueController!: EmailQueueController;
 
   // Services - Signature
   private signatureCryptoService!: SignatureCryptoService;
@@ -552,6 +556,8 @@ export class DependencyContainer {
 
   // Services
   private emailService!: EmailService;
+  private emailQueueService!: EmailQueueService;
+  private emailQueueProcessor!: EmailQueueProcessor;
 
   // Extra user use cases
   private setPasswordUseCase!: SetPasswordUseCase;
@@ -600,6 +606,7 @@ export class DependencyContainer {
 
     // Initialize Email service and extra user use cases (must be before controllers)
     this.emailService = new NodemailerEmailService();
+    this.emailQueueService = new EmailQueueService();
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new ServerError('JWT_SECRET is not configured');
@@ -1086,6 +1093,7 @@ export class DependencyContainer {
       this.userRepository,
       this.inAppNotificationRepository,
       this.emailService,
+      this.emailQueueService,
     );
 
     // Initialize Signature crypto and stamp service first (needed by flow use case)
@@ -1172,6 +1180,7 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.signatureFlowNotificationService,
       this.externalParticipantTokenRepository,
+      this.emailQueueService,
     );
     this.getSignatureFlowByIdUseCase = new GetSignatureFlowByIdUseCase(this.signatureFlowRepository);
     this.getSignatureFlowsByDocumentIdUseCase = new GetSignatureFlowsByDocumentIdUseCase(this.signatureFlowRepository);
@@ -1247,6 +1256,17 @@ export class DependencyContainer {
       this.removeParticipantFromFlowUseCase,
       this.processFlowParticipantActionUseCase,
       this.deleteSignatureFlowUseCase,
+    );
+
+    this.emailQueueController = new EmailQueueController(this.emailQueueService);
+
+    // Initialize email queue processor (depends on repositories and email service)
+    this.emailQueueProcessor = new EmailQueueProcessor(
+      this.emailQueueService,
+      this.emailService,
+      this.signatureFlowRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
     );
   }
 
@@ -1429,5 +1449,17 @@ export class DependencyContainer {
 
   public getExternalParticipantController(): ExternalParticipantController {
     return this.externalParticipantController;
+  }
+
+  public getEmailQueueService(): EmailQueueService {
+    return this.emailQueueService;
+  }
+
+  public getEmailQueueProcessor(): EmailQueueProcessor {
+    return this.emailQueueProcessor;
+  }
+
+  public getEmailQueueController(): EmailQueueController {
+    return this.emailQueueController;
   }
 }

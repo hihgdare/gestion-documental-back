@@ -2,6 +2,7 @@ export enum DocumentStatus {
   DRAFT = 'draft',
   UPLOADED = 'uploaded',
   IN_REVIEW = 'in_review',
+  PENDING_NOTIFICATION = 'pending_notification',
   IN_REVIEW_FOR_SIGN = 'in_review_for_sign',
   IN_SIGNING = 'in_signing',
   APPROVED = 'approved',
@@ -37,4 +38,5 @@ export enum DocumentAction {
   FLOW_PARTICIPANT_REJECTED = 'flow_participant_rejected',
   FLOW_COMPLETED = 'flow_completed',
   VERSION_SUPERSEDED = 'version_superseded',
+  NOTIFICATION_ERROR = 'notification_error',
 }

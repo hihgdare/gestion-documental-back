@@ -358,6 +358,12 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public setPendingNotification(): void {
+    this.status = DocumentStatus.PENDING_NOTIFICATION;
+    this.comment = null;
+    this.updatedAt = new Date();
+  }
+
   public updateSignatureStatus(status: SignatureStatus | null): void {
     this.signatureStatus = status;
     this.updatedAt = new Date();
