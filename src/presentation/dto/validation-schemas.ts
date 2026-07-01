@@ -1,5 +1,10 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { UserStatus } from '@domains/user/value-objects/user-status';
+import { SignatureType, SignatureMethod } from '@domains/signature/value-objects/signature-enums';
+import {
+  SignatureFlowOrderType,
+  SignatureFlowParticipantRole,
+} from '@domains/signature-flow/value-objects/signature-flow-enums';
 import Joi from 'joi';
 
 export const createUserSchema = Joi.object({
@@ -370,6 +375,8 @@ export const createDocumentModelSchema = Joi.object({
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
   requiredExpirationDate: Joi.boolean().optional().default(false),
+  requiresApproval: Joi.boolean().optional().default(true),
+  requiresSignature: Joi.boolean().optional().default(false),
 });
 
 export const updateDocumentModelSchema = Joi.object({
@@ -379,6 +386,8 @@ export const updateDocumentModelSchema = Joi.object({
   requiredForContract: Joi.boolean().optional(),
   requiredForColaborator: Joi.boolean().optional(),
   requiredExpirationDate: Joi.boolean().optional(),
+  requiresApproval: Joi.boolean().optional(),
+  requiresSignature: Joi.boolean().optional(),
 }).min(1);
 
 const documentTemplateFieldSchema = Joi.object({
@@ -405,3 +414,52 @@ export const createDocumentTemplateVersionSchema = Joi.object({
   description: Joi.string().max(2000).optional().allow(''),
   fields: Joi.array().items(documentTemplateFieldSchema).optional(),
 }).min(1);
+
+// Signature schemas
+export const initiateSignatureSchema = Joi.object({
+  documentId: Joi.string().uuid().required(),
+  signatureType: Joi.string().valid(...Object.values(SignatureType)).optional(),
+  signatureMethod: Joi.string().valid(...Object.values(SignatureMethod)).optional(),
+  phoneNumber: Joi.string().trim().min(7).max(30).optional(),
+});
+
+export const validateSignatureCodeSchema = Joi.object({
+  signatureId: Joi.string().uuid().required(),
+  code: Joi.string().length(6).pattern(/^\d{6}$/).required(),
+});
+
+export const cancelSignatureSchema = Joi.object({
+  signatureId: Joi.string().uuid().required(),
+});
+
+// Signature Flow schemas
+const signatureFlowParticipantSchema = Joi.object({
+  userId: Joi.string().uuid().optional(),
+  externalName: Joi.string().max(255).optional(),
+  externalEmail: Joi.string().email().max(255).optional(),
+  role: Joi.string().valid(...Object.values(SignatureFlowParticipantRole)).required(),
+  order: Joi.number().integer().min(1).optional(),
+}).or('userId', 'externalEmail');
+
+export const createSignatureFlowSchema = Joi.object({
+  documentId: Joi.string().uuid().required(),
+  orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+  participants: Joi.array().items(signatureFlowParticipantSchema).min(1).required(),
+});
+
+export const updateSignatureFlowSchema = Joi.object({
+  orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).required(),
+});
+
+export const addSignatureFlowParticipantSchema = Joi.object({
+  userId: Joi.string().uuid().optional(),
+  externalName: Joi.string().max(255).optional(),
+  externalEmail: Joi.string().email().max(255).optional(),
+  role: Joi.string().valid(...Object.values(SignatureFlowParticipantRole)).required(),
+  order: Joi.number().integer().min(1).optional(),
+}).or('userId', 'externalEmail');
+
+export const processSignatureFlowParticipantActionSchema = Joi.object({
+  action: Joi.string().valid('approve', 'reject').required(),
+  comment: Joi.string().max(1000).optional().allow('', null),
+});

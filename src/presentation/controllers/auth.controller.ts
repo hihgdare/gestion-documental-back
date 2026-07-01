@@ -5,8 +5,12 @@ import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
 import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
-import { UnauthorizedError, ValidationError } from '@shared/domain/errors';
+import { ForbiddenError, UnauthorizedError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
+import { InAppNotification } from '@domains/notification/entities/in-app-notification.entity';
+import { DocumentRepository } from '@domains/document/repositories/document.repository';
+import { SignatureStatus } from '@domains/signature/value-objects/signature-enums';
 
 export class AuthController {
   constructor(
@@ -15,6 +19,8 @@ export class AuthController {
     private readonly updateUserUseCase: UpdateUserUseCase,
     private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly groupRepository: GroupRepository,
+    private readonly inAppNotificationRepository: InAppNotificationRepository,
+    private readonly documentRepository: DocumentRepository,
     private readonly setPasswordUseCase: SetPasswordUseCase,
     private readonly jwtSecret: string,
   ) {
@@ -28,6 +34,45 @@ export class AuthController {
     this.getToken = this.getToken.bind(this);
     this.getGroup = this.getGroup.bind(this);
     this.setPassword = this.setPassword.bind(this);
+    this.deleteNotification = this.deleteNotification.bind(this);
+    this.clearNotifications = this.clearNotifications.bind(this);
+  }
+
+  private async canDeleteNotification(notification: InAppNotification): Promise<boolean> {
+    if (notification.entityType !== 'document' || !notification.entityId) {
+      return true;
+    }
+
+    const document = await this.documentRepository.findById(notification.entityId);
+    if (!document) return true;
+
+    return document.signatureStatus !== SignatureStatus.PENDING;
+  }
+
+  private async serializeNotifications(userId: string): Promise<Array<{
+    id: string;
+    title: string;
+    message: string;
+    entityType: string;
+    entityId: string | null;
+    readAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+    canDelete: boolean;
+  }>> {
+    const notifications = await this.inAppNotificationRepository.findByUserId(userId);
+
+    return Promise.all(notifications.map(async (notification) => ({
+      id: notification.id,
+      title: notification.title,
+      message: notification.message,
+      entityType: notification.entityType,
+      entityId: notification.entityId,
+      readAt: notification.readAt,
+      createdAt: notification.createdAt,
+      updatedAt: notification.updatedAt,
+      canDelete: await this.canDeleteNotification(notification),
+    })));
   }
 
   private getCookieOptions(): CookieOptions {
@@ -148,6 +193,7 @@ export class AuthController {
     }
 
     const permissions = user.getPermissionNames(true);
+    const inAppNotifications = await this.serializeNotifications(user.id);
 
     // Get user's group
     const userGroup = await this.groupRepository.findByUserId(user.id);
@@ -171,8 +217,66 @@ export class AuthController {
       data: {
         ...user.toJSON(),
         permissions,
+        in_app_notifications: inAppNotifications,
         groups: groupData ? [groupData] : [],
         selectedGroup,
+      },
+    });
+  }
+
+  async deleteNotification(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const user = req.auth?.user;
+    if (!user) {
+      throw new ValidationError('User not authenticated', 'authentication');
+    }
+
+    const notificationId = req.params.id;
+    if (!notificationId) {
+      throw new ValidationError('Notification id is required', 'id');
+    }
+
+    const notifications = await this.inAppNotificationRepository.findByUserId(user.id);
+    const notification = notifications.find((item) => item.id === notificationId);
+    if (!notification) {
+      throw new ValidationError('Notification not found', 'id');
+    }
+
+    const canDelete = await this.canDeleteNotification(notification);
+    if (!canDelete) {
+      throw new ForbiddenError('Cannot delete notifications for pending document signatures');
+    }
+
+    await this.inAppNotificationRepository.deleteById(notificationId, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification deleted successfully',
+      data: { id: notificationId },
+    });
+  }
+
+  async clearNotifications(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const user = req.auth?.user;
+    if (!user) {
+      throw new ValidationError('User not authenticated', 'authentication');
+    }
+
+    const notifications = await this.inAppNotificationRepository.findByUserId(user.id);
+    const evaluation = await Promise.all(notifications.map(async (notification) => ({
+      id: notification.id,
+      canDelete: await this.canDeleteNotification(notification),
+    })));
+
+    const deletableIds = evaluation.filter((item) => item.canDelete).map((item) => item.id);
+    const blockedCount = evaluation.length - deletableIds.length;
+    const deletedCount = await this.inAppNotificationRepository.deleteByIds(deletableIds, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notifications cleaned successfully',
+      data: {
+        deletedCount,
+        blockedCount,
       },
     });
   }

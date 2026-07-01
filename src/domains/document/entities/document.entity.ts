@@ -3,6 +3,7 @@ import { ValidationError } from '@shared/domain/errors';
 import { DateTimeUtils, DateUtils } from '@shared/utils/date';
 import { parseEnum } from '@shared/utils/objects';
 import { DocumentStatus } from '../value-objects/document-enums';
+import { SignatureStatus } from '@domains/signature/value-objects/signature-enums';
 
 export interface DocumentFieldValue {
   fieldName: string;
@@ -22,6 +23,10 @@ export interface DocumentProps {
   description?: string;
   documentUrl?: string;
   status?: string;
+  signatureStatus?: string | null;
+  signatureFlowId?: string | null;
+  previousVersionId?: string | null;
+  isSuperseded?: boolean;
   groupId: number;
   requiredColaboratorsCount?: number;
   createdBy?: string;
@@ -56,6 +61,10 @@ export class Document {
   description?: string;
   documentUrl?: string;
   status: DocumentStatus;
+  signatureStatus: SignatureStatus | null;
+  signatureFlowId: string | null;
+  previousVersionId: string | null;
+  isSuperseded: boolean;
   groupId: number;
   requiredColaboratorsCount: number;
   createdBy: string | null;
@@ -86,6 +95,10 @@ export class Document {
       expirationDate: 'dateNullable',
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
+      signatureStatus: (ss?: string | null) => parseEnum(ss, SignatureStatus) ?? null,
+      signatureFlowId: (v?: string | null) => v || null,
+      previousVersionId: (v?: string | null) => v || null,
+      isSuperseded: (v?: boolean) => v ?? false,
       requiredColaboratorsCount: (value?: number) => value ?? 0,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
@@ -306,6 +319,15 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public approveDirectly(): void {
+    if (this.status !== DocumentStatus.DRAFT && this.status !== DocumentStatus.IN_REVIEW) {
+      throw new ValidationError('Solo los documentos en borrador o revisión pueden aprobarse directamente');
+    }
+    this.status = DocumentStatus.APPROVED;
+    this.comment = null;
+    this.updatedAt = new Date();
+  }
+
   public reject(): void {
     if (this.status !== DocumentStatus.IN_REVIEW) {
       throw new ValidationError('Solo los documentos en revisión pueden rechazarse');
@@ -330,6 +352,17 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public setToUploaded(): void {
+    this.status = DocumentStatus.UPLOADED;
+    this.comment = null;
+    this.updatedAt = new Date();
+  }
+
+  public updateSignatureStatus(status: SignatureStatus | null): void {
+    this.signatureStatus = status;
+    this.updatedAt = new Date();
+  }
+
   public toJSON() {
     return {
       id: this.id,
@@ -344,6 +377,7 @@ export class Document {
       description: this.description,
       documentUrl: this.documentUrl,
       status: this.status,
+      signatureStatus: this.signatureStatus,
       groupId: this.groupId,
       requiredColaboratorsCount: this.requiredColaboratorsCount,
       createdBy: this.createdBy,

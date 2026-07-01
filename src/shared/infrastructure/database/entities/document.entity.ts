@@ -16,12 +16,15 @@ import { ColaboratorEntity } from './colaborators.entity';
 import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 import { DocumentTemplateEntity } from './document-template.entity';
+import { SignatureFlowEntity } from './signature-flow.entity';
 
 @Entity('documents')
 @Index('IDX_documents_status', ['status'])
 @Index('IDX_documents_deleted_at', ['deletedAt'])
 @Index('IDX_documents_group_id', ['groupId'])
 @Index('IDX_documents_contract_id', ['contractId'])
+@Index('IDX_documents_signature_flow_id', ['signatureFlowId'])
+@Index('IDX_documents_is_superseded', ['isSuperseded'])
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -65,6 +68,22 @@ export class DocumentEntity {
 
   @Column({ type: 'varchar', length: 50, default: 'draft' })
   status!: string;
+
+  @Column({ name: 'signature_status', type: 'varchar', length: 50, nullable: true })
+  signatureStatus?: string;
+
+  @Column({ name: 'signature_flow_id', type: 'varchar', length: 36, nullable: true })
+  signatureFlowId?: string;
+
+  @ManyToOne(() => SignatureFlowEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'signature_flow_id' })
+  signatureFlow?: SignatureFlowEntity;
+
+  @Column({ name: 'previous_version_id', type: 'varchar', length: 36, nullable: true })
+  previousVersionId?: string;
+
+  @Column({ name: 'is_superseded', type: 'boolean', default: false })
+  isSuperseded!: boolean;
 
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;

@@ -12,6 +12,7 @@ import {
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '../../domains/document/use-cases/update-document.use-case';
 import { SendToReviewDocumentUseCase } from '../../domains/document/use-cases/send-to-review-document.use-case';
 import { ApproveDocumentUseCase } from '../../domains/document/use-cases/approve-document.use-case';
+import { DirectApproveDocumentUseCase } from '../../domains/document/use-cases/direct-approve-document.use-case';
 import { RejectDocumentUseCase } from '../../domains/document/use-cases/reject-document.use-case';
 import { RejectDocumentWithCommentsUseCase } from '../../domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentDto } from '../dto/document/create-document.dto';
@@ -27,6 +28,7 @@ import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assig
 import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { DocumentStatus } from '@domains/document/value-objects/document-enums';
 
 export class DocumentController {
   constructor(
@@ -42,6 +44,7 @@ export class DocumentController {
     private deleteDocumentUseCase: DeleteDocumentUseCase,
     private sendToReviewDocumentUseCase: SendToReviewDocumentUseCase,
     private approveDocumentUseCase: ApproveDocumentUseCase,
+    private directApproveDocumentUseCase: DirectApproveDocumentUseCase,
     private rejectDocumentUseCase: RejectDocumentUseCase,
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
     private contractReviewerRepository: ContractReviewerRepository,
@@ -62,7 +65,7 @@ export class DocumentController {
 
     // Lazy import to avoid circular deps in constructor if use-case not injected earlier
     // but prefer to access via dependency injection container in wiring; here assume it's available via (any) this
-    const useCase: any = (this as any).assignDocumentsToGroupUseCase;
+    const useCase = this.assignDocumentsToGroupUseCase;
     if (!useCase) throw new NotFoundError('Use case assignDocumentsToGroupUseCase');
 
     const result = await useCase.execute({
@@ -88,7 +91,6 @@ export class DocumentController {
   });
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    console.log('DocumentController.createDocument body:', JSON.stringify(req.body, null, 2));
     const dto: CreateDocumentDto = req.body;
 
     const document = await this.createDocumentUseCase.execute({
@@ -125,12 +127,12 @@ export class DocumentController {
   getAllDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { includeContractReviewers, includeDocumentTypes, filter } = req.query;
 
-    const filterObj: any = filter || {};
+    const filterObj = (filter && typeof filter === 'object' && !Array.isArray(filter) ? filter : {}) as Record<string, string | undefined>;
     const contractId = filterObj.contractId;
     const colaboratorId = filterObj.colaboratorId;
     const requiredForContract = filterObj.requiredForContract === 'true' ? true : undefined;
     const requiredForColaborator = filterObj.requiredForColaborator === 'true' ? true : undefined;
-    const status = filterObj.status;
+    const status = filterObj.status as DocumentStatus | undefined;
 
     const documents = await this.getAllDocumentsUseCase.execute(req.auth.groupId, {
       contractId,
@@ -140,7 +142,13 @@ export class DocumentController {
       status,
     });
 
-    const response: any = {
+    const response: {
+      success: true;
+      data: DocumentResponseDto[];
+      count: number;
+      contractReviewers?: Record<string, ReviewerResponseDto[]>;
+      documentTypes?: object[];
+    } = {
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
       count: documents.length,
@@ -285,6 +293,19 @@ export class DocumentController {
     await this.approveDocumentUseCase.execute(id, req.auth.user?.id || 'system');
 
     // Obtener el documento actualizado
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento aprobado exitosamente',
+    });
+  });
+
+  directApproveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await this.directApproveDocumentUseCase.execute(id, req.auth.user?.id || 'system');
+
     const document = await this.getDocumentByIdUseCase.execute(id);
 
     res.status(200).json({
