@@ -5,6 +5,7 @@ import { EmailJobEntity, EmailJobStatus } from '../database/entities/email-job.e
 export interface EmailJobFilters {
   status?: EmailJobStatus;
   correlationId?: string;
+  groupKey?: string;
   from?: Date;
   to?: Date;
 }
@@ -18,6 +19,9 @@ export interface EmailJobInput {
   metadata?: Record<string, unknown>;
   priority?: number;
   maxRetries?: number;
+  scheduledAt?: Date;
+  /** Clave de cancelación selectiva (e.g. "reminder:{documentId}:{userId}"). Permite cancelar el job sin conocer su id. */
+  groupKey?: string;
 }
 
 export class EmailQueueService {
@@ -103,6 +107,7 @@ export class EmailQueueService {
     const where: FindOptionsWhere<EmailJobEntity> = {};
     if (filters.status) where.status = filters.status;
     if (filters.correlationId) where.correlationId = filters.correlationId;
+    if (filters.groupKey) where.groupKey = filters.groupKey;
     if (filters.from && filters.to) {
       where.createdAt = Between(filters.from, filters.to);
     } else if (filters.from) {
@@ -161,7 +166,16 @@ export class EmailQueueService {
       priority: input.priority ?? 0,
       correlationId: input.correlationId,
       metadata: input.metadata,
-      nextRetryAt: new Date(),
+      nextRetryAt: input.scheduledAt ?? new Date(),
+      groupKey: input.groupKey,
     };
+  }
+
+  async cancelPendingByGroupKey(groupKey: string): Promise<number> {
+    const result = await this.repo.update(
+      { groupKey, status: EmailJobStatus.PENDING },
+      { status: EmailJobStatus.CANCELLED },
+    );
+    return result.affected ?? 0;
   }
 }

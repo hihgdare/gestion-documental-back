@@ -82,6 +82,12 @@ export class CreateEmailJobsTable1782911332623 extends ImprovedRunner {
             isNullable: true,
           },
           {
+            name: 'group_key',
+            type: 'varchar',
+            length: '100',
+            isNullable: true,
+          },
+          {
             name: 'metadata',
             type: 'json',
             isNullable: true,
@@ -116,6 +122,14 @@ export class CreateEmailJobsTable1782911332623 extends ImprovedRunner {
       new TableIndex({
         name: 'IDX_email_jobs_correlation_id',
         columnNames: ['correlation_id'],
+      }),
+    );
+
+    await queryRunner.createIndex(
+      'email_jobs',
+      new TableIndex({
+        name: 'IDX_email_jobs_group_key',
+        columnNames: ['group_key'],
       }),
     );
   }

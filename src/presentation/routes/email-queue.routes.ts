@@ -11,6 +11,7 @@ export const createEmailQueueRoutes = (controller: EmailQueueController): Router
   router.get('/stats', authorize('email-queue:admin'), controller.getStats);
   router.get('/', authorize('email-queue:admin'), controller.listJobs);
   router.post('/:id/retry', authorize('email-queue:admin'), controller.retryJob);
+  router.post('/cancel/:groupKey', authorize('email-queue:admin'), controller.cancelByGroupKey);
 
   return router;
 };

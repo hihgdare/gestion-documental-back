@@ -33,4 +33,10 @@ export class EmailQueueController {
     const job = await this.emailQueueService.retryAbandoned(id);
     res.status(200).json({ success: true, data: job });
   });
+
+  cancelByGroupKey = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { groupKey } = req.params;
+    const cancelled = await this.emailQueueService.cancelPendingByGroupKey(decodeURIComponent(groupKey));
+    res.status(200).json({ success: true, data: { cancelled } });
+  });
 }

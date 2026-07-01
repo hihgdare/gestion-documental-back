@@ -13,6 +13,7 @@ export enum EmailJobStatus {
   SENT = 'sent',
   FAILED = 'failed',
   ABANDONED = 'abandoned',
+  CANCELLED = 'cancelled',
 }
 
 @Entity('email_jobs')
@@ -58,6 +59,10 @@ export class EmailJobEntity {
   /** Identificador de correlación (e.g. signature_flow_id) para agrupar jobs de un mismo batch */
   @Column({ name: 'correlation_id', type: 'varchar', length: 36, nullable: true })
   correlationId?: string;
+
+  /** Clave de cancelación selectiva (e.g. "reminder:{documentId}:{userId}") para anular jobs pendientes sin conocer su id */
+  @Column({ name: 'group_key', type: 'varchar', length: 100, nullable: true })
+  groupKey?: string;
 
   /** Contexto adicional: document_id, email_type, etc. */
   @Column({ type: 'json', nullable: true })
