@@ -21,6 +21,7 @@ export const updateUserSchema = Joi.object({
   lastName: Joi.string().min(2).max(50).optional(),
   roleIds: Joi.array().items(Joi.number().integer()).optional(),
   status: Joi.string().valid(...Object.values(UserStatus)).optional(),
+  skipEmail: Joi.boolean().optional(),
 }).min(1);
 
 export const getUserByIdSchema = Joi.object({
