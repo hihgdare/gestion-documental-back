@@ -33,6 +33,7 @@ import { createSignatureRoutes } from '@presentation/routes/signature.routes';
 import { createSignatureFlowRoutes } from '@presentation/routes/signature-flow.routes';
 import { createExternalParticipantRoutes } from '@presentation/routes/external-participant.routes';
 import { createEmailQueueRoutes } from '@presentation/routes/email-queue.routes';
+import { createLandingSettingsRoutes } from '@presentation/routes/landing-settings.routes';
 import { DependencyContainer } from './dependency-container';
 import { runInitialSeedsIfEmpty } from '@shared/infrastructure/database/seeds/initial-seeds';
 import { RouteError } from '@shared/domain/errors';
@@ -150,6 +151,7 @@ export class App {
           companies: '/api/companies',
           areas: '/api/areas',
           divisions: '/api/divisions',
+          landingSettings: '/api/landing-settings',
           files: '/api/files',
           auth: {
             login: '/api/auth/login',
@@ -185,6 +187,7 @@ export class App {
     const signatureController = this.dependencyContainer.getSignatureController();
     const signatureFlowController = this.dependencyContainer.getSignatureFlowController();
     const emailQueueController = this.dependencyContainer.getEmailQueueController();
+    const landingSettingsController = this.dependencyContainer.getLandingSettingsController();
 
     // Get use cases and repositories needed for middleware
     const checkUserCanReviewContractUseCase = this.dependencyContainer.getCheckUserCanReviewContractUseCase();
@@ -225,6 +228,7 @@ export class App {
     this.app.use('/api/external-access', createExternalParticipantRoutes(externalParticipantController));
 
     this.app.use('/api/admin/email-queue', createEmailQueueRoutes(emailQueueController));
+    this.app.use('/api/landing-settings', createLandingSettingsRoutes(landingSettingsController));
 
     // Auth routes
     this.app.use('/api/auth', createAuthRoutes(authController));

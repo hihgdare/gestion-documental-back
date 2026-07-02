@@ -160,6 +160,11 @@ import { ListAreasUseCase } from '@domains/area/use-cases/list-areas.use-case';
 import { UpdateAreaUseCase } from '@domains/area/use-cases/update-area.use-case';
 import { DeleteAreaUseCase } from '@domains/area/use-cases/delete-area.use-case';
 
+// Landing settings domain
+import { GetLandingSettingsUseCase } from '@domains/landing-settings/use-cases/get-landing-settings.use-case';
+import { UpdateLandingSettingsUseCase } from '@domains/landing-settings/use-cases/update-landing-settings.use-case';
+import { SubmitLandingContactUseCase } from '@domains/landing-settings/use-cases/submit-landing-contact.use-case';
+
 // Division domain
 import { CreateDivisionUseCase } from '@domains/division/use-cases/create-division.use-case';
 import { GetDivisionUseCase } from '@domains/division/use-cases/get-division.use-case';
@@ -171,6 +176,7 @@ import { TypeOrmFamilyRepository } from '@shared/infrastructure/repositories/typ
 import { TypeOrmDocumentModelRepository } from '@shared/infrastructure/repositories/typeorm-document-model.repository';
 import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
 import { TypeOrmAreaRepository } from '@shared/infrastructure/repositories/typeorm-area.repository';
+import { TypeOrmLandingSettingsRepository } from '@shared/infrastructure/repositories/typeorm-landing-settings.repository';
 import { TypeOrmDivisionRepository } from '@shared/infrastructure/repositories/typeorm-division.repository';
 // Repositories
 import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeorm-user.repository';
@@ -282,6 +288,7 @@ import {
 import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
 import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
 import { EmailQueueController } from '@presentation/controllers/email-queue.controller';
+import { LandingSettingsController } from '@presentation/controllers/landing-settings.controller';
 
 export class DependencyContainer {
   // Repositories
@@ -304,6 +311,7 @@ export class DependencyContainer {
   private groupRepository!: TypeOrmGroupRepository;
   private companyRepository!: TypeOrmCompanyRepository;
   private areaRepository!: TypeOrmAreaRepository;
+  private landingSettingsRepository!: TypeOrmLandingSettingsRepository;
   private divisionRepository!: TypeOrmDivisionRepository;
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
   private fileShareRepository!: TypeOrmFileShareRepository;
@@ -486,6 +494,11 @@ export class DependencyContainer {
   private updateAreaUseCase!: UpdateAreaUseCase;
   private deleteAreaUseCase!: DeleteAreaUseCase;
 
+  // Use Cases - Landing settings
+  private getLandingSettingsUseCase!: GetLandingSettingsUseCase;
+  private updateLandingSettingsUseCase!: UpdateLandingSettingsUseCase;
+  private submitLandingContactUseCase!: SubmitLandingContactUseCase;
+
   // Use Cases - Division
   private createDivisionUseCase!: CreateDivisionUseCase;
   private getDivisionUseCase!: GetDivisionUseCase;
@@ -511,6 +524,7 @@ export class DependencyContainer {
   private authController!: AuthController;
   private companyController!: CompanyController;
   private areaController!: AreaController;
+  private landingSettingsController!: LandingSettingsController;
   private divisionController!: DivisionController;
   private fileController!: FileController;
   private bulkTemplateController!: BulkTemplateController;
@@ -583,6 +597,7 @@ export class DependencyContainer {
     this.groupRepository = new TypeOrmGroupRepository();
     this.companyRepository = new TypeOrmCompanyRepository();
     this.areaRepository = new TypeOrmAreaRepository();
+    this.landingSettingsRepository = new TypeOrmLandingSettingsRepository();
     this.divisionRepository = new TypeOrmDivisionRepository();
     this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
     this.fileShareRepository = new TypeOrmFileShareRepository();
@@ -1010,6 +1025,17 @@ export class DependencyContainer {
       this.deleteAreaUseCase,
     );
 
+    // Initialize Landing settings use cases
+    this.getLandingSettingsUseCase = new GetLandingSettingsUseCase(this.landingSettingsRepository);
+    this.updateLandingSettingsUseCase = new UpdateLandingSettingsUseCase(this.landingSettingsRepository);
+    this.submitLandingContactUseCase = new SubmitLandingContactUseCase(this.landingSettingsRepository, this.emailQueueService);
+
+    this.landingSettingsController = new LandingSettingsController(
+      this.getLandingSettingsUseCase,
+      this.updateLandingSettingsUseCase,
+      this.submitLandingContactUseCase,
+    );
+
     // Initialize Division use cases
     this.createDivisionUseCase = new CreateDivisionUseCase(this.divisionRepository);
     this.getDivisionUseCase = new GetDivisionUseCase(this.divisionRepository);
@@ -1337,6 +1363,10 @@ export class DependencyContainer {
 
   public getAreaController(): AreaController {
     return this.areaController;
+  }
+
+  public getLandingSettingsController(): LandingSettingsController {
+    return this.landingSettingsController;
   }
 
   public getDivisionController(): DivisionController {
