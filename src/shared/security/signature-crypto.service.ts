@@ -11,11 +11,11 @@ export class SignatureCryptoService {
   private readonly secret: string;
 
   constructor() {
-    const secret = process.env.SIGNATURE_SECRET ?? process.env.JWT_SECRET;
+    const secret = process.env.SIGNATURE_SECRET;
     if (!secret) {
-      console.warn('[SignatureCryptoService] SIGNATURE_SECRET not set. Falling back to JWT_SECRET.');
+      throw new Error('El servicio de firma electrónica no está disponible en este momento.');
     }
-    this.secret = secret ?? 'changeme-signature-secret';
+    this.secret = secret;
   }
 
   /**
