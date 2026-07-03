@@ -42,7 +42,7 @@ export class SubmitLandingContactUseCase {
 
     await this.emailQueueService.enqueue({
       to: recipients,
-      subject: `Nuevo contacto desde la landing – ${input.empresa}`,
+      subject: `Nuevo contacto desde Primacta – ${input.empresa}`,
       html: `<!DOCTYPE html><html lang="es"><body style="font-family:Arial,sans-serif;color:#333;">
         <h2 style="color:#1a3c5e;">Nuevo mensaje desde el formulario de contacto</h2>
         <table cellpadding="0" cellspacing="0">${rows}</table>
