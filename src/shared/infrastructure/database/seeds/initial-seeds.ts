@@ -48,6 +48,9 @@ const extraPermissions = [
   'signature:read',
   'signature:delete',
   'signature-flow:report:read',
+  'email-queue:admin',
+  'landing-settings:read',
+  'landing-settings:update',
 ];
 
 // Otros permisos que no se deben agregar a los roles de admin

@@ -463,3 +463,24 @@ export const processSignatureFlowParticipantActionSchema = Joi.object({
   action: Joi.string().valid('approve', 'reject').required(),
   comment: Joi.string().max(1000).optional().allow('', null),
 });
+
+// Landing settings schemas
+export const updateLandingSettingsSchema = Joi.object({
+  phone: Joi.string().trim().max(50).optional().allow('', null),
+  email: Joi.string().trim().email().max(255).optional().allow('', null),
+  address: Joi.string().trim().max(500).optional().allow('', null),
+  showPhone: Joi.boolean().optional(),
+  showEmail: Joi.boolean().optional(),
+  showAddress: Joi.boolean().optional(),
+  notificationEmails: Joi.array().items(Joi.string().trim().email()).optional(),
+});
+
+export const submitLandingContactSchema = Joi.object({
+  nombre: Joi.string().trim().min(1).max(100).required(),
+  apellido: Joi.string().trim().min(1).max(100).required(),
+  correo: Joi.string().trim().email().max(255).required(),
+  cargo: Joi.string().trim().min(1).max(100).required(),
+  empresa: Joi.string().trim().min(1).max(150).required(),
+  telefono: Joi.string().trim().min(1).max(50).required(),
+  mensaje: Joi.string().trim().min(1).max(5000).required(),
+});
