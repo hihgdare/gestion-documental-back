@@ -1,6 +1,7 @@
 import { LandingSettingsRepository } from "../repositories/landing-settings.repository";
 import { EmailQueueService } from "@shared/infrastructure/email/email-queue.service";
 import { ValidationError } from "@shared/domain/errors";
+import { buildPrimactaEmailShell } from "@shared/infrastructure/email/templates/primacta-notification-email.template";
 
 export interface SubmitLandingContactInput {
   nombre: string;
@@ -36,17 +37,20 @@ export class SubmitLandingContactUseCase {
       throw new ValidationError("No hay correos de destino configurados para el formulario de contacto");
     }
 
+    const title = "Nuevo mensaje desde el formulario de contacto";
     const rows = (Object.keys(FIELD_LABELS) as (keyof SubmitLandingContactInput)[])
-      .map((key) => `<tr><td style="padding:6px 12px;font-weight:bold;color:#1a3c5e;">${FIELD_LABELS[key]}</td><td style="padding:6px 12px;">${escapeHtml(input[key])}</td></tr>`)
+      .map((key) => `<tr><td style="padding:8px 12px;font-weight:bold;color:#0F1117;border-bottom:1px solid #E5E7EB;">${FIELD_LABELS[key]}</td><td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;">${escapeHtml(input[key])}</td></tr>`)
       .join("");
+
+    const bodyHtml = `
+      <h2 style="color:#0F1117;margin-top:0;font-size:20px;">${title}</h2>
+      <table cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">${rows}</table>
+    `;
 
     await this.emailQueueService.enqueue({
       to: recipients,
       subject: `Nuevo contacto desde Primacta – ${input.empresa}`,
-      html: `<!DOCTYPE html><html lang="es"><body style="font-family:Arial,sans-serif;color:#333;">
-        <h2 style="color:#1a3c5e;">Nuevo mensaje desde el formulario de contacto</h2>
-        <table cellpadding="0" cellspacing="0">${rows}</table>
-      </body></html>`,
+      html: buildPrimactaEmailShell({ title, bodyHtml }),
       text: (Object.keys(FIELD_LABELS) as (keyof SubmitLandingContactInput)[])
         .map((key) => `${FIELD_LABELS[key]}: ${input[key]}`)
         .join("\n"),

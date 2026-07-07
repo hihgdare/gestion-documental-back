@@ -188,19 +188,20 @@ export class RequestExternalSignerOtpUseCase {
     }
 
     const title = 'Código de firma electrónica';
-    const message = `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
+    const message = 'Usa el siguiente código para continuar con el proceso de firma:';
+    const warningMessage = `Este código es válido por ${OTP_EXPIRY_MINUTES} minutos y solo puede utilizarse una vez. No lo compartas con nadie.`;
     const html = buildPrimactaNotificationEmail({
       title,
       recipientName: participant.externalName ?? 'Participante',
       message,
-      actionLabel: undefined,
-      actionUrl: undefined,
+      code: otpCode,
+      warningMessage,
     });
 
     await this.emailService.send({
       to: externalEmail,
       subject: title,
-      text: message,
+      text: `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
       html,
     });
 
