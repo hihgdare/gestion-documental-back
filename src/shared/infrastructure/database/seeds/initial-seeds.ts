@@ -48,7 +48,7 @@ const extraPermissions = [
   'signature:read',
   'signature:delete',
   'signature-flow:report:read',
-  'email-queue:admin',
+  'admin:email-queue',
   'landing-settings:read',
   'landing-settings:update',
 ];
