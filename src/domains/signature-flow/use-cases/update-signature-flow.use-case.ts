@@ -4,6 +4,7 @@ import { type SignatureFlowRepository } from '../repositories/signature-flow.rep
 import { type SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { SignatureFlowStatus } from '../value-objects/signature-flow-enums';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 
 export interface UpdateSignatureFlowInput {
   id: string;
@@ -30,6 +31,7 @@ export class UpdateSignatureFlowUseCase {
 export interface AddParticipantInput {
   flowId: string;
   userId?: string;
+  colaboratorId?: string;
   externalName?: string;
   externalEmail?: string;
   role: string;
@@ -40,6 +42,7 @@ export class AddParticipantToFlowUseCase {
   constructor(
     private readonly flowRepository: SignatureFlowRepository,
     private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly colaboratorRepository: ColaboratorRepository,
   ) {}
 
   async execute(input: AddParticipantInput): Promise<SignatureFlowParticipant> {
@@ -50,11 +53,22 @@ export class AddParticipantToFlowUseCase {
       throw new ValidationError('Solo se pueden agregar participantes a un flujo en estado borrador');
     }
 
+    let externalName = input.externalName ?? null;
+    let externalEmail = input.externalEmail ?? null;
+
+    if (input.colaboratorId) {
+      const colaborator = await this.colaboratorRepository.findById(input.colaboratorId);
+      if (!colaborator) throw new ValidationError('El colaborador seleccionado no existe');
+      externalName = colaborator.getNombreCompleto();
+      externalEmail = colaborator.email;
+    }
+
     const props: SignatureFlowParticipantProps = {
       flowId: input.flowId,
       userId: input.userId ?? null,
-      externalName: input.externalName ?? null,
-      externalEmail: input.externalEmail ?? null,
+      colaboratorId: input.colaboratorId ?? null,
+      externalName,
+      externalEmail,
       role: input.role,
       order: input.order ?? null,
     };

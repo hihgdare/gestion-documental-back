@@ -9,6 +9,7 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
+import { ColaboratorEntity } from './colaborators.entity';
 import { SignatureFlowEntity } from './signature-flow.entity';
 import { EnumColumn } from './utils/decorators';
 import {
@@ -19,6 +20,7 @@ import {
 @Entity('signature_flow_participants')
 @Index('IDX_signature_flow_participants_flow_id', ['flowId'])
 @Index('IDX_signature_flow_participants_user_id', ['userId'])
+@Index('IDX_signature_flow_participants_colaborator_id', ['colaboratorId'])
 @Index('IDX_signature_flow_participants_status', ['status'])
 export class SignatureFlowParticipantEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -37,6 +39,13 @@ export class SignatureFlowParticipantEntity {
   @ManyToOne(() => UserEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user?: UserEntity;
+
+  @Column({ name: 'colaborator_id', type: 'varchar', length: 36, nullable: true })
+  colaboratorId?: string;
+
+  @ManyToOne(() => ColaboratorEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'colaborator_id' })
+  colaborator?: ColaboratorEntity;
 
   @Column({ name: 'external_name', type: 'varchar', length: 255, nullable: true })
   externalName?: string;

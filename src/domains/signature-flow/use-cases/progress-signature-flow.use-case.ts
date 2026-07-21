@@ -12,6 +12,7 @@ import {
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
 import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureStatus } from '@domains/signature/value-objects/signature-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureRepository } from '@domains/signature/repositories/signature.repository';
@@ -193,9 +194,11 @@ export class ProcessFlowParticipantActionUseCase {
     participant.actionAt = new Date();
     await this.participantRepository.update(participant);
 
-    const externalDisplayName = participant.externalName
-      ? `${participant.externalName} (Externo)`
-      : 'Participante externo';
+    const externalDisplayName = participant.colaboratorId
+      ? (participant.externalName ?? 'Colaborador')
+      : participant.externalName
+        ? `${participant.externalName} (Externo)`
+        : 'Participante externo';
 
     await this.documentHistoryRepository.save({
       documentId: document.id,
@@ -235,9 +238,11 @@ export class ProcessFlowParticipantActionUseCase {
 
     const document = await this.documentRepository.findById(flow.documentId);
     if (document) {
-      const externalDisplayName = participant.externalName
-        ? `${participant.externalName} (Externo)`
-        : 'Firmante externo';
+      const externalDisplayName = participant.colaboratorId
+        ? (participant.externalName ?? 'Colaborador')
+        : participant.externalName
+          ? `${participant.externalName} (Externo)`
+          : 'Firmante externo';
 
       await this.documentHistoryRepository.save({
         documentId: document.id,
@@ -322,7 +327,16 @@ export class ProcessFlowParticipantActionUseCase {
       const rejectionReason = rejectedParticipants[0]?.rejectionComment?.trim() || 'Sin motivo proporcionado';
 
       flow.status = SignatureFlowStatus.REJECTED;
-      document.status = DocumentStatus.REJECTED_FOR_SIGN;
+
+      // Si el documento venía "aprobado" antes de entrar al flujo, no pierde ese atributo:
+      // el rechazo se representa con signatureStatus, no moviendo el status a rejected_for_sign.
+      if (document.preFlowStatus === DocumentStatus.APPROVED) {
+        document.status = DocumentStatus.APPROVED;
+        document.preFlowStatus = null;
+      } else {
+        document.status = DocumentStatus.REJECTED_FOR_SIGN;
+      }
+      document.signatureStatus = SignatureStatus.REJECTED;
       document.comment = rejectionReason;
 
       await this.flowRepository.update(flow);
@@ -439,6 +453,8 @@ export class ProcessFlowParticipantActionUseCase {
     if (flow.status === SignatureFlowStatus.IN_SIGNING && allSignersSigned) {
       flow.status = SignatureFlowStatus.SIGNED;
       document.status = DocumentStatus.SIGNED;
+      document.signatureStatus = SignatureStatus.SIGNED;
+      document.preFlowStatus = null;
       await this.flowRepository.update(flow);
       await this.documentRepository.update(document);
 

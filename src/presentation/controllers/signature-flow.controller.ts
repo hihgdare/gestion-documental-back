@@ -144,10 +144,11 @@ export class SignatureFlowController {
 
   addParticipant = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { userId, externalName, externalEmail, role, order } = req.body;
+    const { userId, colaboratorId, externalName, externalEmail, role, order } = req.body;
     const participant = await this.addParticipantToFlowUseCase.execute({
       flowId: id,
       userId,
+      colaboratorId,
       externalName,
       externalEmail,
       role,
@@ -201,6 +202,7 @@ export class SignatureFlowController {
       id: p.id,
       flowId: p.flowId,
       userId: p.userId,
+      colaboratorId: p.colaboratorId,
       externalName: p.externalName,
       externalEmail: p.externalEmail,
       role: p.role,

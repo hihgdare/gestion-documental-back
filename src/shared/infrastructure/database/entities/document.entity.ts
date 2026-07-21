@@ -72,6 +72,9 @@ export class DocumentEntity {
   @Column({ name: 'signature_status', type: 'varchar', length: 50, nullable: true })
   signatureStatus?: string;
 
+  @Column({ name: 'pre_flow_status', type: 'varchar', length: 50, nullable: true })
+  preFlowStatus?: string | null;
+
   @Column({ name: 'signature_flow_id', type: 'varchar', length: 36, nullable: true })
   signatureFlowId?: string;
 

@@ -10,6 +10,7 @@ export interface SignatureFlowParticipantProps {
   id?: string;
   flowId: string;
   userId?: string | null;
+  colaboratorId?: string | null;
   externalName?: string | null;
   externalEmail?: string | null;
   role: string;
@@ -25,6 +26,7 @@ export class SignatureFlowParticipant {
   id: string;
   flowId: string;
   userId: string | null;
+  colaboratorId: string | null;
   externalName: string | null;
   externalEmail: string | null;
   role: SignatureFlowParticipantRole;
@@ -41,6 +43,7 @@ export class SignatureFlowParticipant {
     EntityUtils.assign(this as SignatureFlowParticipant, props, {
       id: 'uuid',
       userId: (v?: string | null) => v ?? null,
+      colaboratorId: (v?: string | null) => v ?? null,
       externalName: (v?: string | null) => v ?? null,
       externalEmail: (v?: string | null) => v ?? null,
       role: (v: string) => parseEnum(v, SignatureFlowParticipantRole) ?? SignatureFlowParticipantRole.SIGNER,
@@ -65,8 +68,8 @@ export class SignatureFlowParticipant {
     if (!props.flowId || props.flowId.trim().length === 0) {
       throw new ValidationError('El ID del flujo es requerido');
     }
-    if (!props.userId && !props.externalEmail) {
-      throw new ValidationError('Se requiere un usuario del sistema o un correo externo');
+    if (!props.userId && !props.externalEmail && !props.colaboratorId) {
+      throw new ValidationError('Se requiere un usuario del sistema, un colaborador o un correo externo');
     }
     const validRoles = Object.values(SignatureFlowParticipantRole) as string[];
     if (!props.role || !validRoles.includes(props.role)) {

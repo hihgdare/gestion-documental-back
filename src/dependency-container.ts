@@ -1205,6 +1205,7 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
       this.signatureFlowNotificationService,
+      this.colaboratorRepository,
       this.externalParticipantTokenRepository,
       this.emailQueueService,
     );
@@ -1226,6 +1227,7 @@ export class DependencyContainer {
     this.addParticipantToFlowUseCase = new AddParticipantToFlowUseCase(
       this.signatureFlowRepository,
       this.signatureFlowParticipantRepository,
+      this.colaboratorRepository,
     );
     this.removeParticipantFromFlowUseCase = new RemoveParticipantFromFlowUseCase(
       this.signatureFlowRepository,
@@ -1260,6 +1262,7 @@ export class DependencyContainer {
       this.signatureFlowParticipantRepository,
       this.signatureCryptoService,
       this.processFlowParticipantActionUseCase,
+      this.colaboratorRepository,
     );
     this.externalParticipantController = new ExternalParticipantController(
       getExternalAccessUseCase,
