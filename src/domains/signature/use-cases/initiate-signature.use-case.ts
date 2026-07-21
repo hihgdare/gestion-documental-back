@@ -7,6 +7,7 @@ import { SignatureVerificationCode } from '../entities/signature-verification-co
 import { SignatureStatus, SignatureType, SignatureMethod } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
+import { buildPrimactaNotificationEmail } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
@@ -138,10 +139,19 @@ export class InitiateSignatureUseCase {
 
       await this.sendSmsCode(resolvedPhone, otpCode);
     } else {
+      const title = 'Código de verificación para firma de documento';
+      const html = buildPrimactaNotificationEmail({
+        title,
+        recipientName: user.firstName,
+        message: `Has iniciado el proceso de firma para el documento: ${document.name}. Usa el siguiente código para continuar:`,
+        code: otpCode,
+        warningMessage: `Este código es válido por ${OTP_EXPIRY_MINUTES} minutos y solo puede utilizarse una vez. No lo compartas con nadie.`,
+      });
+
       const emailSent = await this.emailService.send({
         to: user.email.toString(),
-        subject: 'Código de verificación para firma de documento',
-        html: this.buildEmailHtml(otpCode, document.name, OTP_EXPIRY_MINUTES),
+        subject: title,
+        html,
         text: `Su código de verificación es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
       });
 
@@ -170,26 +180,6 @@ export class InitiateSignatureUseCase {
     if (pendingOrders.length === 0) return true;
 
     return participant.order === Math.min(...pendingOrders);
-  }
-
-  private buildEmailHtml(code: string, documentName: string, expiryMinutes: number): string {
-    return `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #1a1a1a;">Código de verificación de firma</h2>
-        <p>Has iniciado el proceso de firma para el documento:</p>
-        <p style="font-weight: bold;">${documentName}</p>
-        <p>Tu código de verificación es:</p>
-        <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #2563eb;
-                    background: #f0f4ff; padding: 16px 24px; border-radius: 8px;
-                    text-align: center; margin: 16px 0;">
-          ${code}
-        </div>
-        <p style="color: #666; font-size: 14px;">
-          Este código es válido por ${expiryMinutes} minutos y solo puede utilizarse una vez.
-          No lo compartas con nadie.
-        </p>
-      </div>
-    `;
   }
 
   private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<void> {

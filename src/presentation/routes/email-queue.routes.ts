@@ -8,10 +8,10 @@ export const createEmailQueueRoutes = (controller: EmailQueueController): Router
 
   router.use(auth);
 
-  router.get('/stats', authorize('email-queue:admin'), controller.getStats);
-  router.get('/', authorize('email-queue:admin'), controller.listJobs);
-  router.post('/:id/retry', authorize('email-queue:admin'), controller.retryJob);
-  router.post('/cancel/:groupKey', authorize('email-queue:admin'), controller.cancelByGroupKey);
+  router.get('/stats', authorize('admin:email-queue'), controller.getStats);
+  router.get('/', authorize('admin:email-queue'), controller.listJobs);
+  router.post('/:id/retry', authorize('admin:email-queue'), controller.retryJob);
+  router.post('/cancel/:groupKey', authorize('admin:email-queue'), controller.cancelByGroupKey);
 
   return router;
 };
