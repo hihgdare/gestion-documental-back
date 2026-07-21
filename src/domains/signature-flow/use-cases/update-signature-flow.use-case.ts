@@ -9,6 +9,7 @@ import { ColaboratorRepository } from '@domains/colaborators/repositories/colabo
 export interface UpdateSignatureFlowInput {
   id: string;
   orderType?: string;
+  signerOrderType?: string;
 }
 
 export class UpdateSignatureFlowUseCase {
@@ -23,6 +24,7 @@ export class UpdateSignatureFlowUseCase {
     }
 
     if (input.orderType) flow.orderType = input.orderType as any;
+    if (input.signerOrderType) flow.signerOrderType = input.signerOrderType as any;
 
     return this.repository.update(flow);
   }

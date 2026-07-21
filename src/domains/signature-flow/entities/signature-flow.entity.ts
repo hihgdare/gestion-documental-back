@@ -10,6 +10,7 @@ export interface SignatureFlowProps {
   id?: string;
   documentId: string;
   orderType?: string;
+  signerOrderType?: string;
   status?: string;
   sentAt?: Date | null;
   sentBy?: string | null;
@@ -21,6 +22,7 @@ export class SignatureFlow {
   id: string;
   documentId: string;
   orderType: SignatureFlowOrderType;
+  signerOrderType: SignatureFlowOrderType;
   status: SignatureFlowStatus;
   sentAt: Date | null;
   sentBy: string | null;
@@ -33,6 +35,7 @@ export class SignatureFlow {
     EntityUtils.assign(this as SignatureFlow, props, {
       id: 'uuid',
       orderType: (v?: string) => parseEnum(v, SignatureFlowOrderType) ?? SignatureFlowOrderType.SEQUENTIAL,
+      signerOrderType: (v?: string) => parseEnum(v, SignatureFlowOrderType) ?? SignatureFlowOrderType.PARALLEL,
       status: (v?: string) => parseEnum(v, SignatureFlowStatus) ?? SignatureFlowStatus.DRAFT,
       sentAt: 'datetimeNullable',
       sentBy: (v?: string | null) => v ?? null,

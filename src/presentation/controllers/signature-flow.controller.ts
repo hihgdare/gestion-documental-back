@@ -37,11 +37,12 @@ export class SignatureFlowController {
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.auth!.user!.id;
-    const { documentId, orderType, participants } = req.body;
+    const { documentId, orderType, signerOrderType, participants } = req.body;
 
     const flow = await this.createSignatureFlowUseCase.execute({
       documentId,
       orderType,
+      signerOrderType,
       sentBy: userId,
       participants,
     });
@@ -137,8 +138,8 @@ export class SignatureFlowController {
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { orderType } = req.body;
-    const flow = await this.updateSignatureFlowUseCase.execute({ id, orderType });
+    const { orderType, signerOrderType } = req.body;
+    const flow = await this.updateSignatureFlowUseCase.execute({ id, orderType, signerOrderType });
     res.status(200).json({ success: true, data: this.flowToDto(flow) });
   });
 
@@ -189,6 +190,7 @@ export class SignatureFlowController {
       id: flow.id,
       documentId: flow.documentId,
       orderType: flow.orderType,
+      signerOrderType: flow.signerOrderType,
       status: flow.status,
       sentAt: flow.sentAt?.toISOString() ?? null,
       sentBy: flow.sentBy,

@@ -87,7 +87,7 @@ export class InitiateSignatureUseCase {
         participant.role === SignatureFlowParticipantRole.SIGNER
         && participant.userId === userId
         && participant.status === SignatureFlowParticipantStatus.PENDING
-        && this.isCurrentStepSigner(participant, participants, activeFlow.orderType)
+        && this.isCurrentStepSigner(participant, participants, activeFlow.signerOrderType)
       ));
 
       if (!pendingSigner) {

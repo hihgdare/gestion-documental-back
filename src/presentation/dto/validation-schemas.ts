@@ -445,12 +445,14 @@ const signatureFlowParticipantSchema = Joi.object({
 export const createSignatureFlowSchema = Joi.object({
   documentId: Joi.string().uuid().required(),
   orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+  signerOrderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
   participants: Joi.array().items(signatureFlowParticipantSchema).min(1).required(),
 });
 
 export const updateSignatureFlowSchema = Joi.object({
-  orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).required(),
-});
+  orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+  signerOrderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+}).or('orderType', 'signerOrderType');
 
 export const addSignatureFlowParticipantSchema = Joi.object({
   userId: Joi.string().uuid().optional(),

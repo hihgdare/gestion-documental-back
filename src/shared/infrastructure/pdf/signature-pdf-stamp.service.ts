@@ -23,16 +23,10 @@ export interface SignerStampData {
   tokenHash: string;
 }
 
-export interface ValidatorStampData {
-  validatorName: string;
-  actionAt: Date;
-}
-
 export interface ConsolidatedStampData {
   documentId: string;
   completedAt: Date;
   verifyUrl: string;
-  validators: ValidatorStampData[];
   signers: SignerStampData[];
 }
 
@@ -177,12 +171,9 @@ export class SignaturePdfStampService {
     const QR_SIZE = 70;
     const HEADER_H = QR_SIZE + 20; // tall enough to fit the QR with vertical padding
     const SIGNER_ROW_H = 60; // per signer (rect + gap below), no QR needed
-    const VALIDATOR_ROW_H = 12;
-    const hasValidators = data.validators.length > 0;
 
     const pageHeight = MARGIN * 2
       + HEADER_H
-      + (hasValidators ? 20 + data.validators.length * VALIDATOR_ROW_H : 0)
       + 14 + data.signers.length * SIGNER_ROW_H
       + 21; // footer
 
@@ -236,23 +227,6 @@ export class SignaturePdfStampService {
 
     // Advance y past the full header section (including QR height)
     y = pageHeight - MARGIN - HEADER_H;
-
-    // ── VALIDATORS ──
-    if (hasValidators) {
-      stampPage.drawText('VALIDADORES', {
-        x: contentX, y, size: 8, font: boldFont, color: rgb(0.2, 0.2, 0.2),
-      });
-      y -= 14;
-
-      for (const v of data.validators) {
-        stampPage.drawText(`${v.validatorName}  -  Aprobado: ${this.formatSignedAt(v.actionAt)}`, {
-          x: contentX + PADDING, y, size: 7, font,
-          color: rgb(0.1, 0.45, 0.15), maxWidth: contentW - PADDING,
-        });
-        y -= VALIDATOR_ROW_H;
-      }
-      y -= 6;
-    }
 
     // ── SIGNERS (compact rows, no individual QR) ──
     stampPage.drawText('FIRMANTES', {

@@ -30,6 +30,7 @@ const ALLOWED_START_STATUSES = [
 export interface CreateSignatureFlowInput {
   documentId: string;
   orderType?: string;
+  signerOrderType?: string;
   sentBy?: string;
   participants: Array<{
     userId?: string;
@@ -91,6 +92,7 @@ export class CreateSignatureFlowUseCase {
     const flowProps: SignatureFlowProps = {
       documentId: input.documentId,
       orderType: input.orderType,
+      signerOrderType: input.signerOrderType,
       status: hasValidators ? SignatureFlowStatus.IN_REVIEW : SignatureFlowStatus.IN_SIGNING,
       sentAt: now,
       sentBy: input.sentBy ?? null,
@@ -153,17 +155,18 @@ export class CreateSignatureFlowUseCase {
     const validators = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
     const toNotify = validators.length > 0 ? validators : signers;
+    const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
     // Collect in-app notifications + email data for internal users
     const internalEmails = await this.notificationService.collectEmailsForParticipants(
       toNotify,
       document.id,
       document.name,
-      flow.orderType,
+      notifyOrderType,
     );
 
     // Generate tokens and collect email data for external participants
-    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(flow.orderType, toNotify);
+    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
     const externalEmails = await this.collectExternalEmails(firstStepExternal, document.name);
 
@@ -203,10 +206,11 @@ export class CreateSignatureFlowUseCase {
     const validators = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
     const toNotify = validators.length > 0 ? validators : signers;
+    const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
-    await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, flow.orderType);
+    await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, notifyOrderType);
 
-    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(flow.orderType, toNotify);
+    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
     await this.notifyExternalParticipants(firstStepExternal, document.name);
   }

@@ -74,16 +74,30 @@ export class TypeOrmSignatureFlowParticipantRepository implements SignatureFlowP
       })
       .andWhere(`
         (
-          flow.order_type != :sequentialOrderType
-          OR participant.\`order\` IS NULL
-          OR participant.\`order\` = (
-            SELECT MIN(p2.\`order\`)
-            FROM signature_flow_participants p2
-            WHERE p2.flow_id = participant.flow_id
-              AND p2.role = participant.role
-              AND p2.status = :participantPending
-              AND p2.\`order\` IS NOT NULL
-          )
+          (participant.role = 'validator' AND (
+            flow.order_type != :sequentialOrderType
+            OR participant.\`order\` IS NULL
+            OR participant.\`order\` = (
+              SELECT MIN(p2.\`order\`)
+              FROM signature_flow_participants p2
+              WHERE p2.flow_id = participant.flow_id
+                AND p2.role = participant.role
+                AND p2.status = :participantPending
+                AND p2.\`order\` IS NOT NULL
+            )
+          ))
+          OR (participant.role = 'signer' AND (
+            flow.signer_order_type != :sequentialOrderType
+            OR participant.\`order\` IS NULL
+            OR participant.\`order\` = (
+              SELECT MIN(p2.\`order\`)
+              FROM signature_flow_participants p2
+              WHERE p2.flow_id = participant.flow_id
+                AND p2.role = participant.role
+                AND p2.status = :participantPending
+                AND p2.\`order\` IS NOT NULL
+            )
+          ))
         )
       `, {
         sequentialOrderType: SignatureFlowOrderType.SEQUENTIAL,

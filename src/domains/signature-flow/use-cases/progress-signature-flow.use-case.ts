@@ -20,7 +20,6 @@ import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeo
 import {
   SignaturePdfStampService,
   SignerStampData,
-  ValidatorStampData,
 } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { Document } from '@domains/document/entities/document.entity';
 import { SignatureFlow } from '../entities/signature-flow.entity';
@@ -69,7 +68,7 @@ export class ProcessFlowParticipantActionUseCase {
       throw new ValidationError('El participante no está pendiente de acción');
     }
 
-    if (!this.isParticipantEnabledInCurrentStep(flow.orderType, participant, await this.participantRepository.findByFlowId(flow.id))) {
+    if (!this.isParticipantEnabledInCurrentStep(this.orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
       throw new ValidationError('Este participante aún no puede actuar por el orden configurado del flujo');
     }
 
@@ -128,7 +127,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.orderType, p, participants)
+      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return false;
@@ -274,7 +273,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.orderType, p, participants)
+      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return;
@@ -433,7 +432,7 @@ export class ProcessFlowParticipantActionUseCase {
 
       const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
       try {
-        await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.orderType);
+        await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.signerOrderType);
       } catch (err) {
         console.warn('[reconcileFlow] notifyParticipantsForCurrentStep failed (non-critical):', err);
       }
@@ -449,6 +448,42 @@ export class ProcessFlowParticipantActionUseCase {
 
     const allSignersSigned = signers.length > 0
       && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
+
+    // Sequential firmantes: notifica al siguiente firmante pendiente después de que uno firma.
+    // Análogo al bloque de validadores de arriba — sin esto el segundo firmante nunca sería notificado.
+    if (
+      flow.status === SignatureFlowStatus.IN_SIGNING
+      && !allSignersSigned
+      && flow.signerOrderType === SignatureFlowOrderType.SEQUENTIAL
+    ) {
+      const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
+      const nextSigner = pendingSigners
+        .filter((p) => p.order !== null)
+        .sort((a, b) => (a.order as number) - (b.order as number))[0]
+        ?? pendingSigners[0];
+
+      if (nextSigner) {
+        try {
+          await this.notificationService.notifyParticipantsForCurrentStep(
+            [nextSigner],
+            document.id,
+            document.name,
+            flow.signerOrderType,
+          );
+        } catch (err) {
+          console.warn('[reconcileFlow] notify next sequential signer failed (non-critical):', err);
+        }
+
+        if (nextSigner.isExternal && nextSigner.externalEmail) {
+          try {
+            await this.notifyExternalParticipants([nextSigner], document.name);
+          } catch (err) {
+            console.warn('[reconcileFlow] notifyExternalParticipants for next signer failed (non-critical):', err);
+          }
+        }
+      }
+      return;
+    }
 
     if (flow.status === SignatureFlowStatus.IN_SIGNING && allSignersSigned) {
       flow.status = SignatureFlowStatus.SIGNED;
@@ -499,22 +534,10 @@ export class ProcessFlowParticipantActionUseCase {
       const pdfPath = await this.resolvePdfPath(document.documentUrl);
       if (!pdfPath) return;
 
-      const approvedValidators = participants.filter(
-        (p) => p.role === SignatureFlowParticipantRole.VALIDATOR
-          && p.status === SignatureFlowParticipantStatus.APPROVED,
-      );
       const signedSigners = participants.filter(
         (p) => p.role === SignatureFlowParticipantRole.SIGNER
           && p.status === SignatureFlowParticipantStatus.SIGNED,
       );
-
-      const validatorData: ValidatorStampData[] = [];
-      for (const v of approvedValidators) {
-        const name = v.userId
-          ? await this.resolveUserName(v.userId)
-          : (v.externalName ?? 'Validador externo');
-        validatorData.push({ validatorName: name, actionAt: v.actionAt ?? new Date() });
-      }
 
       const documentSignatures = await this.signatureRepository.findByDocumentId(document.id);
       const signerData: SignerStampData[] = [];
@@ -566,7 +589,6 @@ export class ProcessFlowParticipantActionUseCase {
         documentId: document.id,
         completedAt: new Date(),
         verifyUrl,
-        validators: validatorData,
         signers: signerData,
       });
     } catch (err) {
@@ -601,12 +623,6 @@ export class ProcessFlowParticipantActionUseCase {
     }
   }
 
-  private async resolveUserName(userId: string): Promise<string> {
-    if (!this.userRepository) return userId;
-    const user = await this.userRepository.findById(userId);
-    return user ? `${user.firstName} ${user.lastName}` : userId;
-  }
-
   private async resolvePdfPath(documentUrl: string): Promise<string | null> {
     if (documentUrl.toLowerCase().endsWith('.pdf')) return documentUrl;
     if (!this.fileRepository) return null;
@@ -620,6 +636,10 @@ export class ProcessFlowParticipantActionUseCase {
 
     if (!isPdf || file.storage !== 'local') return null;
     return file.path;
+  }
+
+  private orderTypeForRole(flow: SignatureFlow, role: SignatureFlowParticipantRole): SignatureFlowOrderType {
+    return role === SignatureFlowParticipantRole.SIGNER ? flow.signerOrderType : flow.orderType;
   }
 
   private isParticipantEnabledInCurrentStep(

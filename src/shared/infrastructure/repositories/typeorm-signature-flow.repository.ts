@@ -72,16 +72,30 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       })
       .andWhere(`
         (
-          flow.order_type != :sequentialOrderType
-          OR participant.\`order\` IS NULL
-          OR participant.\`order\` = (
-            SELECT MIN(p2.\`order\`)
-            FROM signature_flow_participants p2
-            WHERE p2.flow_id = participant.flow_id
-              AND p2.role = participant.role
-              AND p2.status = :participantPending
-              AND p2.\`order\` IS NOT NULL
-          )
+          (participant.role = 'validator' AND (
+            flow.order_type != :sequentialOrderType
+            OR participant.\`order\` IS NULL
+            OR participant.\`order\` = (
+              SELECT MIN(p2.\`order\`)
+              FROM signature_flow_participants p2
+              WHERE p2.flow_id = participant.flow_id
+                AND p2.role = participant.role
+                AND p2.status = :participantPending
+                AND p2.\`order\` IS NOT NULL
+            )
+          ))
+          OR (participant.role = 'signer' AND (
+            flow.signer_order_type != :sequentialOrderType
+            OR participant.\`order\` IS NULL
+            OR participant.\`order\` = (
+              SELECT MIN(p2.\`order\`)
+              FROM signature_flow_participants p2
+              WHERE p2.flow_id = participant.flow_id
+                AND p2.role = participant.role
+                AND p2.status = :participantPending
+                AND p2.\`order\` IS NOT NULL
+            )
+          ))
         )
       `, {
         sequentialOrderType: SignatureFlowOrderType.SEQUENTIAL,
@@ -238,6 +252,7 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       id: entity.id,
       documentId: entity.documentId,
       orderType: entity.orderType,
+      signerOrderType: entity.signerOrderType,
       status: entity.status,
       sentAt: entity.sentAt ?? null,
       sentBy: entity.sentBy ?? null,
@@ -252,6 +267,7 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       id: flow.id,
       documentId: flow.documentId,
       orderType: flow.orderType,
+      signerOrderType: flow.signerOrderType,
       status: flow.status,
       sentAt: flow.sentAt ?? undefined,
       sentBy: flow.sentBy ?? undefined,

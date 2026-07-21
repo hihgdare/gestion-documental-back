@@ -30,6 +30,13 @@ export class SignatureFlowEntity {
   orderType!: string;
 
   @EnumColumn({
+    name: 'signer_order_type',
+    enum: Object.values(SignatureFlowOrderType),
+    default: SignatureFlowOrderType.PARALLEL,
+  })
+  signerOrderType!: string;
+
+  @EnumColumn({
     name: 'status',
     enum: Object.values(SignatureFlowStatus),
     default: SignatureFlowStatus.DRAFT,
