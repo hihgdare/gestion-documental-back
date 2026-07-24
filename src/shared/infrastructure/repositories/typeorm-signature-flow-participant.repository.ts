@@ -74,16 +74,30 @@ export class TypeOrmSignatureFlowParticipantRepository implements SignatureFlowP
       })
       .andWhere(`
         (
-          flow.order_type != :sequentialOrderType
-          OR participant.\`order\` IS NULL
-          OR participant.\`order\` = (
-            SELECT MIN(p2.\`order\`)
-            FROM signature_flow_participants p2
-            WHERE p2.flow_id = participant.flow_id
-              AND p2.role = participant.role
-              AND p2.status = :participantPending
-              AND p2.\`order\` IS NOT NULL
-          )
+          (participant.role = 'validator' AND (
+            flow.order_type != :sequentialOrderType
+            OR participant.\`order\` IS NULL
+            OR participant.\`order\` = (
+              SELECT MIN(p2.\`order\`)
+              FROM signature_flow_participants p2
+              WHERE p2.flow_id = participant.flow_id
+                AND p2.role = participant.role
+                AND p2.status = :participantPending
+                AND p2.\`order\` IS NOT NULL
+            )
+          ))
+          OR (participant.role = 'signer' AND (
+            flow.signer_order_type != :sequentialOrderType
+            OR participant.\`order\` IS NULL
+            OR participant.\`order\` = (
+              SELECT MIN(p2.\`order\`)
+              FROM signature_flow_participants p2
+              WHERE p2.flow_id = participant.flow_id
+                AND p2.role = participant.role
+                AND p2.status = :participantPending
+                AND p2.\`order\` IS NOT NULL
+            )
+          ))
         )
       `, {
         sequentialOrderType: SignatureFlowOrderType.SEQUENTIAL,
@@ -167,6 +181,7 @@ export class TypeOrmSignatureFlowParticipantRepository implements SignatureFlowP
       id: entity.id,
       flowId: entity.flowId,
       userId: entity.userId ?? null,
+      colaboratorId: entity.colaboratorId ?? null,
       externalName: entity.externalName ?? null,
       externalEmail: entity.externalEmail ?? null,
       role: entity.role,
@@ -185,6 +200,7 @@ export class TypeOrmSignatureFlowParticipantRepository implements SignatureFlowP
       id: participant.id,
       flowId: participant.flowId,
       userId: participant.userId ?? undefined,
+      colaboratorId: participant.colaboratorId ?? undefined,
       externalName: participant.externalName ?? undefined,
       externalEmail: participant.externalEmail ?? undefined,
       role: participant.role,

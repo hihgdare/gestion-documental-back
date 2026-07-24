@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { ValidationError } from '@shared/domain/errors';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
 import { SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
@@ -23,6 +24,7 @@ export interface ExternalAccessInfo {
     email: string;
     status: string;
     canAct: boolean;
+    requiresDocumentNumber: boolean;
   } | null;
   document: {
     id: string;
@@ -89,6 +91,7 @@ export class GetExternalParticipantAccessUseCase {
         email: participant.externalEmail ?? '',
         status: participant.status,
         canAct,
+        requiresDocumentNumber: !participant.colaboratorId,
       },
       document: { id: document.id, name: document.name, documentUrl: document.documentUrl ?? null },
       flow: { id: flow.id, status: flow.status },
@@ -242,6 +245,7 @@ export class ValidateExternalSignerOtpUseCase {
     private readonly participantRepository: SignatureFlowParticipantRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly processFlowUseCase: ProcessFlowParticipantActionUseCase,
+    private readonly colaboratorRepository?: ColaboratorRepository,
   ) {}
 
   async execute(token: string, code: string, ipAddress: string, documentNumber?: string): Promise<void> {
@@ -280,9 +284,13 @@ export class ValidateExternalSignerOtpUseCase {
       ipAddress,
     });
 
+    const resolvedDocumentNumber = participant.colaboratorId && this.colaboratorRepository
+      ? (await this.colaboratorRepository.findById(participant.colaboratorId))?.numeroDocumento ?? null
+      : documentNumber ?? null;
+
     tokenRecord.signatureTokenHash = signatureTokenHash;
     tokenRecord.ipAddress = ipAddress;
-    tokenRecord.documentNumber = documentNumber ?? null;
+    tokenRecord.documentNumber = resolvedDocumentNumber;
     tokenRecord.usedAt = signedAt;
     tokenRecord.otpHash = null;
     await this.tokenRepository.update(tokenRecord);

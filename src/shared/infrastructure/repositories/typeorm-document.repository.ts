@@ -297,6 +297,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       documentUrl: entity.documentUrl,
       status: entity.status,
       signatureStatus: entity.signatureStatus ?? null,
+      preFlowStatus: entity.preFlowStatus ?? null,
       signatureFlowId: entity.signatureFlowId ?? null,
       previousVersionId: entity.previousVersionId ?? null,
       isSuperseded: entity.isSuperseded ?? false,
@@ -332,6 +333,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       documentUrl: document.documentUrl,
       status: document.status,
       signatureStatus: document.signatureStatus ?? undefined,
+      // null explícito (no `?? undefined`): debe poder limpiarse tras restaurar el status pre-flujo
+      preFlowStatus: document.preFlowStatus,
       signatureFlowId: document.signatureFlowId ?? undefined,
       previousVersionId: document.previousVersionId ?? undefined,
       isSuperseded: document.isSuperseded,

@@ -18,13 +18,23 @@ import { generateExternalToken, buildExternalTokenExpiry } from './external-part
 import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
 import { EmailOptions } from '@shared/infrastructure/email/email-service.interface';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+
+const ALLOWED_START_STATUSES = [
+  DocumentStatus.DRAFT,
+  DocumentStatus.UPLOADED,
+  DocumentStatus.APPROVED,
+  DocumentStatus.REJECTED_FOR_SIGN,
+];
 
 export interface CreateSignatureFlowInput {
   documentId: string;
   orderType?: string;
+  signerOrderType?: string;
   sentBy?: string;
   participants: Array<{
     userId?: string;
+    colaboratorId?: string;
     externalName?: string;
     externalEmail?: string;
     role: string;
@@ -39,6 +49,7 @@ export class CreateSignatureFlowUseCase {
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly notificationService: SignatureFlowNotificationService,
+    private readonly colaboratorRepository: ColaboratorRepository,
     private readonly externalTokenRepository?: ExternalParticipantTokenRepository,
     private readonly emailQueueService?: EmailQueueService,
   ) {}
@@ -49,8 +60,8 @@ export class CreateSignatureFlowUseCase {
     }
 
     for (const p of input.participants) {
-      if (!p.userId && !p.externalEmail) {
-        throw new ValidationError('Cada participante debe tener un usuario asignado o un correo externo');
+      if (!p.userId && !p.externalEmail && !p.colaboratorId) {
+        throw new ValidationError('Cada participante debe tener un usuario, un colaborador o un correo externo asignado');
       }
     }
 
@@ -59,12 +70,29 @@ export class CreateSignatureFlowUseCase {
       throw new NotFoundError('Documento no encontrado');
     }
 
+    if (!ALLOWED_START_STATUSES.includes(document.status)) {
+      throw new ValidationError('El documento no está en un estado válido para iniciar un flujo de firma');
+    }
+
+    // Guarda el status "real" (draft/uploaded/approved) antes de que el flujo lo mueva.
+    // En un reenvío desde rejected_for_sign ya está guardado de un ciclo anterior: no se pisa.
+    if (
+      document.status === DocumentStatus.DRAFT
+      || document.status === DocumentStatus.UPLOADED
+      || document.status === DocumentStatus.APPROVED
+    ) {
+      document.preFlowStatus = document.status;
+    }
+
+    const resolvedParticipants = await this.resolveColaboratorParticipants(input.participants);
+
     const now = new Date();
-    const hasValidators = input.participants.some((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
+    const hasValidators = resolvedParticipants.some((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
 
     const flowProps: SignatureFlowProps = {
       documentId: input.documentId,
       orderType: input.orderType,
+      signerOrderType: input.signerOrderType,
       status: hasValidators ? SignatureFlowStatus.IN_REVIEW : SignatureFlowStatus.IN_SIGNING,
       sentAt: now,
       sentBy: input.sentBy ?? null,
@@ -74,10 +102,11 @@ export class CreateSignatureFlowUseCase {
 
     const savedParticipants: SignatureFlowParticipant[] = [];
 
-    for (const p of input.participants) {
+    for (const p of resolvedParticipants) {
       const participantProps: SignatureFlowParticipantProps = {
         flowId: flow.id,
         userId: p.userId ?? null,
+        colaboratorId: p.colaboratorId ?? null,
         externalName: p.externalName ?? null,
         externalEmail: p.externalEmail ?? null,
         role: p.role,
@@ -126,17 +155,18 @@ export class CreateSignatureFlowUseCase {
     const validators = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
     const toNotify = validators.length > 0 ? validators : signers;
+    const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
     // Collect in-app notifications + email data for internal users
     const internalEmails = await this.notificationService.collectEmailsForParticipants(
       toNotify,
       document.id,
       document.name,
-      flow.orderType,
+      notifyOrderType,
     );
 
     // Generate tokens and collect email data for external participants
-    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(flow.orderType, toNotify);
+    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
     const externalEmails = await this.collectExternalEmails(firstStepExternal, document.name);
 
@@ -176,12 +206,35 @@ export class CreateSignatureFlowUseCase {
     const validators = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = savedParticipants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
     const toNotify = validators.length > 0 ? validators : signers;
+    const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
-    await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, flow.orderType);
+    await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, notifyOrderType);
 
-    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(flow.orderType, toNotify);
+    const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
     await this.notifyExternalParticipants(firstStepExternal, document.name);
+  }
+
+  private async resolveColaboratorParticipants(
+    participants: CreateSignatureFlowInput['participants'],
+  ): Promise<CreateSignatureFlowInput['participants']> {
+    const resolved: CreateSignatureFlowInput['participants'] = [];
+    for (const p of participants) {
+      if (!p.colaboratorId) {
+        resolved.push(p);
+        continue;
+      }
+      const colaborator = await this.colaboratorRepository.findById(p.colaboratorId);
+      if (!colaborator) {
+        throw new ValidationError('Uno de los colaboradores seleccionados no existe');
+      }
+      resolved.push({
+        ...p,
+        externalName: colaborator.getNombreCompleto(),
+        externalEmail: colaborator.email,
+      });
+    }
+    return resolved;
   }
 
   private async collectExternalEmails(

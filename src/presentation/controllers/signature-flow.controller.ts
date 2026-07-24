@@ -37,11 +37,12 @@ export class SignatureFlowController {
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.auth!.user!.id;
-    const { documentId, orderType, participants } = req.body;
+    const { documentId, orderType, signerOrderType, participants } = req.body;
 
     const flow = await this.createSignatureFlowUseCase.execute({
       documentId,
       orderType,
+      signerOrderType,
       sentBy: userId,
       participants,
     });
@@ -137,17 +138,18 @@ export class SignatureFlowController {
 
   update = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { orderType } = req.body;
-    const flow = await this.updateSignatureFlowUseCase.execute({ id, orderType });
+    const { orderType, signerOrderType } = req.body;
+    const flow = await this.updateSignatureFlowUseCase.execute({ id, orderType, signerOrderType });
     res.status(200).json({ success: true, data: this.flowToDto(flow) });
   });
 
   addParticipant = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const { userId, externalName, externalEmail, role, order } = req.body;
+    const { userId, colaboratorId, externalName, externalEmail, role, order } = req.body;
     const participant = await this.addParticipantToFlowUseCase.execute({
       flowId: id,
       userId,
+      colaboratorId,
       externalName,
       externalEmail,
       role,
@@ -188,6 +190,7 @@ export class SignatureFlowController {
       id: flow.id,
       documentId: flow.documentId,
       orderType: flow.orderType,
+      signerOrderType: flow.signerOrderType,
       status: flow.status,
       sentAt: flow.sentAt?.toISOString() ?? null,
       sentBy: flow.sentBy,
@@ -201,6 +204,7 @@ export class SignatureFlowController {
       id: p.id,
       flowId: p.flowId,
       userId: p.userId,
+      colaboratorId: p.colaboratorId,
       externalName: p.externalName,
       externalEmail: p.externalEmail,
       role: p.role,

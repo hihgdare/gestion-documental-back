@@ -24,6 +24,7 @@ export interface DocumentProps {
   documentUrl?: string;
   status?: string;
   signatureStatus?: string | null;
+  preFlowStatus?: string | null;
   signatureFlowId?: string | null;
   previousVersionId?: string | null;
   isSuperseded?: boolean;
@@ -62,6 +63,7 @@ export class Document {
   documentUrl?: string;
   status: DocumentStatus;
   signatureStatus: SignatureStatus | null;
+  preFlowStatus: DocumentStatus | null;
   signatureFlowId: string | null;
   previousVersionId: string | null;
   isSuperseded: boolean;
@@ -96,6 +98,7 @@ export class Document {
       contractId: (contractId?: string | null) => contractId || null,
       status: (status?: string) => parseEnum(status, DocumentStatus) ?? DocumentStatus.DRAFT,
       signatureStatus: (ss?: string | null) => parseEnum(ss, SignatureStatus) ?? null,
+      preFlowStatus: (v?: string | null) => parseEnum(v, DocumentStatus) ?? null,
       signatureFlowId: (v?: string | null) => v || null,
       previousVersionId: (v?: string | null) => v || null,
       isSuperseded: (v?: boolean) => v ?? false,

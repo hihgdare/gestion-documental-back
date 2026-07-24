@@ -435,29 +435,33 @@ export const cancelSignatureSchema = Joi.object({
 // Signature Flow schemas
 const signatureFlowParticipantSchema = Joi.object({
   userId: Joi.string().uuid().optional(),
+  colaboratorId: Joi.string().uuid().optional(),
   externalName: Joi.string().max(255).optional(),
   externalEmail: Joi.string().email().max(255).optional(),
   role: Joi.string().valid(...Object.values(SignatureFlowParticipantRole)).required(),
   order: Joi.number().integer().min(1).optional(),
-}).or('userId', 'externalEmail');
+}).or('userId', 'externalEmail', 'colaboratorId');
 
 export const createSignatureFlowSchema = Joi.object({
   documentId: Joi.string().uuid().required(),
   orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+  signerOrderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
   participants: Joi.array().items(signatureFlowParticipantSchema).min(1).required(),
 });
 
 export const updateSignatureFlowSchema = Joi.object({
-  orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).required(),
-});
+  orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+  signerOrderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
+}).or('orderType', 'signerOrderType');
 
 export const addSignatureFlowParticipantSchema = Joi.object({
   userId: Joi.string().uuid().optional(),
+  colaboratorId: Joi.string().uuid().optional(),
   externalName: Joi.string().max(255).optional(),
   externalEmail: Joi.string().email().max(255).optional(),
   role: Joi.string().valid(...Object.values(SignatureFlowParticipantRole)).required(),
   order: Joi.number().integer().min(1).optional(),
-}).or('userId', 'externalEmail');
+}).or('userId', 'externalEmail', 'colaboratorId');
 
 export const processSignatureFlowParticipantActionSchema = Joi.object({
   action: Joi.string().valid('approve', 'reject').required(),
