@@ -3,8 +3,9 @@ import { SignatureFlowParticipant, SignatureFlowParticipantProps } from '../enti
 import { type SignatureFlowRepository } from '../repositories/signature-flow.repository';
 import { type SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
-import { SignatureFlowStatus } from '../value-objects/signature-flow-enums';
+import { SignatureFlowOrderType, SignatureFlowStatus } from '../value-objects/signature-flow-enums';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { parseEnum } from '@shared/utils/objects';
 
 export interface UpdateSignatureFlowInput {
   id: string;
@@ -23,8 +24,16 @@ export class UpdateSignatureFlowUseCase {
       throw new ValidationError('Solo se puede modificar un flujo en estado borrador');
     }
 
-    if (input.orderType) flow.orderType = input.orderType as any;
-    if (input.signerOrderType) flow.signerOrderType = input.signerOrderType as any;
+    if (input.orderType) {
+      const orderType = parseEnum(input.orderType, SignatureFlowOrderType);
+      if (!orderType) throw new ValidationError('orderType inválido');
+      flow.orderType = orderType;
+    }
+    if (input.signerOrderType) {
+      const signerOrderType = parseEnum(input.signerOrderType, SignatureFlowOrderType);
+      if (!signerOrderType) throw new ValidationError('signerOrderType inválido');
+      flow.signerOrderType = signerOrderType;
+    }
 
     return this.repository.update(flow);
   }
