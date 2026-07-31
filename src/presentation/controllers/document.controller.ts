@@ -25,6 +25,7 @@ import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
+import { DownloadDocumentsZipUseCase } from '@domains/document/use-cases/download-documents-zip.use-case';
 import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
@@ -51,6 +52,7 @@ export class DocumentController {
     private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
     private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
     private assignDocumentsToGroupUseCase?: AssignDocumentsToGroupUseCase,
+    private downloadDocumentsZipUseCase?: DownloadDocumentsZipUseCase,
   ) {}
 
   assignDocumentsToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -88,6 +90,32 @@ export class DocumentController {
         skipped: result.skipped,
       },
     });
+  });
+
+  downloadZip = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentIds } = req.body as { documentIds?: unknown };
+
+    if (!Array.isArray(documentIds) || documentIds.length === 0 || documentIds.some((id) => typeof id !== 'string')) {
+      throw new ValidationError('Debe proporcionar un arreglo de IDs de documentos', 'documentIds');
+    }
+
+    const useCase = this.downloadDocumentsZipUseCase;
+    if (!useCase) throw new NotFoundError('Use case downloadDocumentsZipUseCase');
+
+    const archive = useCase.execute(documentIds as string[]);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename="documentos.zip"');
+
+    archive.on('error', (error) => {
+      console.error('Error streaming documents zip:', error);
+      if (!res.headersSent) {
+        res.status(500);
+      }
+      res.end();
+    });
+
+    archive.pipe(res);
   });
 
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -356,6 +384,8 @@ export class DocumentController {
       documentModelId: json.documentModelId,
       colaboratorIds: json.colaboratorIds || [],
       groupId: document.groupId,
+      familyId: document.familyId,
+      familyName: document.familyName,
       documentTypeId: document.documentTypeId,
       documentSubtypeId: document.documentSubtypeId,
       documentTypeName: document.documentTypeName,

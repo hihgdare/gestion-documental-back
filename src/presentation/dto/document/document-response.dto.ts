@@ -3,6 +3,8 @@ export interface DocumentResponseDto {
   documentModelId: string;
   colaboratorIds: string[];
   groupId: number;
+  familyId?: string;
+  familyName?: string;
   documentTypeId?: string;
   documentSubtypeId?: string;
   documentTypeName?: string;

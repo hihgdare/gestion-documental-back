@@ -26,6 +26,7 @@ export const createDocumentRoutes = (
     controller.createDocument,
   );
   router.post('/assign-to-group', authorize('document:create'), controller.assignDocumentsToGroup);
+  router.post('/download-zip', authorize('document:read'), controller.downloadZip);
 
   // GET routes - specific routes before parameterized routes
   router.get('/expired', authorize('document:read'), controller.getExpiredDocuments);
