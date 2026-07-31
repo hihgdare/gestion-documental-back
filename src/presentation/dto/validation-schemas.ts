@@ -13,6 +13,8 @@ export const createUserSchema = Joi.object({
   lastName: Joi.string().min(2).max(50).required(),
   password: Joi.string().min(8).required(),
   roleIds: Joi.array().items(Joi.number().integer()).required(),
+  rut: Joi.string().trim().max(12).optional().allow('', null),
+  phone: Joi.string().trim().min(7).max(20).optional().allow('', null),
 });
 
 export const updateUserSchema = Joi.object({
@@ -22,6 +24,8 @@ export const updateUserSchema = Joi.object({
   roleIds: Joi.array().items(Joi.number().integer()).optional(),
   status: Joi.string().valid(...Object.values(UserStatus)).optional(),
   skipEmail: Joi.boolean().optional(),
+  rut: Joi.string().trim().max(12).optional().allow('', null),
+  phone: Joi.string().trim().min(7).max(20).optional().allow('', null),
 }).min(1);
 
 export const getUserByIdSchema = Joi.object({

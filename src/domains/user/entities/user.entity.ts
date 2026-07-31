@@ -11,6 +11,8 @@ interface BaseUserProps {
   lastName: string;
   status?: string;
   passwordNonce?: string | null;
+  rut?: string | null;
+  phone?: string | null;
   roles?: Role[];
   groups?: { id: number; name: string }[];
   createdAt?: DateType;
@@ -23,9 +25,7 @@ export interface CreateUserProps extends BaseUserProps {
   password: string;
 }
 
-export interface UpdateUserProps extends CreateUserProps {
-  id: string;
-}
+export type UpdateUserProps = Partial<CreateUserProps> & { id: string };
 
 export type UserJson = Overlap<BaseUserProps, {
   id: string;
@@ -53,6 +53,8 @@ export class User {
   password: string;
   status?: UserStatus;
   passwordNonce: string | null;
+  rut: string | null;
+  phone: string | null;
   roles?: Role[];
   groups?: { id: number; name: string }[];
   createdAt: Date;
@@ -66,6 +68,8 @@ export class User {
       email: 'email',
       status: (status: string) => isValidUserStatus(status) ? status : UserStatus.ACTIVE,
       passwordNonce: (v?: string | null) => v ?? null,
+      rut: (v?: string | null) => v || null,
+      phone: (v?: string | null) => v || null,
       createdAt: 'datetime',
       updatedAt: 'datetime',
       deletedAt: 'datetimeNullable',
@@ -140,6 +144,8 @@ export class User {
       lastName: this.lastName,
       fullName: `${this.firstName} ${this.lastName}`,
       status: this.status,
+      rut: this.rut,
+      phone: this.phone,
       roles: this.roles?.map(role => role.toJSON()) ?? [],
       groups: this.groups ?? [],
       createdAt: this.createdAt.toISOString(),

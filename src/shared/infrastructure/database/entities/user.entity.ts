@@ -36,6 +36,12 @@ export class UserEntity {
   @Column({ name: 'password_nonce', type: 'varchar', length: 36, nullable: true })
   passwordNonce!: string | null;
 
+  @Column({ type: 'varchar', length: 12, nullable: true })
+  rut!: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone!: string | null;
+
   @ManyToMany(() => RoleEntity, (role) => role.users)
   @JoinTable({
     name: 'user_roles',
@@ -65,6 +71,8 @@ export class UserEntity {
     entity.password = user.password;
     entity.status = user.status as any;
     entity.passwordNonce = user.passwordNonce ?? null;
+    entity.rut = user.rut ?? null;
+    entity.phone = user.phone ?? null;
     entity.roles = user.roles?.map(RoleEntity.fromDomain);
     return entity;
   }
@@ -78,6 +86,8 @@ export class UserEntity {
       password: entity.password,
       status: entity.status,
       passwordNonce: entity.passwordNonce ?? null,
+      rut: entity.rut ?? null,
+      phone: entity.phone ?? null,
       roles: entity.roles?.map(RoleEntity.toDomain) ?? [],
       groups: entity.groups?.map((g: any) => ({ id: g.id, name: g.name })) ?? [],
       createdAt: entity.createdAt,

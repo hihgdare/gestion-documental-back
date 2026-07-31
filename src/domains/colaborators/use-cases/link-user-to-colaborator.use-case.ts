@@ -1,6 +1,8 @@
 import { ColaboratorRepository } from '../repositories/colaborator.repository';
 import { Colaborator } from '../entities/colaborator.entity';
+import { DocumentType } from '../value-objects/colaborator-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
+import { User } from '@domains/user/entities/user.entity';
 import { NotFoundError, ConflictError } from '@shared/domain/errors';
 
 export class LinkUserToColaboratorUseCase {
@@ -35,6 +37,29 @@ export class LinkUserToColaboratorUseCase {
     }
 
     colaborator.linkUser(userId);
-    return this.colaboratorRepository.update(colaborator);
+    const updatedColaborator = await this.colaboratorRepository.update(colaborator);
+
+    await this.fillEmptyUserContactInfo(user, colaborator);
+
+    return updatedColaborator;
+  }
+
+  /**
+   * Si el usuario no tiene rut/telefono cargados, se completan con los datos
+   * del colaborador que se está vinculando (sin sobrescribir valores existentes).
+   */
+  private async fillEmptyUserContactInfo(user: User, colaborator: Colaborator): Promise<void> {
+    const userUpdates: { rut?: string; phone?: string } = {};
+
+    if (!user.rut && colaborator.tipoDocumento === DocumentType.RUT && colaborator.numeroDocumento) {
+      userUpdates.rut = colaborator.numeroDocumento;
+    }
+    if (!user.phone && colaborator.telefono) {
+      userUpdates.phone = colaborator.telefono;
+    }
+
+    if (Object.keys(userUpdates).length > 0) {
+      await this.userRepository.update({ id: user.id, ...userUpdates });
+    }
   }
 }
