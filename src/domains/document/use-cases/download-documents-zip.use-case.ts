@@ -1,9 +1,7 @@
 import path from 'path';
-import fs from 'fs';
 import archiver, { type Archiver } from 'archiver';
 import { type DocumentRepository } from '../repositories/document.repository';
 import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
-import { Bucket } from '@shared/utils/Bucket';
 import { ValidationError } from '@shared/domain/errors';
 
 function sanitizeForZipPath(name: string): string {
@@ -50,7 +48,7 @@ export class DownloadDocumentsZipUseCase {
         const file = await this.fileRepository.findById(document.documentUrl);
         if (!file) continue;
 
-        const buffer = await this.readFileBuffer(file.path, file.storage);
+        const buffer = await this.fileRepository.getContent(file);
 
         const entryDir = [
           sanitizeForZipPath(document.familyName || 'Sin familia'),
@@ -68,28 +66,5 @@ export class DownloadDocumentsZipUseCase {
     }
 
     await archive.finalize();
-  }
-
-  private async readFileBuffer(filePath: string, storage: string): Promise<Buffer> {
-    if (storage === 's3') {
-      const bucketName = process.env.AWS_S3_BUCKET;
-      const region = process.env.AWS_DEFAULT_REGION;
-      const accessKeyId = process.env.AWS_S3_ACCESS_KEY_ID;
-      const secretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY;
-
-      if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
-        throw new Error('S3 configuration incomplete');
-      }
-
-      const bucket = new Bucket({
-        bucket: bucketName,
-        region,
-        credentials: { accessKeyId, secretAccessKey },
-      });
-
-      return bucket.downloadFile({ source: filePath });
-    }
-
-    return fs.promises.readFile(filePath);
   }
 }
