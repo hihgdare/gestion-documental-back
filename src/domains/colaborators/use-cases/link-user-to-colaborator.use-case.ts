@@ -39,7 +39,11 @@ export class LinkUserToColaboratorUseCase {
     colaborator.linkUser(userId);
     const updatedColaborator = await this.colaboratorRepository.update(colaborator);
 
-    await this.fillEmptyUserContactInfo(user, colaborator);
+    try {
+      await this.fillEmptyUserContactInfo(user, colaborator);
+    } catch (error) {
+      console.error(`Error completando datos de contacto del usuario ${user.id} al vincular colaborador ${colaboratorId}:`, error);
+    }
 
     return updatedColaborator;
   }

@@ -102,7 +102,7 @@ export class DocumentController {
     const useCase = this.downloadDocumentsZipUseCase;
     if (!useCase) throw new NotFoundError('Use case downloadDocumentsZipUseCase');
 
-    const archive = useCase.execute(documentIds as string[]);
+    const archive = await useCase.execute(documentIds as string[], req.auth.groupId);
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', 'attachment; filename="documentos.zip"');
