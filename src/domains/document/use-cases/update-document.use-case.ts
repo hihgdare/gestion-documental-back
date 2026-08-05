@@ -65,6 +65,9 @@ export class UpdateDocumentUseCase {
       groupId: document.groupId,
       requiredColaboratorsCount: document.requiredColaboratorsCount,
       colaboratorIds: [...document.colaboratorIds].sort(),
+      templateId: document.templateId,
+      createdBy: document.createdBy,
+      previousVersionId: document.previousVersionId,
     };
 
     // Update fields
@@ -175,6 +178,51 @@ export class UpdateDocumentUseCase {
       document.setToDraft();
     }
 
+    // Control de documentos obsoletos: al reemplazar el archivo de un documento que ya
+    // tenía uno cargado, la versión anterior se archiva automáticamente (nunca se elimina)
+    // con estado "obsolete" y queda enlazada mediante previousVersionId. Esa versión
+    // archivada no puede volver a circular: no aparece en los listados por defecto ni
+    // puede usarse para iniciar un flujo de firma (ver ALLOWED_START_STATUSES).
+    let archivedVersion: Document | null = null;
+    const shouldArchivePreviousVersion = fileWillChange
+      && !!previousState.documentUrl
+      && !!previousState.issuedDate;
+
+    if (shouldArchivePreviousVersion) {
+      archivedVersion = await this.documentRepository.save(Document.create({
+        documentModelId: previousState.documentModelId,
+        colaboratorIds: [...previousState.colaboratorIds],
+        name: previousState.name,
+        issuedDate: previousState.issuedDate ?? undefined,
+        expirationDate: previousState.expirationDate,
+        contractId: previousState.contractId,
+        description: previousState.description ?? undefined,
+        documentUrl: previousState.documentUrl ?? undefined,
+        status: DocumentStatus.OBSOLETE,
+        isSuperseded: true,
+        previousVersionId: previousState.previousVersionId,
+        groupId: previousState.groupId,
+        requiredColaboratorsCount: previousState.requiredColaboratorsCount,
+        createdBy: previousState.createdBy ?? undefined,
+        comment: 'Versión reemplazada automáticamente al subir un nuevo archivo.',
+        templateId: previousState.templateId ?? undefined,
+      }));
+
+      // Preservar los valores de campos de plantilla de la versión archivada, si los tenía.
+      if (this.documentFieldValueRepository) {
+        try {
+          const previousFieldValues = await this.documentFieldValueRepository.findByDocumentId(document.id);
+          if (previousFieldValues.length > 0) {
+            await this.documentFieldValueRepository.saveMany(archivedVersion.id, previousFieldValues);
+          }
+        } catch {
+          // La copia de campos históricos no debe bloquear la actualización del documento.
+        }
+      }
+
+      document.previousVersionId = archivedVersion.id;
+    }
+
     // Actualizar documento
     const updatedDocument = await this.documentRepository.update(document);
 
@@ -278,9 +326,13 @@ export class UpdateDocumentUseCase {
     }
 
     const fileChanged = previousState.documentUrl !== (updatedDocument.documentUrl || null);
-    const historyAction = (wasRejectedByFlow && fileChanged)
+    const historyAction = fileChanged
       ? DocumentAction.VERSION_SUPERSEDED
       : DocumentAction.UPDATED;
+
+    const actionCommentPayload: { changes?: DocumentChangeDetail[]; archivedVersionId?: string } = {};
+    if (changeDetails.length > 0) actionCommentPayload.changes = changeDetails;
+    if (archivedVersion) actionCommentPayload.archivedVersionId = archivedVersion.id;
 
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
@@ -293,12 +345,32 @@ export class UpdateDocumentUseCase {
       documentUrl: updatedDocument.documentUrl,
       status: updatedDocument.status,
       comment: request.comment || null,
-      actionComment: changeDetails.length > 0 ? JSON.stringify({ changes: changeDetails }) : null,
+      actionComment: Object.keys(actionCommentPayload).length > 0 ? JSON.stringify(actionCommentPayload) : null,
       action: historyAction,
       updatedBy: request.updatedBy || 'system',
     };
 
     await this.documentHistoryRepository.save(historyProps).catch(() => {});
+
+    // Historial propio de la versión archivada: queda registrado con qué documento la reemplazó.
+    if (archivedVersion) {
+      const archivedHistoryProps: DocumentHistoryProps = {
+        documentId: archivedVersion.id,
+        documentModelId: archivedVersion.documentModelId,
+        name: archivedVersion.name,
+        issuedDate: archivedVersion.issuedDate,
+        expirationDate: archivedVersion.expirationDate,
+        contractId: archivedVersion.contractId,
+        description: archivedVersion.description,
+        documentUrl: archivedVersion.documentUrl,
+        status: archivedVersion.status,
+        comment: 'Versión reemplazada por un archivo nuevo.',
+        actionComment: JSON.stringify({ supersededByDocumentId: updatedDocument.id }),
+        action: DocumentAction.ARCHIVED,
+        updatedBy: request.updatedBy || 'system',
+      };
+      await this.documentHistoryRepository.save(archivedHistoryProps).catch(() => {});
+    }
 
     return updatedDocument;
   }

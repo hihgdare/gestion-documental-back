@@ -1,4 +1,4 @@
-import { Repository, LessThanOrEqual, In, IsNull } from 'typeorm';
+import { Repository, LessThanOrEqual, In, IsNull, Not } from 'typeorm';
 import { type DocumentRepository } from '@domains/document/repositories/document.repository';
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
@@ -68,6 +68,10 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     if (filters?.status) {
       const status = Array.isArray(filters.status) ? filters.status : [filters.status];
       query.andWhere('document.status IN (:...status)', { status });
+    } else {
+      // Las versiones obsoletas (reemplazadas por una nueva) no deben circular por
+      // error: se excluyen de los listados salvo que se pidan explícitamente por status.
+      query.andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE });
     }
 
     const documentEntities = await query.orderBy('document.createdAt', 'DESC').getMany();
@@ -117,7 +121,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { contractId, deletedAt: IsNull() },
+      where: { contractId, deletedAt: IsNull(), status: Not(DocumentStatus.OBSOLETE) },
       relations: [
         'contract',
         'documentModel',
@@ -132,7 +136,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByDocumentModelId(documentModelId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { documentModelId, deletedAt: IsNull() },
+      where: { documentModelId, deletedAt: IsNull(), status: Not(DocumentStatus.OBSOLETE) },
       relations: [
         'contract',
         'documentModel',
@@ -156,6 +160,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .where('colaborators.id IN (:...colaboratorIds)', { colaboratorIds })
       .andWhere('document.deletedAt IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .orderBy('document.createdAt', 'DESC')
       .getMany();
     return documentEntities.map(entity => this.toDomain(entity));
@@ -166,6 +171,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       where: {
         expirationDate: LessThanOrEqual(new Date()),
         deletedAt: IsNull(),
+        status: Not(DocumentStatus.OBSOLETE),
       },
       relations: [
         'contract',
@@ -195,6 +201,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .andWhere('document.expirationDate > :today', { today })
       .andWhere('document.expirationDate <= :futureDate', { futureDate })
       .andWhere('document.deletedAt IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .orderBy('document.expiration_date', 'ASC')
       .getMany();
 
@@ -210,6 +217,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .where('document.documentModelId = :documentModelId', { documentModelId })
       .andWhere('document.name = :name', { name })
       .andWhere('document.deleted_at IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .andWhere(
         `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id AND dc.colaborator_id IN (:...colaboratorIds)) = :count`,
         { colaboratorIds, count },
@@ -243,6 +251,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.name = :name', { name })
       .andWhere('document.deleted_at IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .andWhere(
         `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id AND dc.colaborator_id IN (:...colaboratorIds)) = :count`,
         { colaboratorIds, count },
@@ -275,6 +284,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
           documentSubtypeId: subtypeId,
         },
         deletedAt: IsNull(),
+        status: Not(DocumentStatus.OBSOLETE),
       },
       order: { createdAt: 'DESC' },
     });

@@ -369,6 +369,8 @@ export class DocumentController {
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,
+      previousVersionId: document.previousVersionId,
+      isSuperseded: document.isSuperseded,
       requiredForContract: json.requiredForContract ?? false,
       requiredForColaborator: json.requiredForColaborator ?? false,
       requiredExpirationDate: json.requiredExpirationDate ?? false,

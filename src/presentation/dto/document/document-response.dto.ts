@@ -16,6 +16,8 @@ export interface DocumentResponseDto {
   description?: string;
   documentUrl?: string;
   status: string;
+  previousVersionId?: string | null;
+  isSuperseded: boolean;
   requiredForContract: boolean;
   requiredForColaborator: boolean;
   requiredExpirationDate: boolean;
