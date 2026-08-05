@@ -199,6 +199,7 @@ import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
 import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
+import { DownloadDocumentsZipUseCase } from '@domains/document/use-cases/download-documents-zip.use-case';
 
 // Group domain
 import { CreateGroupUseCase, GetAllGroupsUseCase } from '@domains/group/use-cases/create-group.use-case';
@@ -383,6 +384,7 @@ export class DependencyContainer {
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
   private getDashboardMetricsUseCase!: GetDashboardMetricsUseCase;
   private assignDocumentsToGroupUseCase!: AssignDocumentsToGroupUseCase;
+  private downloadDocumentsZipUseCase!: DownloadDocumentsZipUseCase;
 
 
   // Use Cases - Contract
@@ -701,6 +703,7 @@ export class DependencyContainer {
       this.documentModelRepository,
       this.familyRepository,
     );
+    this.downloadDocumentsZipUseCase = new DownloadDocumentsZipUseCase(this.documentRepository, this.fileRepository);
 
 
     // Initialize Contract use cases
@@ -885,6 +888,7 @@ export class DependencyContainer {
       this.getAllDocumentTypesWithSubtypesUseCase,
       this.getDashboardMetricsUseCase,
       this.assignDocumentsToGroupUseCase,
+      this.downloadDocumentsZipUseCase,
     );
 
     this.documentHistoryController = new DocumentHistoryController(

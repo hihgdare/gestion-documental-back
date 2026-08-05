@@ -40,6 +40,8 @@ export interface DocumentProps {
   fieldValues?: DocumentFieldValue[];
 
   // Read-only properties from DocumentModel (for display)
+  familyId?: string;
+  familyName?: string;
   documentTypeId?: string;
   documentSubtypeId?: string;
   documentTypeName?: string;
@@ -79,6 +81,8 @@ export class Document {
   fieldValues: DocumentFieldValue[];
 
   // Read-only properties
+  familyId?: string;
+  familyName?: string;
   documentTypeId?: string;
   documentSubtypeId?: string;
   documentTypeName?: string;
@@ -115,6 +119,8 @@ export class Document {
     });
 
     // Assign read-only props
+    this.familyId = props.familyId;
+    this.familyName = props.familyName;
     this.documentTypeId = props.documentTypeId;
     this.documentSubtypeId = props.documentSubtypeId;
     this.documentTypeName = props.documentTypeName;
@@ -399,6 +405,8 @@ export class Document {
       updatedAt: DateTimeUtils.toString(this.updatedAt),
 
       // Read-only properties
+      familyId: this.familyId,
+      familyName: this.familyName,
       documentTypeId: this.documentTypeId,
       documentSubtypeId: this.documentSubtypeId,
       documentTypeName: this.documentTypeName,

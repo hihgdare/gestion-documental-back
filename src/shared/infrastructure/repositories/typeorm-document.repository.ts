@@ -20,6 +20,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       relations: [
         'contract',
         'documentModel',
+        'documentModel.family',
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
@@ -27,6 +28,22 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     });
     if (!documentEntity) return null;
     return this.toDomain(documentEntity);
+  }
+
+  async findByIds(ids: string[]): Promise<Document[]> {
+    if (ids.length === 0) return [];
+    const documentEntities = await this.repository.find({
+      where: { id: In(ids), deletedAt: IsNull() },
+      relations: [
+        'contract',
+        'documentModel',
+        'documentModel.family',
+        'documentModel.documentType',
+        'documentModel.documentSubtype',
+        'colaborators',
+      ],
+    });
+    return documentEntities.map(entity => this.toDomain(entity));
   }
 
   async findAll(groupId?: number, filters?: {
@@ -40,6 +57,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.contract', 'contract')
       .leftJoinAndSelect('document.documentModel', 'documentModel')
+      .leftJoinAndSelect('documentModel.family', 'family')
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
@@ -121,6 +139,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       relations: [
         'contract',
         'documentModel',
+        'documentModel.family',
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
@@ -136,6 +155,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       relations: [
         'contract',
         'documentModel',
+        'documentModel.family',
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
@@ -152,6 +172,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('document.colaborators', 'colaborators')
       .leftJoinAndSelect('document.contract', 'contract')
       .leftJoinAndSelect('document.documentModel', 'documentModel')
+      .leftJoinAndSelect('documentModel.family', 'family')
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .where('colaborators.id IN (:...colaboratorIds)', { colaboratorIds })
@@ -170,6 +191,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       relations: [
         'contract',
         'documentModel',
+        'documentModel.family',
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
@@ -188,6 +210,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.contract', 'contract')
       .leftJoinAndSelect('document.documentModel', 'documentModel')
+      .leftJoinAndSelect('documentModel.family', 'family')
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
@@ -265,6 +288,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       relations: [
         'contract',
         'documentModel',
+        'documentModel.family',
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
@@ -310,6 +334,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       templateId: entity.templateId,
 
       // Populate read-only props from Model
+      familyId: entity.documentModel?.family?.id,
+      familyName: entity.documentModel?.family?.name,
       documentTypeId: entity.documentModel?.documentType?.id,
       documentSubtypeId: entity.documentModel?.documentSubtype?.id,
       documentTypeName: entity.documentModel?.documentType?.name,
