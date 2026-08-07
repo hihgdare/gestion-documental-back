@@ -28,6 +28,12 @@ export interface DocumentProps {
   signatureFlowId?: string | null;
   previousVersionId?: string | null;
   isSuperseded?: boolean;
+  code?: string | null;
+  reviewDate?: Date | null;
+  responsibleColaboratorId?: string | null;
+  responsibleColaboratorName?: string | null;
+  areaId?: string | null;
+  areaName?: string | null;
   groupId: number;
   requiredColaboratorsCount?: number;
   createdBy?: string;
@@ -67,6 +73,12 @@ export class Document {
   signatureFlowId: string | null;
   previousVersionId: string | null;
   isSuperseded: boolean;
+  code: string | null;
+  reviewDate: Date | null;
+  responsibleColaboratorId: string | null;
+  responsibleColaboratorName?: string | null;
+  areaId: string | null;
+  areaName?: string | null;
   groupId: number;
   requiredColaboratorsCount: number;
   createdBy: string | null;
@@ -102,6 +114,10 @@ export class Document {
       signatureFlowId: (v?: string | null) => v || null,
       previousVersionId: (v?: string | null) => v || null,
       isSuperseded: (v?: boolean) => v ?? false,
+      code: (v?: string | null) => (v ? v.trim() : null),
+      reviewDate: 'dateNullable',
+      responsibleColaboratorId: (v?: string | null) => v || null,
+      areaId: (v?: string | null) => v || null,
       requiredColaboratorsCount: (value?: number) => value ?? 0,
       createdBy: (createdBy?: string) => createdBy || null,
       comment: (comment?: string | null) => comment || null,
@@ -253,6 +269,48 @@ export class Document {
     this.updatedAt = new Date();
   }
 
+  public updateCode(code?: string | null): void {
+    const trimmed = code?.trim();
+    if (trimmed && trimmed.length > 100) {
+      throw new ValidationError('El código del documento no puede exceder 100 caracteres');
+    }
+    this.code = trimmed || null;
+    this.updatedAt = new Date();
+  }
+
+  public updateReviewDate(reviewDate?: Date | null): void {
+    this.reviewDate = reviewDate || null;
+    this.updatedAt = new Date();
+  }
+
+  public updateResponsibleColaboratorId(responsibleColaboratorId?: string | null): void {
+    this.responsibleColaboratorId = responsibleColaboratorId || null;
+    this.updatedAt = new Date();
+  }
+
+  public updateAreaId(areaId?: string | null): void {
+    this.areaId = areaId || null;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Calcula la fecha de próxima revisión por defecto cuando no se indica una manualmente:
+   * 1. Por defecto, 30 días después de la fecha de emisión.
+   * 2. Si esa fecha (emisión + 30) cae en la fecha de vencimiento o después, no queda margen
+   *    de revisión: se deja 10 días antes del vencimiento en su lugar.
+   */
+  public static calculateDefaultReviewDate(issuedDate?: Date | null, expirationDate?: Date | null): Date | null {
+    if (!issuedDate) return null;
+
+    const defaultReviewDate = DateUtils.addDays(issuedDate, 30);
+
+    if (expirationDate && !DateUtils.isBefore(defaultReviewDate, expirationDate)) {
+      return DateUtils.addDays(expirationDate, -10);
+    }
+
+    return defaultReviewDate;
+  }
+
   public updateStatus(status: DocumentStatus, comment?: string | null): void {
     this.status = status;
     this.comment = comment ? comment.trim() : null;
@@ -387,6 +445,12 @@ export class Document {
       documentUrl: this.documentUrl,
       status: this.status,
       signatureStatus: this.signatureStatus,
+      code: this.code,
+      reviewDate: DateUtils.toString(this.reviewDate, true),
+      responsibleColaboratorId: this.responsibleColaboratorId,
+      responsibleColaboratorName: this.responsibleColaboratorName,
+      areaId: this.areaId,
+      areaName: this.areaName,
       groupId: this.groupId,
       requiredColaboratorsCount: this.requiredColaboratorsCount,
       createdBy: this.createdBy,

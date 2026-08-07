@@ -9,6 +9,7 @@ import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
+import { AreaRepository } from '@domains/area/repositories/area.repository';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -25,6 +26,10 @@ export interface UpdateDocumentRequest {
   comment?: string;
   templateId?: string;
   fieldValues?: DocumentFieldValue[];
+  code?: string | null;
+  reviewDate?: Date | null;
+  responsibleColaboratorId?: string | null;
+  areaId?: string | null;
 }
 
 interface DocumentChangeDetail {
@@ -45,6 +50,7 @@ export class UpdateDocumentUseCase {
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly contractRepository?: ContractRepository,
+    private readonly areaRepository?: AreaRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -68,6 +74,10 @@ export class UpdateDocumentUseCase {
       templateId: document.templateId,
       createdBy: document.createdBy,
       previousVersionId: document.previousVersionId,
+      code: document.code,
+      reviewDate: document.reviewDate,
+      responsibleColaboratorId: document.responsibleColaboratorId,
+      areaId: document.areaId,
     };
 
     // Update fields
@@ -95,12 +105,56 @@ export class UpdateDocumentUseCase {
       throw new ValidationError('Document Model not found for the document', 'documentModelId');
     }
 
-    if (request.issuedDate !== undefined || request.expirationDate !== undefined) {
+    const datesChanging = request.issuedDate !== undefined || request.expirationDate !== undefined;
+    if (datesChanging) {
       document.updateDates(
         request.issuedDate || document.issuedDate,
         request.expirationDate !== undefined ? request.expirationDate : (document.expirationDate || undefined),
         documentModel.requiredExpirationDate,
       );
+    }
+
+    // Identificación única y metadatos obligatorios
+    if (request.code !== undefined) {
+      const code = request.code?.trim() || null;
+      if (code) {
+        const codeExists = await this.documentRepository.existsByCode(code, document.groupId, document.id);
+        if (codeExists) {
+          throw new ValidationError('Ya existe un documento con ese código en este grupo', 'code');
+        }
+      }
+      document.updateCode(code);
+    }
+
+    if (request.responsibleColaboratorId !== undefined) {
+      if (request.responsibleColaboratorId && this.colaboratorRepository) {
+        const responsible = await this.colaboratorRepository.findById(request.responsibleColaboratorId);
+        if (!responsible) {
+          throw new ValidationError('El colaborador responsable indicado no existe', 'responsibleColaboratorId');
+        }
+      }
+      document.updateResponsibleColaboratorId(request.responsibleColaboratorId);
+    }
+
+    if (request.areaId !== undefined) {
+      if (request.areaId && this.areaRepository) {
+        const area = await this.areaRepository.findById(request.areaId);
+        if (!area) {
+          throw new ValidationError('El área indicada no existe', 'areaId');
+        }
+      }
+      document.updateAreaId(request.areaId);
+    }
+
+    // Fecha de próxima revisión: si se indica explícitamente (incluyendo null, para
+    // limpiarla y que vuelva a calcularse), se respeta; si no, solo se recalcula
+    // automáticamente cuando cambian las fechas de emisión/vencimiento que la determinan.
+    if (request.reviewDate !== undefined) {
+      document.updateReviewDate(
+        request.reviewDate ?? Document.calculateDefaultReviewDate(document.issuedDate, document.expirationDate),
+      );
+    } else if (datesChanging) {
+      document.updateReviewDate(Document.calculateDefaultReviewDate(document.issuedDate, document.expirationDate));
     }
 
     if (request.description !== undefined) {
@@ -281,6 +335,24 @@ export class UpdateDocumentUseCase {
       } catch { return id; }
     };
 
+    const resolveResponsibleLabel = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      if (!this.colaboratorRepository) return id;
+      try {
+        const colaborator = await this.colaboratorRepository.findById(id);
+        return colaborator ? colaborator.getNombreCompleto() : id;
+      } catch { return id; }
+    };
+
+    const resolveAreaLabel = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      if (!this.areaRepository) return id;
+      try {
+        const area = await this.areaRepository.findById(id);
+        return area?.name ?? id;
+      } catch { return id; }
+    };
+
     const [prevModelName, currModelName] = await Promise.all([
       resolveModelName(previousState.documentModelId),
       resolveModelName(updatedDocument.documentModelId),
@@ -296,6 +368,14 @@ export class UpdateDocumentUseCase {
     const [prevContractLabel, currContractLabel] = await Promise.all([
       resolveContractLabel(previousState.contractId),
       resolveContractLabel(updatedDocument.contractId),
+    ]);
+    const [prevResponsibleLabel, currResponsibleLabel] = await Promise.all([
+      resolveResponsibleLabel(previousState.responsibleColaboratorId),
+      resolveResponsibleLabel(updatedDocument.responsibleColaboratorId),
+    ]);
+    const [prevAreaLabel, currAreaLabel] = await Promise.all([
+      resolveAreaLabel(previousState.areaId),
+      resolveAreaLabel(updatedDocument.areaId),
     ]);
 
     pushChange('name', 'Nombre', previousState.name, updatedDocument.name);
@@ -313,6 +393,10 @@ export class UpdateDocumentUseCase {
     );
 
     pushChange('colaboratorIds', 'Colaboradores', prevColabNames, currColabNames);
+    pushChange('code', 'Código', previousState.code, updatedDocument.code);
+    pushChange('reviewDate', 'Fecha de próxima revisión', formatDate(previousState.reviewDate), formatDate(updatedDocument.reviewDate));
+    pushChange('responsibleColaboratorId', 'Responsable', prevResponsibleLabel, currResponsibleLabel);
+    pushChange('areaId', 'Área', prevAreaLabel, currAreaLabel);
 
     if (previousState.documentUrl !== (updatedDocument.documentUrl || null)) {
       changeDetails.push({

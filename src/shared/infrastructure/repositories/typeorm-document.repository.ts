@@ -23,6 +23,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
     });
     if (!documentEntity) return null;
@@ -43,6 +45,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .leftJoinAndSelect('document.responsibleColaborator', 'responsibleColaborator')
+      .leftJoinAndSelect('document.area', 'area')
       .where('document.deletedAt IS NULL');
 
     if (groupId !== undefined) {
@@ -128,6 +132,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       order: { createdAt: 'DESC' },
     });
@@ -143,6 +149,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       order: { createdAt: 'DESC' },
     });
@@ -154,6 +162,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .leftJoinAndSelect('document.responsibleColaborator', 'responsibleColaborator')
+      .leftJoinAndSelect('document.area', 'area')
       .leftJoinAndSelect('document.contract', 'contract')
       .leftJoinAndSelect('document.documentModel', 'documentModel')
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
@@ -179,6 +189,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       order: { expirationDate: 'ASC' },
     });
@@ -197,6 +209,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .leftJoinAndSelect('document.responsibleColaborator', 'responsibleColaborator')
+      .leftJoinAndSelect('document.area', 'area')
       .where('document.expirationDate IS NOT NULL')
       .andWhere('document.expirationDate > :today', { today })
       .andWhere('document.expirationDate <= :futureDate', { futureDate })
@@ -269,6 +283,21 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return !!existing;
   }
 
+  async existsByCode(code: string, groupId: number, excludeId?: string): Promise<boolean> {
+    const query = this.repository
+      .createQueryBuilder('document')
+      .where('document.code = :code', { code })
+      .andWhere('document.group_id = :groupId', { groupId })
+      .andWhere('document.deleted_at IS NULL');
+
+    if (excludeId) {
+      query.andWhere('document.id != :excludeId', { excludeId });
+    }
+
+    const existing = await query.getOne();
+    return !!existing;
+  }
+
   async findByTypeAndSubtypeId(typeId: string, subtypeId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
       relations: [
@@ -277,6 +306,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       where: {
         documentModel: {
@@ -311,6 +342,15 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       signatureFlowId: entity.signatureFlowId ?? null,
       previousVersionId: entity.previousVersionId ?? null,
       isSuperseded: entity.isSuperseded ?? false,
+      code: entity.code ?? null,
+      reviewDate: entity.reviewDate ?? null,
+      responsibleColaboratorId: entity.responsibleColaboratorId ?? null,
+      responsibleColaboratorName: entity.responsibleColaborator
+        ? [entity.responsibleColaborator.nombre, entity.responsibleColaborator.apellidoPaterno, entity.responsibleColaborator.apellidoMaterno]
+          .filter(Boolean).join(' ')
+        : null,
+      areaId: entity.areaId ?? null,
+      areaName: entity.area?.name ?? null,
       comment: entity.comment,
       groupId: entity.groupId,
       requiredColaboratorsCount: entity.requiredColaboratorsCount,
@@ -348,6 +388,10 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       signatureFlowId: document.signatureFlowId ?? undefined,
       previousVersionId: document.previousVersionId ?? undefined,
       isSuperseded: document.isSuperseded,
+      code: document.code ?? undefined,
+      reviewDate: document.reviewDate ? DateUtils.toLocalDate(document.reviewDate) : undefined,
+      responsibleColaboratorId: document.responsibleColaboratorId ?? undefined,
+      areaId: document.areaId ?? undefined,
       comment: document.comment || undefined,
       groupId: document.groupId,
       requiredColaboratorsCount: document.requiredColaboratorsCount,
