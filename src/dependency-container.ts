@@ -274,6 +274,8 @@ import { SignatureFlowController } from '@presentation/controllers/signature-flo
 // User extra use cases
 import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
 import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
+import { SendPasswordResetEmailUseCase } from '@domains/user/use-cases/send-password-reset-email.use-case';
+import { ResetPasswordUseCase } from '@domains/user/use-cases/reset-password.use-case';
 
 // DocumentTemplate domain
 import { CreateDocumentTemplateUseCase } from '@domains/document-template/use-cases/create-document-template.use-case';
@@ -578,6 +580,8 @@ export class DependencyContainer {
   // Extra user use cases
   private setPasswordUseCase!: SetPasswordUseCase;
   private sendActivationEmailUseCase!: SendActivationEmailUseCase;
+  private sendPasswordResetEmailUseCase!: SendPasswordResetEmailUseCase;
+  private resetPasswordUseCase!: ResetPasswordUseCase;
 
   public async initialize(): Promise<void> {
     // Initialize repositories
@@ -635,6 +639,13 @@ export class DependencyContainer {
       jwtSecret,
       process.env.FRONTEND_URL ?? '',
     );
+    this.sendPasswordResetEmailUseCase = new SendPasswordResetEmailUseCase(
+      this.userRepository,
+      this.emailService,
+      jwtSecret,
+      process.env.FRONTEND_URL ?? '',
+    );
+    this.resetPasswordUseCase = new ResetPasswordUseCase(this.userRepository, jwtSecret);
 
     // Initialize DocumentType use cases
     this.createDocumentTypeUseCase = new CreateDocumentTypeUseCase(this.documentTypeRepository);
@@ -1074,6 +1085,8 @@ export class DependencyContainer {
       this.inAppNotificationRepository,
       this.documentRepository,
       this.setPasswordUseCase,
+      this.sendPasswordResetEmailUseCase,
+      this.resetPasswordUseCase,
       jwtSecret,
     );
 
