@@ -10,6 +10,7 @@ import {
   JoinColumn,
   JoinTable,
   Index,
+  type Relation,
 } from 'typeorm';
 import { DocumentModelEntity } from './document-model.entity';
 import { ColaboratorEntity } from './colaborators.entity';
@@ -101,7 +102,7 @@ export class DocumentEntity {
 
   @ManyToOne(() => ColaboratorEntity, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'responsible_colaborator_id' })
-  responsibleColaborator?: ColaboratorEntity;
+  responsibleColaborator?: Relation<ColaboratorEntity>;
 
   @Column({ name: 'area_id', type: 'varchar', length: 36, nullable: true })
   areaId?: string;
