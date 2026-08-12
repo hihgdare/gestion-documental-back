@@ -295,14 +295,15 @@ export class Document {
 
   /**
    * Calcula la fecha de próxima revisión por defecto cuando no se indica una manualmente:
-   * 1. Por defecto, 30 días después de la fecha de emisión.
-   * 2. Si esa fecha (emisión + 30) cae en la fecha de vencimiento o después, no queda margen
+   * 1. Por defecto, 30 días después de la fecha en que el documento se creó en la plataforma
+   *    (no la fecha de emisión, que puede ser muy anterior a la carga del documento).
+   * 2. Si esa fecha (creación + 30) cae en la fecha de vencimiento o después, no queda margen
    *    de revisión: se deja 10 días antes del vencimiento en su lugar.
    */
-  public static calculateDefaultReviewDate(issuedDate?: Date | null, expirationDate?: Date | null): Date | null {
-    if (!issuedDate) return null;
+  public static calculateDefaultReviewDate(createdAt?: Date | null, expirationDate?: Date | null): Date | null {
+    if (!createdAt) return null;
 
-    const defaultReviewDate = DateUtils.addDays(issuedDate, 30);
+    const defaultReviewDate = DateUtils.addDays(createdAt, 30);
 
     if (expirationDate && !DateUtils.isBefore(defaultReviewDate, expirationDate)) {
       return DateUtils.addDays(expirationDate, -10);

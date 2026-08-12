@@ -87,7 +87,7 @@ export class AssignDocumentsToGroupUseCase {
         contractId: contractId,
         createdBy: request.createdBy,
         groupId: colaborator.groupId,
-        reviewDate: Document.calculateDefaultReviewDate(request.issuedDate, request.expirationDate),
+        reviewDate: Document.calculateDefaultReviewDate(new Date(), request.expirationDate),
 
         // Read-only properties populated for completeness if needed immediately
         documentTypeId: documentModel.documentTypeId,

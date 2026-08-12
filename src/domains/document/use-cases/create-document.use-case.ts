@@ -108,10 +108,10 @@ export class CreateDocumentUseCase {
     }
 
     // Fecha de próxima revisión: si no se indica, se calcula automáticamente
-    // (emisión + 30 días, ajustada a vencimiento - 10 días cuando no queda margen).
+    // (creación + 30 días, ajustada a vencimiento - 10 días cuando no queda margen).
     const reviewDate = request.reviewDate !== undefined
       ? request.reviewDate
-      : Document.calculateDefaultReviewDate(request.issuedDate, request.expirationDate);
+      : Document.calculateDefaultReviewDate(new Date(), request.expirationDate);
 
     // Creando documento
     const documentProps: DocumentProps = {

@@ -148,13 +148,14 @@ export class UpdateDocumentUseCase {
 
     // Fecha de próxima revisión: si se indica explícitamente (incluyendo null, para
     // limpiarla y que vuelva a calcularse), se respeta; si no, solo se recalcula
-    // automáticamente cuando cambian las fechas de emisión/vencimiento que la determinan.
+    // automáticamente cuando cambia el vencimiento (la fecha de creación, que es la
+    // otra variable de la fórmula, no cambia una vez creado el documento).
     if (request.reviewDate !== undefined) {
       document.updateReviewDate(
-        request.reviewDate ?? Document.calculateDefaultReviewDate(document.issuedDate, document.expirationDate),
+        request.reviewDate ?? Document.calculateDefaultReviewDate(document.createdAt, document.expirationDate),
       );
-    } else if (datesChanging) {
-      document.updateReviewDate(Document.calculateDefaultReviewDate(document.issuedDate, document.expirationDate));
+    } else if (request.expirationDate !== undefined) {
+      document.updateReviewDate(Document.calculateDefaultReviewDate(document.createdAt, document.expirationDate));
     }
 
     if (request.description !== undefined) {
