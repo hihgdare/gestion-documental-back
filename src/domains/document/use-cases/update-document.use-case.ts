@@ -3,11 +3,12 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { DocumentFieldValueRepository } from '../repositories/document-field-value.repository';
 import { Document, DocumentFieldValue } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
-import { DocumentAction } from '../value-objects/document-enums';
+import { DocumentAction, DocumentStatus } from '../value-objects/document-enums';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -26,14 +27,24 @@ export interface UpdateDocumentRequest {
   fieldValues?: DocumentFieldValue[];
 }
 
+interface DocumentChangeDetail {
+  field: string;
+  label: string;
+  before: string | null;
+  after: string | null;
+  beforeFileId?: string;
+  afterFileId?: string;
+}
+
 export class UpdateDocumentUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
-    private readonly fileRepository: TypeOrmFileRepository,
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
+    private readonly colaboratorRepository?: ColaboratorRepository,
+    private readonly contractRepository?: ContractRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -41,6 +52,20 @@ export class UpdateDocumentUseCase {
     if (!document) {
       throw new NotFoundError('Documento', id);
     }
+
+    const previousStatus = document.status;
+    const previousState = {
+      name: document.name,
+      documentModelId: document.documentModelId,
+      issuedDate: document.issuedDate,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description || null,
+      documentUrl: document.documentUrl || null,
+      groupId: document.groupId,
+      requiredColaboratorsCount: document.requiredColaboratorsCount,
+      colaboratorIds: [...document.colaboratorIds].sort(),
+    };
 
     // Update fields
     if (request.name !== undefined) {
@@ -80,13 +105,7 @@ export class UpdateDocumentUseCase {
     }
 
     if (request.documentUrl !== undefined) {
-      // Delete old file if exists and is different from new one
-      const oldFileId = document.documentUrl;
-      if (oldFileId && oldFileId !== request.documentUrl) {
-        await this.fileRepository.softDelete(oldFileId).catch((error) => {
-          console.error('Error deleting old file:', error);
-        });
-      }
+      // Keep old file available for history preview when replacing it.
       document.updateDocumentUrl(request.documentUrl);
     }
 
@@ -120,23 +139,41 @@ export class UpdateDocumentUseCase {
           finalDocumentModelId,
           finalContractId,
           finalColaboratorIds,
+          document.name,
           document.id,
         );
       } else {
         exists = await this.documentRepository.existsByModelAndColaborator(
           finalDocumentModelId,
           finalColaboratorIds,
+          document.name,
           document.id,
         );
       }
 
       if (exists) {
-        throw new ValidationError(`Ya existe un documento de este modelo para los colaboradores seleccionados${finalContractId ? ' en este contrato' : ''}.`);
+        throw new ValidationError(`Ya existe un documento con el mismo nombre, modelo y colaboradores${finalContractId ? ' en este contrato' : ''}.`);
       }
     }
 
-    // Al editar un documento, siempre vuelve a estado borrador
-    document.setToDraft();
+    // Al editar un documento, vuelve a borrador (o a "cargado" si el modelo no requiere aprobación).
+    // Si venía de un estado rechazado por flujo de firma y se cambia el archivo,
+    // se desvincula el flujo anterior para permitir iniciar uno nuevo.
+    const wasRejectedByFlow = previousStatus === DocumentStatus.REJECTED
+      || previousStatus === DocumentStatus.REJECTED_WITH_COMMENTS
+      || previousStatus === DocumentStatus.REJECTED_FOR_SIGN;
+    const fileWillChange = request.documentUrl !== undefined
+      && (request.documentUrl || null) !== previousState.documentUrl;
+
+    if (wasRejectedByFlow && fileWillChange) {
+      document.signatureFlowId = null;
+    }
+
+    if (documentModel.requiresApproval === false) {
+      document.setToUploaded();
+    } else {
+      document.setToDraft();
+    }
 
     // Actualizar documento
     const updatedDocument = await this.documentRepository.update(document);
@@ -150,6 +187,101 @@ export class UpdateDocumentUseCase {
     }
 
     // Crear entrada de historial
+    const changeDetails: DocumentChangeDetail[] = [];
+
+    const pushChange = (field: string, label: string, before: string | null, after: string | null) => {
+      if (before === after) return;
+      changeDetails.push({ field, label, before, after });
+    };
+
+    const formatDate = (date?: Date | null): string | null => (date ? date.toISOString().slice(0, 10) : null);
+
+    // Resolve model names for human-readable history
+    const resolveModelName = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      try {
+        const model = await this.documentModelRepository.findById(id);
+        if (!model) return id;
+        return [model.documentTypeName, model.documentSubtypeName].filter(Boolean).join(' / ') || id;
+      } catch { return id; }
+    };
+
+    const resolveGroupName = async (id: number | null): Promise<string | null> => {
+      if (!id) return null;
+      try {
+        const group = await this.groupRepository.findById(id);
+        return (group as { name?: string })?.name ?? String(id);
+      } catch { return String(id); }
+    };
+
+    const resolveColaboratorNames = async (ids: string[]): Promise<string | null> => {
+      if (!ids.length) return null;
+      if (!this.colaboratorRepository) return ids.join(', ');
+      try {
+        const colabs = await this.colaboratorRepository.findIn(ids);
+        const nameMap = new Map(colabs.map((c) => [c.id, c.getNombreCompleto()]));
+        return ids.map((id) => nameMap.get(id) ?? id).join(', ');
+      } catch { return ids.join(', '); }
+    };
+
+    const resolveContractLabel = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      if (!this.contractRepository) return id;
+      try {
+        const contract = await this.contractRepository.findById(id);
+        return contract ? `${contract.contractNumber}${contract.nombreProyecto ? ` — ${contract.nombreProyecto}` : ''}` : id;
+      } catch { return id; }
+    };
+
+    const [prevModelName, currModelName] = await Promise.all([
+      resolveModelName(previousState.documentModelId),
+      resolveModelName(updatedDocument.documentModelId),
+    ]);
+    const [prevGroupName, currGroupName] = await Promise.all([
+      resolveGroupName(previousState.groupId),
+      resolveGroupName(updatedDocument.groupId),
+    ]);
+    const [prevColabNames, currColabNames] = await Promise.all([
+      resolveColaboratorNames(previousState.colaboratorIds),
+      resolveColaboratorNames([...updatedDocument.colaboratorIds].sort()),
+    ]);
+    const [prevContractLabel, currContractLabel] = await Promise.all([
+      resolveContractLabel(previousState.contractId),
+      resolveContractLabel(updatedDocument.contractId),
+    ]);
+
+    pushChange('name', 'Nombre', previousState.name, updatedDocument.name);
+    pushChange('documentModelId', 'Modelo de documento', prevModelName, currModelName);
+    pushChange('issuedDate', 'Fecha de emision', formatDate(previousState.issuedDate), formatDate(updatedDocument.issuedDate));
+    pushChange('expirationDate', 'Fecha de vencimiento', formatDate(previousState.expirationDate), formatDate(updatedDocument.expirationDate));
+    pushChange('contractId', 'Contrato', prevContractLabel, currContractLabel);
+    pushChange('description', 'Descripcion', previousState.description, updatedDocument.description || null);
+    pushChange('groupId', 'Grupo', prevGroupName, currGroupName);
+    pushChange(
+      'requiredColaboratorsCount',
+      'Cantidad requerida de colaboradores',
+      String(previousState.requiredColaboratorsCount),
+      String(updatedDocument.requiredColaboratorsCount),
+    );
+
+    pushChange('colaboratorIds', 'Colaboradores', prevColabNames, currColabNames);
+
+    if (previousState.documentUrl !== (updatedDocument.documentUrl || null)) {
+      changeDetails.push({
+        field: 'documentUrl',
+        label: 'Archivo',
+        before: previousState.documentUrl ? 'Archivo anterior' : null,
+        after: updatedDocument.documentUrl ? 'Archivo reemplazado' : null,
+        beforeFileId: previousState.documentUrl || undefined,
+        afterFileId: updatedDocument.documentUrl || undefined,
+      });
+    }
+
+    const fileChanged = previousState.documentUrl !== (updatedDocument.documentUrl || null);
+    const historyAction = (wasRejectedByFlow && fileChanged)
+      ? DocumentAction.VERSION_SUPERSEDED
+      : DocumentAction.UPDATED;
+
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
       documentModelId: updatedDocument.documentModelId || document.documentModelId,
@@ -161,7 +293,8 @@ export class UpdateDocumentUseCase {
       documentUrl: updatedDocument.documentUrl,
       status: updatedDocument.status,
       comment: request.comment || null,
-      action: DocumentAction.UPDATED,
+      actionComment: changeDetails.length > 0 ? JSON.stringify({ changes: changeDetails }) : null,
+      action: historyAction,
       updatedBy: request.updatedBy || 'system',
     };
 

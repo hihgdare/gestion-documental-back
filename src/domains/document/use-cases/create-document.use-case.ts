@@ -3,7 +3,7 @@ import { DocumentHistoryRepository } from '../repositories/document-history.repo
 import { DocumentFieldValueRepository } from '../repositories/document-field-value.repository';
 import { Document, DocumentProps, DocumentFieldValue } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
-import { DocumentAction } from '../value-objects/document-enums';
+import { DocumentAction, DocumentStatus } from '../value-objects/document-enums';
 import { ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
@@ -61,10 +61,11 @@ export class CreateDocumentUseCase {
         request.documentModelId,
         contractId,
         request.colaboratorIds,
+        request.name,
       );
 
       if (exists) {
-        throw new ValidationError('Ya existe un documento de este modelo para los colaboradores seleccionados en este contrato.');
+        throw new ValidationError('Ya existe un documento con el mismo nombre, modelo y colaboradores en este contrato.');
       }
     }
 
@@ -89,6 +90,7 @@ export class CreateDocumentUseCase {
       requiredColaboratorsCount: request.requiredColaboratorsCount,
       createdBy: request.createdBy,
       templateId: request.templateId,
+      status: documentModel.requiresApproval === false ? DocumentStatus.UPLOADED : undefined,
     };
 
     const document = Document.create(documentProps);

@@ -95,10 +95,13 @@ export class FileController {
 
   async download(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
+    const includeDeleted = req.query.history === 'true';
 
     if (!id) throw new ValidationError('File ID is required', 'id');
 
-    const file = await this.fileRepo.findById(id);
+    const file = includeDeleted
+      ? await this.fileRepo.findByIdIncludingDeleted(id)
+      : await this.fileRepo.findById(id);
 
     if (!file) throw new NotFoundError('File');
 
@@ -162,10 +165,13 @@ export class FileController {
 
   async preview(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
+    const includeDeleted = req.query.history === 'true';
 
     if (!id) throw new ValidationError('File ID is required', 'id');
 
-    const file = await this.fileRepo.findById(id);
+    const file = includeDeleted
+      ? await this.fileRepo.findByIdIncludingDeleted(id)
+      : await this.fileRepo.findById(id);
 
     if (!file) throw new NotFoundError('File');
 

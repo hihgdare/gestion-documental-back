@@ -21,3 +21,7 @@ export { BulkUploadTemplateEntity } from './bulk-upload-template.entity';
 export { FileShareEntity } from './file-share.entity';
 export { DocumentTemplateEntity } from './document-template.entity';
 export { DocumentFieldValueEntity } from './document-field-value.entity';
+export { SignatureEntity } from './signature.entity';
+export { SignatureVerificationCodeEntity } from './signature-verification-code.entity';
+export { SignatureFlowEntity } from './signature-flow.entity';
+export { SignatureFlowParticipantEntity } from './signature-flow-participant.entity';

@@ -12,6 +12,7 @@ import {
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '../../domains/document/use-cases/update-document.use-case';
 import { SendToReviewDocumentUseCase } from '../../domains/document/use-cases/send-to-review-document.use-case';
 import { ApproveDocumentUseCase } from '../../domains/document/use-cases/approve-document.use-case';
+import { DirectApproveDocumentUseCase } from '../../domains/document/use-cases/direct-approve-document.use-case';
 import { RejectDocumentUseCase } from '../../domains/document/use-cases/reject-document.use-case';
 import { RejectDocumentWithCommentsUseCase } from '../../domains/document/use-cases/reject-document-with-comments.use-case';
 import { CreateDocumentDto } from '../dto/document/create-document.dto';
@@ -24,10 +25,12 @@ import { ReviewerResponseDto } from '../dto/contract/reviewer-response.dto';
 import { ContractReviewer } from '@domains/contract/entities/contract-reviewer.entity';
 import { GetAllDocumentTypesWithSubtypesUseCase } from '@domains/document-type/use-cases/get-document-type-with-subtypes.use-case';
 import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
+import { DownloadDocumentsZipUseCase } from '@domains/document/use-cases/download-documents-zip.use-case';
 import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GetDocumentQuotaUseCase } from '@domains/document/use-cases/get-document-quota.use-case';
+import { DocumentStatus } from '@domains/document/value-objects/document-enums';
 
 export class DocumentController {
   constructor(
@@ -43,6 +46,7 @@ export class DocumentController {
     private deleteDocumentUseCase: DeleteDocumentUseCase,
     private sendToReviewDocumentUseCase: SendToReviewDocumentUseCase,
     private approveDocumentUseCase: ApproveDocumentUseCase,
+    private directApproveDocumentUseCase: DirectApproveDocumentUseCase,
     private rejectDocumentUseCase: RejectDocumentUseCase,
     private rejectDocumentWithCommentsUseCase: RejectDocumentWithCommentsUseCase,
     private contractReviewerRepository: ContractReviewerRepository,
@@ -50,6 +54,7 @@ export class DocumentController {
     private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
     private assignDocumentsToGroupUseCase?: AssignDocumentsToGroupUseCase,
     private getDocumentQuotaUseCase?: GetDocumentQuotaUseCase,
+    private downloadDocumentsZipUseCase?: DownloadDocumentsZipUseCase,
   ) {}
 
   assignDocumentsToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -64,7 +69,7 @@ export class DocumentController {
 
     // Lazy import to avoid circular deps in constructor if use-case not injected earlier
     // but prefer to access via dependency injection container in wiring; here assume it's available via (any) this
-    const useCase: any = (this as any).assignDocumentsToGroupUseCase;
+    const useCase = this.assignDocumentsToGroupUseCase;
     if (!useCase) throw new NotFoundError('Use case assignDocumentsToGroupUseCase');
 
     const result = await useCase.execute({
@@ -89,8 +94,33 @@ export class DocumentController {
     });
   });
 
+  downloadZip = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentIds } = req.body as { documentIds?: unknown };
+
+    if (!Array.isArray(documentIds) || documentIds.length === 0 || documentIds.some((id) => typeof id !== 'string')) {
+      throw new ValidationError('Debe proporcionar un arreglo de IDs de documentos', 'documentIds');
+    }
+
+    const useCase = this.downloadDocumentsZipUseCase;
+    if (!useCase) throw new NotFoundError('Use case downloadDocumentsZipUseCase');
+
+    const archive = await useCase.execute(documentIds as string[], req.auth.groupId);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename="documentos.zip"');
+
+    archive.on('error', (error) => {
+      console.error('Error streaming documents zip:', error);
+      if (!res.headersSent) {
+        res.status(500);
+      }
+      res.end();
+    });
+
+    archive.pipe(res);
+  });
+
   createDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    console.log('DocumentController.createDocument body:', JSON.stringify(req.body, null, 2));
     const dto: CreateDocumentDto = req.body;
 
     const document = await this.createDocumentUseCase.execute({
@@ -127,12 +157,12 @@ export class DocumentController {
   getAllDocuments = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { includeContractReviewers, includeDocumentTypes, filter } = req.query;
 
-    const filterObj: any = filter || {};
+    const filterObj = (filter && typeof filter === 'object' && !Array.isArray(filter) ? filter : {}) as Record<string, string | undefined>;
     const contractId = filterObj.contractId;
     const colaboratorId = filterObj.colaboratorId;
     const requiredForContract = filterObj.requiredForContract === 'true' ? true : undefined;
     const requiredForColaborator = filterObj.requiredForColaborator === 'true' ? true : undefined;
-    const status = filterObj.status;
+    const status = filterObj.status as DocumentStatus | undefined;
 
     const documents = await this.getAllDocumentsUseCase.execute(req.auth.groupId, {
       contractId,
@@ -142,7 +172,13 @@ export class DocumentController {
       status,
     });
 
-    const response: any = {
+    const response: {
+      success: true;
+      data: DocumentResponseDto[];
+      count: number;
+      contractReviewers?: Record<string, ReviewerResponseDto[]>;
+      documentTypes?: object[];
+    } = {
       success: true,
       data: documents.map((doc) => this.toResponseDto(doc)),
       count: documents.length,
@@ -296,6 +332,19 @@ export class DocumentController {
     });
   });
 
+  directApproveDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    await this.directApproveDocumentUseCase.execute(id, req.auth.user?.id || 'system');
+
+    const document = await this.getDocumentByIdUseCase.execute(id);
+
+    res.status(200).json({
+      success: true,
+      data: this.toResponseDto(document),
+      message: 'Documento aprobado exitosamente',
+    });
+  });
+
   rejectDocument = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     await this.rejectDocumentUseCase.execute(id, req.auth.user?.id || 'system');
@@ -337,6 +386,8 @@ export class DocumentController {
       documentModelId: json.documentModelId,
       colaboratorIds: json.colaboratorIds || [],
       groupId: document.groupId,
+      familyId: document.familyId,
+      familyName: document.familyName,
       documentTypeId: document.documentTypeId,
       documentSubtypeId: document.documentSubtypeId,
       documentTypeName: document.documentTypeName,
