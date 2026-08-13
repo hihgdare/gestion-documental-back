@@ -5,6 +5,8 @@ import { GetUserByIdUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { ChangePasswordUseCase } from '@domains/user/use-cases/change-password.use-case';
 import { SetPasswordUseCase } from '@domains/user/use-cases/set-password.use-case';
+import { SendPasswordResetEmailUseCase } from '@domains/user/use-cases/send-password-reset-email.use-case';
+import { ResetPasswordUseCase } from '@domains/user/use-cases/reset-password.use-case';
 import { ForbiddenError, UnauthorizedError, ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
@@ -22,6 +24,8 @@ export class AuthController {
     private readonly inAppNotificationRepository: InAppNotificationRepository,
     private readonly documentRepository: DocumentRepository,
     private readonly setPasswordUseCase: SetPasswordUseCase,
+    private readonly sendPasswordResetEmailUseCase: SendPasswordResetEmailUseCase,
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
     private readonly jwtSecret: string,
   ) {
     this.login = this.login.bind(this);
@@ -34,6 +38,8 @@ export class AuthController {
     this.getToken = this.getToken.bind(this);
     this.getGroup = this.getGroup.bind(this);
     this.setPassword = this.setPassword.bind(this);
+    this.forgotPassword = this.forgotPassword.bind(this);
+    this.resetPassword = this.resetPassword.bind(this);
     this.deleteNotification = this.deleteNotification.bind(this);
     this.clearNotifications = this.clearNotifications.bind(this);
   }
@@ -398,6 +404,46 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Password set successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+
+      if (!email || typeof email !== 'string') {
+        throw new ValidationError('Email is required', 'email');
+      }
+
+      await this.sendPasswordResetEmailUseCase.execute(email);
+
+      // Respuesta siempre genérica: no revela si el correo existe, está
+      // inactivo o si el envío falló, para evitar enumeración de usuarios.
+      res.status(200).json({
+        success: true,
+        message: 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        throw new ValidationError('Token and new password are required', 'body');
+      }
+
+      await this.resetPasswordUseCase.execute(token, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password reset successfully',
       });
     } catch (error) {
       next(error);
