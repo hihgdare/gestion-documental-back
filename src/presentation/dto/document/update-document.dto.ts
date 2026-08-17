@@ -14,4 +14,8 @@ export interface UpdateDocumentDto {
   requiredColaboratorsCount?: number;
   templateId?: string;
   fieldValues?: DocumentFieldValueDto[];
+  code?: string | null;
+  reviewDate?: string | null; // ISO date string
+  responsibleColaboratorId?: string | null;
+  areaId?: string | null;
 }

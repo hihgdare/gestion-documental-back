@@ -134,6 +134,10 @@ export class DocumentController {
       createdBy: req.auth.user?.id,
       templateId: dto.templateId,
       fieldValues: dto.fieldValues,
+      code: dto.code,
+      reviewDate: dto.reviewDate ? new Date(dto.reviewDate) : undefined,
+      responsibleColaboratorId: dto.responsibleColaboratorId,
+      areaId: dto.areaId,
     });
 
     res.status(201).json({
@@ -284,6 +288,10 @@ export class DocumentController {
       comment: dto.comment,
       templateId: dto.templateId,
       fieldValues: dto.fieldValues,
+      code: dto.code !== undefined ? (dto.code || null) : undefined,
+      reviewDate: dto.reviewDate !== undefined ? (dto.reviewDate ? new Date(dto.reviewDate) : null) : undefined,
+      responsibleColaboratorId: dto.responsibleColaboratorId !== undefined ? (dto.responsibleColaboratorId || null) : undefined,
+      areaId: dto.areaId !== undefined ? (dto.areaId || null) : undefined,
     });
 
     res.status(200).json({
@@ -399,6 +407,14 @@ export class DocumentController {
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,
+      previousVersionId: document.previousVersionId,
+      isSuperseded: document.isSuperseded,
+      code: document.code,
+      reviewDate: json.reviewDate ?? null,
+      responsibleColaboratorId: document.responsibleColaboratorId,
+      responsibleColaboratorName: document.responsibleColaboratorName,
+      areaId: document.areaId,
+      areaName: document.areaName,
       requiredForContract: json.requiredForContract ?? false,
       requiredForColaborator: json.requiredForColaborator ?? false,
       requiredExpirationDate: json.requiredExpirationDate ?? false,

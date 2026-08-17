@@ -18,6 +18,14 @@ export interface DocumentResponseDto {
   description?: string;
   documentUrl?: string;
   status: string;
+  previousVersionId?: string | null;
+  isSuperseded: boolean;
+  code?: string | null;
+  reviewDate?: string | null; // ISO date string
+  responsibleColaboratorId?: string | null;
+  responsibleColaboratorName?: string | null;
+  areaId?: string | null;
+  areaName?: string | null;
   requiredForContract: boolean;
   requiredForColaborator: boolean;
   requiredExpirationDate: boolean;

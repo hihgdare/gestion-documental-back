@@ -1,4 +1,4 @@
-import { Repository, LessThanOrEqual, In, IsNull } from 'typeorm';
+import { Repository, LessThanOrEqual, In, IsNull, Not } from 'typeorm';
 import { type DocumentRepository } from '@domains/document/repositories/document.repository';
 import { Document, type DocumentProps } from '@domains/document/entities/document.entity';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
@@ -24,6 +24,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
     });
     if (!documentEntity) return null;
@@ -61,6 +63,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .leftJoinAndSelect('document.responsibleColaborator', 'responsibleColaborator')
+      .leftJoinAndSelect('document.area', 'area')
       .where('document.deletedAt IS NULL');
 
     if (groupId !== undefined) {
@@ -86,6 +90,10 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     if (filters?.status) {
       const status = Array.isArray(filters.status) ? filters.status : [filters.status];
       query.andWhere('document.status IN (:...status)', { status });
+    } else {
+      // Las versiones obsoletas (reemplazadas por una nueva) no deben circular por
+      // error: se excluyen de los listados salvo que se pidan explícitamente por status.
+      query.andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE });
     }
 
     const documentEntities = await query.orderBy('document.createdAt', 'DESC').getMany();
@@ -135,7 +143,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByContractId(contractId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { contractId, deletedAt: IsNull() },
+      where: { contractId, deletedAt: IsNull(), status: Not(DocumentStatus.OBSOLETE) },
       relations: [
         'contract',
         'documentModel',
@@ -143,6 +151,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       order: { createdAt: 'DESC' },
     });
@@ -151,7 +161,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
 
   async findByDocumentModelId(documentModelId: string): Promise<Document[]> {
     const documentEntities = await this.repository.find({
-      where: { documentModelId, deletedAt: IsNull() },
+      where: { documentModelId, deletedAt: IsNull(), status: Not(DocumentStatus.OBSOLETE) },
       relations: [
         'contract',
         'documentModel',
@@ -159,6 +169,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       order: { createdAt: 'DESC' },
     });
@@ -170,6 +182,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     const documentEntities = await this.repository
       .createQueryBuilder('document')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .leftJoinAndSelect('document.responsibleColaborator', 'responsibleColaborator')
+      .leftJoinAndSelect('document.area', 'area')
       .leftJoinAndSelect('document.contract', 'contract')
       .leftJoinAndSelect('document.documentModel', 'documentModel')
       .leftJoinAndSelect('documentModel.family', 'family')
@@ -177,6 +191,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .where('colaborators.id IN (:...colaboratorIds)', { colaboratorIds })
       .andWhere('document.deletedAt IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .orderBy('document.createdAt', 'DESC')
       .getMany();
     return documentEntities.map(entity => this.toDomain(entity));
@@ -187,6 +202,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       where: {
         expirationDate: LessThanOrEqual(new Date()),
         deletedAt: IsNull(),
+        status: Not(DocumentStatus.OBSOLETE),
       },
       relations: [
         'contract',
@@ -195,6 +211,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       order: { expirationDate: 'ASC' },
     });
@@ -214,10 +232,13 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .leftJoinAndSelect('documentModel.documentType', 'documentType')
       .leftJoinAndSelect('documentModel.documentSubtype', 'documentSubtype')
       .leftJoinAndSelect('document.colaborators', 'colaborators')
+      .leftJoinAndSelect('document.responsibleColaborator', 'responsibleColaborator')
+      .leftJoinAndSelect('document.area', 'area')
       .where('document.expirationDate IS NOT NULL')
       .andWhere('document.expirationDate > :today', { today })
       .andWhere('document.expirationDate <= :futureDate', { futureDate })
       .andWhere('document.deletedAt IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .orderBy('document.expiration_date', 'ASC')
       .getMany();
 
@@ -233,6 +254,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .where('document.documentModelId = :documentModelId', { documentModelId })
       .andWhere('document.name = :name', { name })
       .andWhere('document.deleted_at IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .andWhere(
         `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id AND dc.colaborator_id IN (:...colaboratorIds)) = :count`,
         { colaboratorIds, count },
@@ -266,6 +288,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       .andWhere('document.contract_id = :contractId', { contractId })
       .andWhere('document.name = :name', { name })
       .andWhere('document.deleted_at IS NULL')
+      .andWhere('document.status != :obsoleteStatus', { obsoleteStatus: DocumentStatus.OBSOLETE })
       .andWhere(
         `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id AND dc.colaborator_id IN (:...colaboratorIds)) = :count`,
         { colaboratorIds, count },
@@ -274,6 +297,21 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         `(SELECT COUNT(*) FROM document_colaborators dc WHERE dc.document_id = document.id) = :count`,
         { count },
       );
+
+    if (excludeId) {
+      query.andWhere('document.id != :excludeId', { excludeId });
+    }
+
+    const existing = await query.getOne();
+    return !!existing;
+  }
+
+  async existsByCode(code: string, groupId: number, excludeId?: string): Promise<boolean> {
+    const query = this.repository
+      .createQueryBuilder('document')
+      .where('document.code = :code', { code })
+      .andWhere('document.group_id = :groupId', { groupId })
+      .andWhere('document.deleted_at IS NULL');
 
     if (excludeId) {
       query.andWhere('document.id != :excludeId', { excludeId });
@@ -292,6 +330,8 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
         'documentModel.documentType',
         'documentModel.documentSubtype',
         'colaborators',
+        'responsibleColaborator',
+        'area',
       ],
       where: {
         documentModel: {
@@ -299,6 +339,7 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
           documentSubtypeId: subtypeId,
         },
         deletedAt: IsNull(),
+        status: Not(DocumentStatus.OBSOLETE),
       },
       order: { createdAt: 'DESC' },
     });
@@ -325,6 +366,15 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       signatureFlowId: entity.signatureFlowId ?? null,
       previousVersionId: entity.previousVersionId ?? null,
       isSuperseded: entity.isSuperseded ?? false,
+      code: entity.code ?? null,
+      reviewDate: entity.reviewDate ?? null,
+      responsibleColaboratorId: entity.responsibleColaboratorId ?? null,
+      responsibleColaboratorName: entity.responsibleColaborator
+        ? [entity.responsibleColaborator.nombre, entity.responsibleColaborator.apellidoPaterno, entity.responsibleColaborator.apellidoMaterno]
+          .filter(Boolean).join(' ')
+        : null,
+      areaId: entity.areaId ?? null,
+      areaName: entity.area?.name ?? null,
       comment: entity.comment,
       groupId: entity.groupId,
       requiredColaboratorsCount: entity.requiredColaboratorsCount,
@@ -364,6 +414,10 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
       signatureFlowId: document.signatureFlowId ?? undefined,
       previousVersionId: document.previousVersionId ?? undefined,
       isSuperseded: document.isSuperseded,
+      code: document.code ?? undefined,
+      reviewDate: document.reviewDate ? DateUtils.toLocalDate(document.reviewDate) : undefined,
+      responsibleColaboratorId: document.responsibleColaboratorId ?? undefined,
+      areaId: document.areaId ?? undefined,
       comment: document.comment || undefined,
       groupId: document.groupId,
       requiredColaboratorsCount: document.requiredColaboratorsCount,

@@ -9,6 +9,7 @@ import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
+import { AreaRepository } from '@domains/area/repositories/area.repository';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -25,6 +26,10 @@ export interface UpdateDocumentRequest {
   comment?: string;
   templateId?: string;
   fieldValues?: DocumentFieldValue[];
+  code?: string | null;
+  reviewDate?: Date | null;
+  responsibleColaboratorId?: string | null;
+  areaId?: string | null;
 }
 
 interface DocumentChangeDetail {
@@ -45,6 +50,7 @@ export class UpdateDocumentUseCase {
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly contractRepository?: ContractRepository,
+    private readonly areaRepository?: AreaRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -65,6 +71,13 @@ export class UpdateDocumentUseCase {
       groupId: document.groupId,
       requiredColaboratorsCount: document.requiredColaboratorsCount,
       colaboratorIds: [...document.colaboratorIds].sort(),
+      templateId: document.templateId,
+      createdBy: document.createdBy,
+      previousVersionId: document.previousVersionId,
+      code: document.code,
+      reviewDate: document.reviewDate,
+      responsibleColaboratorId: document.responsibleColaboratorId,
+      areaId: document.areaId,
     };
 
     // Update fields
@@ -92,12 +105,57 @@ export class UpdateDocumentUseCase {
       throw new ValidationError('Document Model not found for the document', 'documentModelId');
     }
 
-    if (request.issuedDate !== undefined || request.expirationDate !== undefined) {
+    const datesChanging = request.issuedDate !== undefined || request.expirationDate !== undefined;
+    if (datesChanging) {
       document.updateDates(
         request.issuedDate || document.issuedDate,
         request.expirationDate !== undefined ? request.expirationDate : (document.expirationDate || undefined),
         documentModel.requiredExpirationDate,
       );
+    }
+
+    // Identificación única y metadatos obligatorios
+    if (request.code !== undefined) {
+      const code = request.code?.trim() || null;
+      if (code) {
+        const codeExists = await this.documentRepository.existsByCode(code, document.groupId, document.id);
+        if (codeExists) {
+          throw new ValidationError('Ya existe un documento con ese código en este grupo', 'code');
+        }
+      }
+      document.updateCode(code);
+    }
+
+    if (request.responsibleColaboratorId !== undefined) {
+      if (request.responsibleColaboratorId && this.colaboratorRepository) {
+        const responsible = await this.colaboratorRepository.findById(request.responsibleColaboratorId);
+        if (!responsible) {
+          throw new ValidationError('El colaborador responsable indicado no existe', 'responsibleColaboratorId');
+        }
+      }
+      document.updateResponsibleColaboratorId(request.responsibleColaboratorId);
+    }
+
+    if (request.areaId !== undefined) {
+      if (request.areaId && this.areaRepository) {
+        const area = await this.areaRepository.findById(request.areaId);
+        if (!area) {
+          throw new ValidationError('El área indicada no existe', 'areaId');
+        }
+      }
+      document.updateAreaId(request.areaId);
+    }
+
+    // Fecha de próxima revisión: si se indica explícitamente (incluyendo null, para
+    // limpiarla y que vuelva a calcularse), se respeta; si no, solo se recalcula
+    // automáticamente cuando cambia el vencimiento (la fecha de creación, que es la
+    // otra variable de la fórmula, no cambia una vez creado el documento).
+    if (request.reviewDate !== undefined) {
+      document.updateReviewDate(
+        request.reviewDate ?? Document.calculateDefaultReviewDate(document.createdAt, document.expirationDate),
+      );
+    } else if (request.expirationDate !== undefined) {
+      document.updateReviewDate(Document.calculateDefaultReviewDate(document.createdAt, document.expirationDate));
     }
 
     if (request.description !== undefined) {
@@ -175,6 +233,51 @@ export class UpdateDocumentUseCase {
       document.setToDraft();
     }
 
+    // Control de documentos obsoletos: al reemplazar el archivo de un documento que ya
+    // tenía uno cargado, la versión anterior se archiva automáticamente (nunca se elimina)
+    // con estado "obsolete" y queda enlazada mediante previousVersionId. Esa versión
+    // archivada no puede volver a circular: no aparece en los listados por defecto ni
+    // puede usarse para iniciar un flujo de firma (ver ALLOWED_START_STATUSES).
+    let archivedVersion: Document | null = null;
+    const shouldArchivePreviousVersion = fileWillChange
+      && !!previousState.documentUrl
+      && !!previousState.issuedDate;
+
+    if (shouldArchivePreviousVersion) {
+      archivedVersion = await this.documentRepository.save(Document.create({
+        documentModelId: previousState.documentModelId,
+        colaboratorIds: [...previousState.colaboratorIds],
+        name: previousState.name,
+        issuedDate: previousState.issuedDate ?? undefined,
+        expirationDate: previousState.expirationDate,
+        contractId: previousState.contractId,
+        description: previousState.description ?? undefined,
+        documentUrl: previousState.documentUrl ?? undefined,
+        status: DocumentStatus.OBSOLETE,
+        isSuperseded: true,
+        previousVersionId: previousState.previousVersionId,
+        groupId: previousState.groupId,
+        requiredColaboratorsCount: previousState.requiredColaboratorsCount,
+        createdBy: previousState.createdBy ?? undefined,
+        comment: 'Versión reemplazada automáticamente al subir un nuevo archivo.',
+        templateId: previousState.templateId ?? undefined,
+      }));
+
+      // Preservar los valores de campos de plantilla de la versión archivada, si los tenía.
+      if (this.documentFieldValueRepository) {
+        try {
+          const previousFieldValues = await this.documentFieldValueRepository.findByDocumentId(document.id);
+          if (previousFieldValues.length > 0) {
+            await this.documentFieldValueRepository.saveMany(archivedVersion.id, previousFieldValues);
+          }
+        } catch {
+          // La copia de campos históricos no debe bloquear la actualización del documento.
+        }
+      }
+
+      document.previousVersionId = archivedVersion.id;
+    }
+
     // Actualizar documento
     const updatedDocument = await this.documentRepository.update(document);
 
@@ -233,6 +336,24 @@ export class UpdateDocumentUseCase {
       } catch { return id; }
     };
 
+    const resolveResponsibleLabel = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      if (!this.colaboratorRepository) return id;
+      try {
+        const colaborator = await this.colaboratorRepository.findById(id);
+        return colaborator ? colaborator.getNombreCompleto() : id;
+      } catch { return id; }
+    };
+
+    const resolveAreaLabel = async (id: string | null): Promise<string | null> => {
+      if (!id) return null;
+      if (!this.areaRepository) return id;
+      try {
+        const area = await this.areaRepository.findById(id);
+        return area?.name ?? id;
+      } catch { return id; }
+    };
+
     const [prevModelName, currModelName] = await Promise.all([
       resolveModelName(previousState.documentModelId),
       resolveModelName(updatedDocument.documentModelId),
@@ -248,6 +369,14 @@ export class UpdateDocumentUseCase {
     const [prevContractLabel, currContractLabel] = await Promise.all([
       resolveContractLabel(previousState.contractId),
       resolveContractLabel(updatedDocument.contractId),
+    ]);
+    const [prevResponsibleLabel, currResponsibleLabel] = await Promise.all([
+      resolveResponsibleLabel(previousState.responsibleColaboratorId),
+      resolveResponsibleLabel(updatedDocument.responsibleColaboratorId),
+    ]);
+    const [prevAreaLabel, currAreaLabel] = await Promise.all([
+      resolveAreaLabel(previousState.areaId),
+      resolveAreaLabel(updatedDocument.areaId),
     ]);
 
     pushChange('name', 'Nombre', previousState.name, updatedDocument.name);
@@ -265,6 +394,10 @@ export class UpdateDocumentUseCase {
     );
 
     pushChange('colaboratorIds', 'Colaboradores', prevColabNames, currColabNames);
+    pushChange('code', 'Código', previousState.code, updatedDocument.code);
+    pushChange('reviewDate', 'Fecha de próxima revisión', formatDate(previousState.reviewDate), formatDate(updatedDocument.reviewDate));
+    pushChange('responsibleColaboratorId', 'Responsable', prevResponsibleLabel, currResponsibleLabel);
+    pushChange('areaId', 'Área', prevAreaLabel, currAreaLabel);
 
     if (previousState.documentUrl !== (updatedDocument.documentUrl || null)) {
       changeDetails.push({
@@ -278,9 +411,13 @@ export class UpdateDocumentUseCase {
     }
 
     const fileChanged = previousState.documentUrl !== (updatedDocument.documentUrl || null);
-    const historyAction = (wasRejectedByFlow && fileChanged)
+    const historyAction = fileChanged
       ? DocumentAction.VERSION_SUPERSEDED
       : DocumentAction.UPDATED;
+
+    const actionCommentPayload: { changes?: DocumentChangeDetail[]; archivedVersionId?: string } = {};
+    if (changeDetails.length > 0) actionCommentPayload.changes = changeDetails;
+    if (archivedVersion) actionCommentPayload.archivedVersionId = archivedVersion.id;
 
     const historyProps: DocumentHistoryProps = {
       documentId: updatedDocument.id,
@@ -293,12 +430,32 @@ export class UpdateDocumentUseCase {
       documentUrl: updatedDocument.documentUrl,
       status: updatedDocument.status,
       comment: request.comment || null,
-      actionComment: changeDetails.length > 0 ? JSON.stringify({ changes: changeDetails }) : null,
+      actionComment: Object.keys(actionCommentPayload).length > 0 ? JSON.stringify(actionCommentPayload) : null,
       action: historyAction,
       updatedBy: request.updatedBy || 'system',
     };
 
     await this.documentHistoryRepository.save(historyProps).catch(() => {});
+
+    // Historial propio de la versión archivada: queda registrado con qué documento la reemplazó.
+    if (archivedVersion) {
+      const archivedHistoryProps: DocumentHistoryProps = {
+        documentId: archivedVersion.id,
+        documentModelId: archivedVersion.documentModelId,
+        name: archivedVersion.name,
+        issuedDate: archivedVersion.issuedDate,
+        expirationDate: archivedVersion.expirationDate,
+        contractId: archivedVersion.contractId,
+        description: archivedVersion.description,
+        documentUrl: archivedVersion.documentUrl,
+        status: archivedVersion.status,
+        comment: 'Versión reemplazada por un archivo nuevo.',
+        actionComment: JSON.stringify({ supersededByDocumentId: updatedDocument.id }),
+        action: DocumentAction.ARCHIVED,
+        updatedBy: request.updatedBy || 'system',
+      };
+      await this.documentHistoryRepository.save(archivedHistoryProps).catch(() => {});
+    }
 
     return updatedDocument;
   }

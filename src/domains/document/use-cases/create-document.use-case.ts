@@ -8,6 +8,8 @@ import { ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
+import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+import { AreaRepository } from '@domains/area/repositories/area.repository';
 
 export interface CreateDocumentRequest {
   documentModelId: string;
@@ -23,6 +25,10 @@ export interface CreateDocumentRequest {
   comment?: string;
   templateId?: string;
   fieldValues?: DocumentFieldValue[];
+  code?: string;
+  reviewDate?: Date | null;
+  responsibleColaboratorId?: string;
+  areaId?: string;
 }
 
 export class CreateDocumentUseCase {
@@ -33,6 +39,8 @@ export class CreateDocumentUseCase {
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly familyRepository: IFamilyRepository,
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
+    private readonly colaboratorRepository?: ColaboratorRepository,
+    private readonly areaRepository?: AreaRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
@@ -76,6 +84,35 @@ export class CreateDocumentUseCase {
       }
     }
 
+    // Identificación única: el código, si se indica, no puede repetirse dentro del grupo
+    const code = request.code?.trim() || undefined;
+    if (code) {
+      const codeExists = await this.documentRepository.existsByCode(code, request.groupId);
+      if (codeExists) {
+        throw new ValidationError('Ya existe un documento con ese código en este grupo', 'code');
+      }
+    }
+
+    if (request.responsibleColaboratorId && this.colaboratorRepository) {
+      const responsible = await this.colaboratorRepository.findById(request.responsibleColaboratorId);
+      if (!responsible) {
+        throw new ValidationError('El colaborador responsable indicado no existe', 'responsibleColaboratorId');
+      }
+    }
+
+    if (request.areaId && this.areaRepository) {
+      const area = await this.areaRepository.findById(request.areaId);
+      if (!area) {
+        throw new ValidationError('El área indicada no existe', 'areaId');
+      }
+    }
+
+    // Fecha de próxima revisión: si no se indica, se calcula automáticamente
+    // (creación + 30 días, ajustada a vencimiento - 10 días cuando no queda margen).
+    const reviewDate = request.reviewDate !== undefined
+      ? request.reviewDate
+      : Document.calculateDefaultReviewDate(new Date(), request.expirationDate);
+
     // Creando documento
     const documentProps: DocumentProps = {
       documentModelId: request.documentModelId,
@@ -91,6 +128,10 @@ export class CreateDocumentUseCase {
       createdBy: request.createdBy,
       templateId: request.templateId,
       status: documentModel.requiresApproval === false ? DocumentStatus.UPLOADED : undefined,
+      code,
+      reviewDate,
+      responsibleColaboratorId: request.responsibleColaboratorId,
+      areaId: request.areaId,
     };
 
     const document = Document.create(documentProps);

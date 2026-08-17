@@ -220,6 +220,12 @@ export const createDocumentSchema = Joi.object({
   description: Joi.string().max(1000).optional().allow('', null),
   documentUrl: Joi.string().optional().allow('', null),
   groupId: Joi.number().integer().positive().required(),
+  code: Joi.string().max(100).optional().allow('', null),
+  reviewDate: Joi.date().optional().allow(null).messages({
+    'date.base': 'reviewDate must be a valid date',
+  }),
+  responsibleColaboratorId: Joi.string().uuid().optional().allow('', null),
+  areaId: Joi.string().uuid().optional().allow('', null),
 }).unknown(true);
 
 export const updateDocumentSchema = Joi.object({
@@ -244,6 +250,12 @@ export const updateDocumentSchema = Joi.object({
   description: Joi.string().max(1000).optional().allow(null, ''),
   documentUrl: Joi.string().optional().allow(null, ''),
   groupId: Joi.number().integer().positive().optional(),
+  code: Joi.string().max(100).optional().allow('', null),
+  reviewDate: Joi.date().optional().allow(null).messages({
+    'date.base': 'reviewDate must be a valid date',
+  }),
+  responsibleColaboratorId: Joi.string().uuid().optional().allow('', null),
+  areaId: Joi.string().uuid().optional().allow('', null),
 }).min(1).unknown(true); // Permitir campos desconocidos
 
 export const getDocumentByIdSchema = Joi.object({
