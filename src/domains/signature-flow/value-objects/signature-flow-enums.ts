@@ -22,3 +22,9 @@ export enum SignatureFlowParticipantStatus {
   SIGNED = 'signed',
   REJECTED = 'rejected',
 }
+
+export enum SignatureFlowNotificationType {
+  INITIAL = 'initial',
+  RESEND = 'resend',
+  REMINDER = 'reminder',
+}

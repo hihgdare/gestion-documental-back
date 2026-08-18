@@ -27,4 +27,6 @@ export interface DocumentResponseDto {
   daysUntilExpiration: number | null;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
+  activeSignatureFlowId?: string | null;
+  activeSignatureFlowSentBy?: string | null;
 }

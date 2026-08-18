@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   PendingSignatureDocumentsReportItem,
   SignatureProcessTimeReportItem,
@@ -42,6 +42,26 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
     if (!entity) return null;
     if (entity.status === SignatureFlowStatus.SIGNED || entity.status === SignatureFlowStatus.REJECTED) return null;
     return this.toDomain(entity);
+  }
+
+  async findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]> {
+    if (documentIds.length === 0) return [];
+
+    const entities = await this.repository.find({
+      where: {
+        documentId: In(documentIds),
+        status: In([SignatureFlowStatus.IN_REVIEW, SignatureFlowStatus.IN_SIGNING]),
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    // Si por algún motivo hubiera más de un flujo activo por documento, nos quedamos con el más reciente.
+    const latestByDocumentId = new Map<string, SignatureFlowEntity>();
+    for (const entity of entities) {
+      if (!latestByDocumentId.has(entity.documentId)) latestByDocumentId.set(entity.documentId, entity);
+    }
+
+    return Array.from(latestByDocumentId.values()).map((e) => this.toDomain(e));
   }
 
   async findPendingDocumentsReport(groupId?: number): Promise<PendingSignatureDocumentsReportItem[]> {
@@ -110,7 +130,9 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
         'document_subtype.name as documentSubtypeName',
         'contract.contract_number as contractNumber',
         'flow.sent_at as sentAt',
+        'flow.sent_by as sentBy',
         `TRIM(CONCAT_WS(' ', sender.first_name, sender.last_name)) as sentByName`,
+        'participant.id as holderParticipantId',
         `TRIM(CONCAT_WS(' ', holder_user.first_name, holder_user.last_name)) as holderUserName`,
         'participant.external_name as holderExternalName',
         'participant.external_email as holderExternalEmail',
@@ -130,7 +152,9 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       documentSubtypeName: string | null;
       contractNumber: string | null;
       sentAt: Date | null;
+      sentBy: string | null;
       sentByName: string | null;
+      holderParticipantId: string | null;
       holderUserName: string | null;
       holderExternalName: string | null;
       holderExternalEmail: string | null;
@@ -139,10 +163,13 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
     const grouped = new Map<string, PendingSignatureDocumentsReportItem>();
     for (const row of rows) {
       const key = `${row.flowId}:${row.documentId}`;
-      const holder = row.holderUserName?.trim()
+      const holderName = row.holderUserName?.trim()
         || row.holderExternalName?.trim()
         || row.holderExternalEmail?.trim()
         || null;
+      const holder = row.holderParticipantId && holderName
+        ? { participantId: row.holderParticipantId, name: holderName }
+        : null;
 
       const current = grouped.get(key);
       if (!current) {
@@ -155,13 +182,14 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
           documentSubtypeName: row.documentSubtypeName,
           contractNumber: row.contractNumber,
           sentAt: row.sentAt ? new Date(row.sentAt) : null,
+          sentBy: row.sentBy || null,
           sentByName: row.sentByName?.trim() || null,
           currentHolders: holder ? [holder] : [],
         });
         continue;
       }
 
-      if (holder && !current.currentHolders.includes(holder)) {
+      if (holder && !current.currentHolders.some((h) => h.participantId === holder.participantId)) {
         current.currentHolders.push(holder);
       }
     }

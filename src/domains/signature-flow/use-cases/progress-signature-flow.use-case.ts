@@ -24,9 +24,8 @@ import {
 import { Document } from '@domains/document/entities/document.entity';
 import { SignatureFlow } from '../entities/signature-flow.entity';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
-import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
-import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
 import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { isParticipantEnabledInCurrentStep, orderTypeForRole } from '../services/signature-flow-step.util';
 
 export interface ProcessFlowParticipantActionInput {
   participantId: string;
@@ -68,7 +67,7 @@ export class ProcessFlowParticipantActionUseCase {
       throw new ValidationError('El participante no está pendiente de acción');
     }
 
-    if (!this.isParticipantEnabledInCurrentStep(this.orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
+    if (!isParticipantEnabledInCurrentStep(orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
       throw new ValidationError('Este participante aún no puede actuar por el orden configurado del flujo');
     }
 
@@ -127,7 +126,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
+      && isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return false;
@@ -273,7 +272,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
+      && isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return;
@@ -600,26 +599,8 @@ export class ProcessFlowParticipantActionUseCase {
     participants: SignatureFlowParticipant[],
     documentName: string,
   ): Promise<void> {
-    if (!this.externalTokenRepository) return;
     for (const p of participants) {
-      const email = p.externalEmail;
-      if (!email) continue;
-      await this.externalTokenRepository.deleteByParticipantId(p.id);
-      const token = ExternalParticipantToken.create({
-        participantId: p.id,
-        token: generateExternalToken(),
-        expiresAt: buildExternalTokenExpiry(),
-      });
-      const saved = await this.externalTokenRepository.save(token);
-      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
-      if (!accessUrl) continue;
-      await this.notificationService.notifyExternalParticipant(
-        email,
-        p.externalName,
-        p.role,
-        documentName,
-        accessUrl,
-      );
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(p, documentName);
     }
   }
 
@@ -636,26 +617,5 @@ export class ProcessFlowParticipantActionUseCase {
 
     if (!isPdf || file.storage !== 'local') return null;
     return file.path;
-  }
-
-  private orderTypeForRole(flow: SignatureFlow, role: SignatureFlowParticipantRole): SignatureFlowOrderType {
-    return role === SignatureFlowParticipantRole.SIGNER ? flow.signerOrderType : flow.orderType;
-  }
-
-  private isParticipantEnabledInCurrentStep(
-    orderType: SignatureFlowOrderType,
-    participant: SignatureFlowParticipant,
-    participants: SignatureFlowParticipant[],
-  ): boolean {
-    if (orderType !== SignatureFlowOrderType.SEQUENTIAL) return true;
-    if (participant.order === null) return true;
-
-    const pendingSameRole = participants
-      .filter((p) => p.role === participant.role && p.status === SignatureFlowParticipantStatus.PENDING && p.order !== null)
-      .map((p) => p.order as number);
-
-    if (pendingSameRole.length === 0) return true;
-
-    return participant.order === Math.min(...pendingSameRole);
   }
 }

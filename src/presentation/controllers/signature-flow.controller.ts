@@ -8,6 +8,7 @@ import {
   GetMyPendingSignatureTasksUseCase,
   GetPendingSignatureDocumentsReportUseCase,
   GetSignatureProcessTimeReportUseCase,
+  GetResendableParticipantsUseCase,
 } from '@domains/signature-flow/use-cases/get-signature-flow.use-case';
 import {
   UpdateSignatureFlowUseCase,
@@ -16,6 +17,7 @@ import {
   DeleteSignatureFlowUseCase,
 } from '@domains/signature-flow/use-cases/update-signature-flow.use-case';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
+import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
 import { SignatureFlow } from '@domains/signature-flow/entities/signature-flow.entity';
 import { SignatureFlowParticipant } from '@domains/signature-flow/entities/signature-flow-participant.entity';
 
@@ -33,6 +35,8 @@ export class SignatureFlowController {
     private readonly removeParticipantFromFlowUseCase: RemoveParticipantFromFlowUseCase,
     private readonly processFlowParticipantActionUseCase: ProcessFlowParticipantActionUseCase,
     private readonly deleteSignatureFlowUseCase: DeleteSignatureFlowUseCase,
+    private readonly resendSignatureFlowNotificationUseCase: ResendSignatureFlowNotificationUseCase,
+    private readonly getResendableParticipantsUseCase: GetResendableParticipantsUseCase,
   ) {}
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -111,8 +115,9 @@ export class SignatureFlowController {
           contractNumber: item.contractNumber,
         },
         sentAt: item.sentAt?.toISOString() ?? null,
+        sentBy: item.sentBy,
         sentByName: item.sentByName,
-        currentHolders: item.currentHolders,
+        currentHolders: item.currentHolders.map((h) => ({ participantId: h.participantId, name: h.name })),
       })),
       count: items.length,
     });
@@ -177,6 +182,28 @@ export class SignatureFlowController {
     });
 
     res.status(200).json({ success: true, message: 'Acción aplicada correctamente' });
+  });
+
+  getResendCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const items = await this.getResendableParticipantsUseCase.execute(id);
+    res.status(200).json({ success: true, data: items, count: items.length });
+  });
+
+  resendNotifications = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { participantIds } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanResendAny = req.auth!.user!.can('signature-flow:resend:any');
+
+    await this.resendSignatureFlowNotificationUseCase.execute({
+      flowId: id,
+      participantIds,
+      actorUserId,
+      actorCanResendAny,
+    });
+
+    res.status(200).json({ success: true, message: 'Notificación reenviada correctamente' });
   });
 
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {

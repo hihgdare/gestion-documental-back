@@ -1,6 +1,7 @@
 import { SignatureFlowParticipant } from '../entities/signature-flow-participant.entity';
 import {
   SignatureFlowOrderType,
+  SignatureFlowNotificationType,
   SignatureFlowParticipantRole,
 } from '../value-objects/signature-flow-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
@@ -12,6 +13,27 @@ import {
   buildFrontendUrl,
   buildPrimactaNotificationEmail,
 } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { SignatureFlowNotificationRepository } from '../repositories/signature-flow-notification.repository';
+import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
+import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
+import { generateExternalToken, buildExternalTokenExpiry } from '../use-cases/external-participant-access.use-case';
+
+export interface NotificationLogContext {
+  participantId: string;
+  flowId: string;
+  type?: SignatureFlowNotificationType;
+  triggeredBy?: string | null;
+}
+
+export interface NotificationLogEntry extends NotificationLogContext {
+  emailJobId?: string | null;
+}
+
+export interface EmailWithParticipant {
+  participantId: string;
+  flowId: string;
+  options: EmailOptions;
+}
 
 export class SignatureFlowNotificationService {
   constructor(
@@ -19,6 +41,8 @@ export class SignatureFlowNotificationService {
     private readonly inAppNotificationRepository: InAppNotificationRepository,
     private readonly emailService: EmailService,
     private readonly emailQueueService?: EmailQueueService,
+    private readonly notificationLogRepository?: SignatureFlowNotificationRepository,
+    private readonly externalTokenRepository?: ExternalParticipantTokenRepository,
   ) {}
 
   pickParticipantsToNotify(
@@ -36,14 +60,17 @@ export class SignatureFlowNotificationService {
   }
 
   /**
-   * Notifica participantes internos durante el progreso del flujo.
-   * Envía in-app + email (directo o encolado según configuración).
+   * Notifica participantes internos (con cuenta) durante el progreso del flujo,
+   * o cuando el responsable reenvía manualmente. Envía in-app + email (directo o
+   * encolado según configuración) y deja registro en el log de notificaciones.
    */
   async notifyParticipantsForCurrentStep(
     participants: SignatureFlowParticipant[],
     documentId: string,
     documentName: string,
     orderType: SignatureFlowOrderType,
+    type: SignatureFlowNotificationType = SignatureFlowNotificationType.INITIAL,
+    triggeredBy: string | null = null,
   ): Promise<void> {
     const toNotify = this.pickParticipantsToNotify(orderType, participants);
 
@@ -83,22 +110,28 @@ export class SignatureFlowNotificationService {
         html,
       };
 
-      await this.sendOrEnqueue(options);
+      await this.sendOrEnqueue(options, {
+        participantId: participant.id,
+        flowId: participant.flowId,
+        type,
+        triggeredBy,
+      });
     }
   }
 
   /**
    * Crea notificaciones in-app para participantes internos y retorna los datos de email
-   * sin enviarlos. Usado por create-signature-flow para encolar el batch inicial.
+   * (junto al participante al que corresponde cada uno) sin enviarlos. Usado por
+   * create-signature-flow para encolar el batch inicial.
    */
   async collectEmailsForParticipants(
     participants: SignatureFlowParticipant[],
     documentId: string,
     documentName: string,
     orderType: SignatureFlowOrderType,
-  ): Promise<EmailOptions[]> {
+  ): Promise<EmailWithParticipant[]> {
     const toNotify = this.pickParticipantsToNotify(orderType, participants);
-    const emails: EmailOptions[] = [];
+    const emails: EmailWithParticipant[] = [];
 
     for (const participant of toNotify) {
       if (!participant.userId) continue;
@@ -130,10 +163,14 @@ export class SignatureFlowNotificationService {
       });
 
       emails.push({
-        to: user.email.toString(),
-        subject: title,
-        text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
-        html,
+        participantId: participant.id,
+        flowId: participant.flowId,
+        options: {
+          to: user.email.toString(),
+          subject: title,
+          text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
+          html,
+        },
       });
     }
 
@@ -211,15 +248,56 @@ export class SignatureFlowNotificationService {
     });
   }
 
+  /**
+   * Notifica (o renotifica) a un participante externo, dejando registro en el log
+   * de notificaciones cuando se provee `logContext`.
+   */
   async notifyExternalParticipant(
     externalEmail: string,
     externalName: string | null,
     role: string,
     documentName: string,
     accessUrl: string,
+    logContext?: NotificationLogContext,
   ): Promise<void> {
     const options = this.buildExternalParticipantEmailOptions(externalEmail, externalName, role, documentName, accessUrl);
-    await this.sendOrEnqueue(options);
+    await this.sendOrEnqueue(options, logContext);
+  }
+
+  /**
+   * Genera un token de acceso nuevo para un participante externo y le envía la
+   * notificación correspondiente. Centraliza lo que antes estaba duplicado en
+   * create-signature-flow y progress-signature-flow (creación inicial, avance
+   * secuencial, y ahora también el reenvío manual).
+   */
+  async refreshTokenAndNotifyExternalParticipant(
+    participant: SignatureFlowParticipant,
+    documentName: string,
+    type: SignatureFlowNotificationType = SignatureFlowNotificationType.INITIAL,
+    triggeredBy: string | null = null,
+  ): Promise<void> {
+    if (!this.externalTokenRepository) return;
+    const email = participant.externalEmail;
+    if (!email) return;
+
+    await this.externalTokenRepository.deleteByParticipantId(participant.id);
+    const token = ExternalParticipantToken.create({
+      participantId: participant.id,
+      token: generateExternalToken(),
+      expiresAt: buildExternalTokenExpiry(),
+    });
+    const saved = await this.externalTokenRepository.save(token);
+    const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
+    if (!accessUrl) return;
+
+    await this.notifyExternalParticipant(
+      email,
+      participant.externalName,
+      participant.role,
+      documentName,
+      accessUrl,
+      { participantId: participant.id, flowId: participant.flowId, type, triggeredBy },
+    );
   }
 
   async notifyResponsibleOnRejection(
@@ -261,16 +339,41 @@ export class SignatureFlowNotificationService {
     });
   }
 
-  private async sendOrEnqueue(options: EmailOptions): Promise<void> {
+  /** Registra en lote notificaciones ya enviadas (usado por el batch inicial encolado). */
+  async logNotifications(entries: NotificationLogEntry[]): Promise<void> {
+    if (!this.notificationLogRepository || entries.length === 0) return;
+    await this.notificationLogRepository.createMany(entries.map((e) => ({
+      participantId: e.participantId,
+      flowId: e.flowId,
+      emailJobId: e.emailJobId ?? null,
+      type: e.type ?? SignatureFlowNotificationType.INITIAL,
+      triggeredBy: e.triggeredBy ?? null,
+    })));
+  }
+
+  private async sendOrEnqueue(options: EmailOptions, logContext?: NotificationLogContext): Promise<void> {
+    let emailJobId: string | null = null;
+
     if (this.emailQueueService) {
-      await this.emailQueueService.enqueue({
+      const job = await this.emailQueueService.enqueue({
         to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text,
       });
+      emailJobId = job.id;
     } else {
       await this.emailService.send(options);
+    }
+
+    if (logContext && this.notificationLogRepository) {
+      await this.notificationLogRepository.create({
+        participantId: logContext.participantId,
+        flowId: logContext.flowId,
+        emailJobId,
+        type: logContext.type ?? SignatureFlowNotificationType.INITIAL,
+        triggeredBy: logContext.triggeredBy ?? null,
+      });
     }
   }
 }

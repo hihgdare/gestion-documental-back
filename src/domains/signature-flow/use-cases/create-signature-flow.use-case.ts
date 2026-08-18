@@ -9,14 +9,14 @@ import { DocumentAction, DocumentStatus } from '@domains/document/value-objects/
 import {
   SignatureFlowParticipantRole,
   SignatureFlowStatus,
+  SignatureFlowNotificationType,
 } from '../value-objects/signature-flow-enums';
-import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, EmailWithParticipant } from '../services/signature-flow-notification.service';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
 import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
 import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
 import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
-import { EmailOptions } from '@shared/infrastructure/email/email-service.interface';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 
@@ -172,9 +172,16 @@ export class CreateSignatureFlowUseCase {
 
     const allEmails = [...internalEmails, ...externalEmails];
     if (allEmails.length > 0) {
-      await this.emailQueueService!.enqueueMany(
-        allEmails.map((email) => ({ ...email, correlationId: flow.id })),
+      const jobs = await this.emailQueueService!.enqueueMany(
+        allEmails.map((email) => ({ ...email.options, correlationId: flow.id })),
       );
+      await this.notificationService.logNotifications(allEmails.map((email, index) => ({
+        participantId: email.participantId,
+        flowId: email.flowId,
+        emailJobId: jobs[index]?.id ?? null,
+        type: SignatureFlowNotificationType.INITIAL,
+        triggeredBy: null,
+      })));
     }
   }
 
@@ -240,9 +247,9 @@ export class CreateSignatureFlowUseCase {
   private async collectExternalEmails(
     participants: SignatureFlowParticipant[],
     documentName: string,
-  ): Promise<EmailOptions[]> {
+  ): Promise<EmailWithParticipant[]> {
     if (!this.externalTokenRepository) return [];
-    const emails = [];
+    const emails: EmailWithParticipant[] = [];
     for (const p of participants) {
       const email = p.externalEmail;
       if (!email) continue;
@@ -255,9 +262,11 @@ export class CreateSignatureFlowUseCase {
       const saved = await this.externalTokenRepository.save(token);
       const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
       if (!accessUrl) continue;
-      emails.push(
-        this.notificationService.buildExternalParticipantEmailOptions(email, p.externalName, p.role, documentName, accessUrl),
-      );
+      emails.push({
+        participantId: p.id,
+        flowId: p.flowId,
+        options: this.notificationService.buildExternalParticipantEmailOptions(email, p.externalName, p.role, documentName, accessUrl),
+      });
     }
     return emails;
   }
@@ -266,26 +275,8 @@ export class CreateSignatureFlowUseCase {
     participants: SignatureFlowParticipant[],
     documentName: string,
   ): Promise<void> {
-    if (!this.externalTokenRepository) return;
     for (const p of participants) {
-      const email = p.externalEmail;
-      if (!email) continue;
-      await this.externalTokenRepository.deleteByParticipantId(p.id);
-      const token = ExternalParticipantToken.create({
-        participantId: p.id,
-        token: generateExternalToken(),
-        expiresAt: buildExternalTokenExpiry(),
-      });
-      const saved = await this.externalTokenRepository.save(token);
-      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
-      if (!accessUrl) continue;
-      await this.notificationService.notifyExternalParticipant(
-        email,
-        p.externalName,
-        p.role,
-        documentName,
-        accessUrl,
-      );
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(p, documentName);
     }
   }
 }
