@@ -472,6 +472,10 @@ export const processSignatureFlowParticipantActionSchema = Joi.object({
   comment: Joi.string().max(1000).optional().allow('', null),
 });
 
+export const resendSignatureFlowNotificationSchema = Joi.object({
+  participantIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+});
+
 // Landing settings schemas
 export const updateLandingSettingsSchema = Joi.object({
   phone: Joi.string().trim().max(50).optional().allow('', null),

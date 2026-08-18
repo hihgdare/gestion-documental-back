@@ -6,6 +6,7 @@ import {
   updateSignatureFlowSchema,
   addSignatureFlowParticipantSchema,
   processSignatureFlowParticipantActionSchema,
+  resendSignatureFlowNotificationSchema,
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
@@ -49,6 +50,15 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
   );
 
   router.delete('/:id/participants/:participantId', authorize('signature-flow:update'), controller.removeParticipant);
+
+  router.get('/:id/resend-candidates', authorize('signature-flow:update'), controller.getResendCandidates);
+
+  router.post(
+    '/:id/resend-notifications',
+    authorize('signature-flow:update'),
+    validateRequest(resendSignatureFlowNotificationSchema, true),
+    controller.resendNotifications,
+  );
 
   router.post(
     '/participants/:participantId/action',

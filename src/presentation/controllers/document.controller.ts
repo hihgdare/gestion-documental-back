@@ -30,6 +30,7 @@ import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dash
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
+import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
 
 export class DocumentController {
   constructor(
@@ -53,6 +54,7 @@ export class DocumentController {
     private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
     private assignDocumentsToGroupUseCase?: AssignDocumentsToGroupUseCase,
     private downloadDocumentsZipUseCase?: DownloadDocumentsZipUseCase,
+    private signatureFlowRepository?: SignatureFlowRepository,
   ) {}
 
   assignDocumentsToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -170,6 +172,8 @@ export class DocumentController {
       status,
     });
 
+    const activeFlowByDocumentId = await this.getActiveFlowByDocumentId(documents);
+
     const response: {
       success: true;
       data: DocumentResponseDto[];
@@ -178,7 +182,7 @@ export class DocumentController {
       documentTypes?: object[];
     } = {
       success: true,
-      data: documents.map((doc) => this.toResponseDto(doc)),
+      data: documents.map((doc) => this.toResponseDto(doc, activeFlowByDocumentId.get(doc.id) ?? null)),
       count: documents.length,
     };
 
@@ -377,7 +381,23 @@ export class DocumentController {
     });
   });
 
-  private toResponseDto(document: Document): DocumentResponseDto {
+  private async getActiveFlowByDocumentId(documents: Document[]): Promise<Map<string, { id: string; sentBy: string | null }>> {
+    const map = new Map<string, { id: string; sentBy: string | null }>();
+    if (!this.signatureFlowRepository) return map;
+
+    const documentIds = [...new Set(
+      documents.filter((doc) => doc.signatureFlowId).map((doc) => doc.id),
+    )];
+    if (documentIds.length === 0) return map;
+
+    const activeFlows = await this.signatureFlowRepository.findActiveByDocumentIds(documentIds);
+    for (const flow of activeFlows) {
+      map.set(flow.documentId, { id: flow.id, sentBy: flow.sentBy });
+    }
+    return map;
+  }
+
+  private toResponseDto(document: Document, activeFlow?: { id: string; sentBy: string | null } | null): DocumentResponseDto {
     const json = document.toJSON();
     return {
       id: json.id,
@@ -408,6 +428,8 @@ export class DocumentController {
       daysUntilExpiration: document.daysUntilExpiration,
       createdAt: json.createdAt,
       updatedAt: json.updatedAt,
+      activeSignatureFlowId: activeFlow?.id ?? null,
+      activeSignatureFlowSentBy: activeFlow?.sentBy ?? null,
     };
   }
 

@@ -10,6 +10,8 @@ import {
   type SignatureFlowParticipantRepository,
 } from '../repositories/signature-flow-participant.repository';
 import { NotFoundError } from '@shared/domain/errors';
+import { UserRepository } from '@domains/user/repositories/user.repository';
+import { getCurrentlyEnabledParticipants } from '../services/signature-flow-step.util';
 
 export class GetSignatureFlowByIdUseCase {
   constructor(private readonly repository: SignatureFlowRepository) {}
@@ -66,5 +68,38 @@ export class GetSignatureProcessTimeReportUseCase {
 
   async execute(groupId?: number): Promise<SignatureProcessTimeReportItem[]> {
     return this.repository.findSigningTimeReport(groupId);
+  }
+}
+
+export interface ResendableParticipantItem {
+  participantId: string;
+  name: string;
+}
+
+/** Participantes a los que se les puede reenviar la notificación en este momento (su turno actual, aún pendientes). */
+export class GetResendableParticipantsUseCase {
+  constructor(
+    private readonly flowRepository: SignatureFlowRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly userRepository: UserRepository,
+  ) {}
+
+  async execute(flowId: string): Promise<ResendableParticipantItem[]> {
+    const flow = await this.flowRepository.findById(flowId);
+    if (!flow) throw new NotFoundError('Flujo de firma no encontrado');
+
+    const participants = await this.participantRepository.findByFlowId(flowId);
+    const enabled = getCurrentlyEnabledParticipants(flow, participants);
+
+    const items: ResendableParticipantItem[] = [];
+    for (const p of enabled) {
+      let name = p.externalName?.trim() || p.externalEmail?.trim() || 'Participante externo';
+      if (p.userId) {
+        const user = await this.userRepository.findById(p.userId);
+        name = user ? `${user.firstName} ${user.lastName}`.trim() : 'Usuario';
+      }
+      items.push({ participantId: p.id, name });
+    }
+    return items;
   }
 }
