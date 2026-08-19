@@ -8,6 +8,8 @@ export interface ExternalParticipantTokenProps {
   otpHash?: string | null;
   otpExpiresAt?: Date | null;
   otpAttempts?: number;
+  /** Canal usado para enviar el código: 'email' | 'sms'. */
+  otpMethod?: string | null;
   usedAt?: Date | null;
   signatureTokenHash?: string | null;
   ipAddress?: string | null;
@@ -23,6 +25,7 @@ export class ExternalParticipantToken {
   otpHash: string | null;
   otpExpiresAt: Date | null;
   otpAttempts: number;
+  otpMethod: string | null;
   usedAt: Date | null;
   signatureTokenHash: string | null;
   ipAddress: string | null;
@@ -35,6 +38,7 @@ export class ExternalParticipantToken {
       otpHash: (v?: string | null) => v ?? null,
       otpExpiresAt: 'datetimeNullable',
       otpAttempts: (v?: number) => v ?? 0,
+      otpMethod: (v?: string | null) => v ?? null,
       usedAt: 'datetimeNullable',
       signatureTokenHash: (v?: string | null) => v ?? null,
       ipAddress: (v?: string | null) => v ?? null,

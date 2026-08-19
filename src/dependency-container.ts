@@ -249,6 +249,7 @@ import { TypeOrmSignatureFlowNotificationRepository } from '@shared/infrastructu
 import { SignatureFlowNotificationService } from '@domains/signature-flow/services/signature-flow-notification.service';
 import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
 import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
+import { GetSignatureFlowTrackingByDocumentUseCase } from '@domains/signature-flow/use-cases/get-signature-flow-tracking.use-case';
 import {
   GetExternalParticipantAccessUseCase,
   SubmitExternalParticipantActionUseCase,
@@ -573,6 +574,7 @@ export class DependencyContainer {
   private deleteSignatureFlowUseCase!: DeleteSignatureFlowUseCase;
   private resendSignatureFlowNotificationUseCase!: ResendSignatureFlowNotificationUseCase;
   private getResendableParticipantsUseCase!: GetResendableParticipantsUseCase;
+  private getSignatureFlowTrackingByDocumentUseCase!: GetSignatureFlowTrackingByDocumentUseCase;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -1275,6 +1277,15 @@ export class DependencyContainer {
       this.signatureFlowParticipantRepository,
       this.userRepository,
     );
+    this.getSignatureFlowTrackingByDocumentUseCase = new GetSignatureFlowTrackingByDocumentUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.signatureFlowNotificationRepository,
+      this.signatureRepository,
+      this.externalParticipantTokenRepository,
+      this.userRepository,
+      this.emailQueueService,
+    );
     // External participant access
     const getExternalAccessUseCase = new GetExternalParticipantAccessUseCase(
       this.externalParticipantTokenRepository,
@@ -1325,6 +1336,7 @@ export class DependencyContainer {
       this.deleteSignatureFlowUseCase,
       this.resendSignatureFlowNotificationUseCase,
       this.getResendableParticipantsUseCase,
+      this.getSignatureFlowTrackingByDocumentUseCase,
     );
 
     this.emailQueueController = new EmailQueueController(this.emailQueueService);

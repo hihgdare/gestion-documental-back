@@ -41,6 +41,11 @@ export class EmailQueueService {
     });
   }
 
+  async findByIds(ids: string[]): Promise<EmailJobEntity[]> {
+    if (ids.length === 0) return [];
+    return this.repo.find({ where: { id: In(ids) } });
+  }
+
   async getPendingJobs(limit = 10): Promise<EmailJobEntity[]> {
     return this.repo.find({
       where: {

@@ -44,6 +44,16 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
     return this.toDomain(entity);
   }
 
+  async findByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]> {
+    if (documentIds.length === 0) return [];
+
+    const entities = await this.repository.find({
+      where: { documentId: In(documentIds) },
+      order: { createdAt: 'DESC' },
+    });
+    return entities.map((e) => this.toDomain(e));
+  }
+
   async findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]> {
     if (documentIds.length === 0) return [];
 

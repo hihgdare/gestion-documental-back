@@ -173,6 +173,7 @@ export class RequestExternalSignerOtpUseCase {
     tokenRecord.otpHash = otpHash;
     tokenRecord.otpExpiresAt = otpExpiresAt;
     tokenRecord.otpAttempts = 0;
+    tokenRecord.otpMethod = method;
     await this.tokenRepository.update(tokenRecord);
 
     const [user, domain] = externalEmail.split('@');

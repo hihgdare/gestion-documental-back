@@ -18,6 +18,7 @@ import {
 } from '@domains/signature-flow/use-cases/update-signature-flow.use-case';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
+import { GetSignatureFlowTrackingByDocumentUseCase } from '@domains/signature-flow/use-cases/get-signature-flow-tracking.use-case';
 import { SignatureFlow } from '@domains/signature-flow/entities/signature-flow.entity';
 import { SignatureFlowParticipant } from '@domains/signature-flow/entities/signature-flow-participant.entity';
 
@@ -37,6 +38,7 @@ export class SignatureFlowController {
     private readonly deleteSignatureFlowUseCase: DeleteSignatureFlowUseCase,
     private readonly resendSignatureFlowNotificationUseCase: ResendSignatureFlowNotificationUseCase,
     private readonly getResendableParticipantsUseCase: GetResendableParticipantsUseCase,
+    private readonly getSignatureFlowTrackingByDocumentUseCase: GetSignatureFlowTrackingByDocumentUseCase,
   ) {}
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -182,6 +184,55 @@ export class SignatureFlowController {
     });
 
     res.status(200).json({ success: true, message: 'Acción aplicada correctamente' });
+  });
+
+  getDocumentTracking = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentId } = req.params;
+    const items = await this.getSignatureFlowTrackingByDocumentUseCase.execute(documentId);
+
+    res.status(200).json({
+      success: true,
+      data: items.map((item) => ({
+        flowId: item.flowId,
+        orderType: item.orderType,
+        signerOrderType: item.signerOrderType,
+        status: item.status,
+        sentAt: item.sentAt?.toISOString() ?? null,
+        sentBy: item.sentBy,
+        sentByName: item.sentByName,
+        participants: item.participants.map((p) => ({
+          participantId: p.participantId,
+          name: p.name,
+          role: p.role,
+          order: p.order,
+          status: p.status,
+          actionAt: p.actionAt?.toISOString() ?? null,
+          rejectionComment: p.rejectionComment,
+          actionEvidence: p.actionEvidence ? {
+            verifiedByCode: p.actionEvidence.verifiedByCode,
+            method: p.actionEvidence.method,
+            ipAddress: p.actionEvidence.ipAddress,
+            channel: p.actionEvidence.channel,
+          } : null,
+          notifications: p.notifications.map((n) => ({
+            id: n.id,
+            number: n.number,
+            type: n.type,
+            createdAt: n.createdAt.toISOString(),
+            triggeredByName: n.triggeredByName,
+            email: n.email ? {
+              to: n.email.to,
+              subject: n.email.subject,
+              html: n.email.html,
+              text: n.email.text,
+              status: n.email.status,
+              sentAt: n.email.sentAt?.toISOString() ?? null,
+            } : null,
+          })),
+        })),
+      })),
+      count: items.length,
+    });
   });
 
   getResendCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {

@@ -31,6 +31,7 @@ export interface SignatureProcessTimeReportItem {
 export interface SignatureFlowRepository {
   findById(id: string): Promise<SignatureFlow | null>;
   findByDocumentId(documentId: string): Promise<SignatureFlow[]>;
+  findByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]>;
   findActiveByDocumentId(documentId: string): Promise<SignatureFlow | null>;
   findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]>;
   findPendingDocumentsReport(groupId?: number): Promise<PendingSignatureDocumentsReportItem[]>;
