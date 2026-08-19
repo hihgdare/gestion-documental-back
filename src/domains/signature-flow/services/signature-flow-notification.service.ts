@@ -35,6 +35,11 @@ export interface EmailWithParticipant {
   options: EmailOptions;
 }
 
+export interface ReminderConfig {
+  enabled: boolean;
+  intervalMinutes: number;
+}
+
 export class SignatureFlowNotificationService {
   constructor(
     private readonly userRepository: UserRepository,
@@ -71,6 +76,7 @@ export class SignatureFlowNotificationService {
     orderType: SignatureFlowOrderType,
     type: SignatureFlowNotificationType = SignatureFlowNotificationType.INITIAL,
     triggeredBy: string | null = null,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
     const toNotify = this.pickParticipantsToNotify(orderType, participants);
 
@@ -116,6 +122,10 @@ export class SignatureFlowNotificationService {
         type,
         triggeredBy,
       });
+
+      if (reminderConfig?.enabled) {
+        await this.scheduleReminderInternal(participant, documentId, documentName, reminderConfig.intervalMinutes);
+      }
     }
   }
 
@@ -129,6 +139,7 @@ export class SignatureFlowNotificationService {
     documentId: string,
     documentName: string,
     orderType: SignatureFlowOrderType,
+    reminderConfig?: ReminderConfig,
   ): Promise<EmailWithParticipant[]> {
     const toNotify = this.pickParticipantsToNotify(orderType, participants);
     const emails: EmailWithParticipant[] = [];
@@ -172,6 +183,10 @@ export class SignatureFlowNotificationService {
           html,
         },
       });
+
+      if (reminderConfig?.enabled) {
+        await this.scheduleReminderInternal(participant, documentId, documentName, reminderConfig.intervalMinutes);
+      }
     }
 
     return emails;
@@ -275,6 +290,7 @@ export class SignatureFlowNotificationService {
     documentName: string,
     type: SignatureFlowNotificationType = SignatureFlowNotificationType.INITIAL,
     triggeredBy: string | null = null,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
     if (!this.externalTokenRepository) return;
     const email = participant.externalEmail;
@@ -298,6 +314,10 @@ export class SignatureFlowNotificationService {
       accessUrl,
       { participantId: participant.id, flowId: participant.flowId, type, triggeredBy },
     );
+
+    if (reminderConfig?.enabled) {
+      await this.scheduleReminderExternal(participant, documentName, accessUrl, reminderConfig.intervalMinutes);
+    }
   }
 
   async notifyResponsibleOnRejection(
@@ -349,6 +369,117 @@ export class SignatureFlowNotificationService {
       type: e.type ?? SignatureFlowNotificationType.INITIAL,
       triggeredBy: e.triggeredBy ?? null,
     })));
+  }
+
+  private reminderGroupKey(participantId: string): string {
+    return `signature-flow-reminder:${participantId}`;
+  }
+
+  /** Cancela el recordatorio automático pendiente de un participante, si tenía uno agendado. */
+  async cancelReminder(participantId: string): Promise<void> {
+    if (!this.emailQueueService) return;
+    await this.emailQueueService.cancelPendingByGroupKey(this.reminderGroupKey(participantId));
+  }
+
+  /**
+   * Agenda (reemplazando cualquier recordatorio previo del mismo participante) un correo de
+   * recordatorio para más adelante, usando la misma cola de correos — el envío real ocurre
+   * cuando el EmailQueueProcessor levante el job, no ahora. Si el participante ya actuó antes
+   * de esa fecha, el job se cancela vía cancelReminder (no llega a enviarse).
+   */
+  private async scheduleReminderInternal(
+    participant: SignatureFlowParticipant,
+    documentId: string,
+    documentName: string,
+    intervalMinutes: number,
+  ): Promise<void> {
+    if (!this.emailQueueService || !participant.userId) return;
+    await this.cancelReminder(participant.id);
+
+    const user = await this.userRepository.findById(participant.userId);
+    if (!user?.email) return;
+
+    const isValidator = participant.role === SignatureFlowParticipantRole.VALIDATOR;
+    const title = isValidator ? 'Recordatorio: documento pendiente de revisión' : 'Recordatorio: documento pendiente de firma';
+    const message = isValidator
+      ? `Todavía no has revisado el documento: ${documentName}. Este es un recordatorio automático.`
+      : `Todavía no has firmado el documento: ${documentName}. Este es un recordatorio automático.`;
+    const actionUrl = buildFrontendUrl(`/signature-flows?documentId=${encodeURIComponent(documentId)}`);
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: user.firstName,
+      message,
+      actionLabel: 'Ir a pendientes',
+      actionUrl,
+    });
+
+    const job = await this.emailQueueService.enqueue({
+      to: user.email.toString(),
+      subject: title,
+      text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
+      html,
+      scheduledAt: new Date(Date.now() + intervalMinutes * 60 * 1000),
+      groupKey: this.reminderGroupKey(participant.id),
+      correlationId: participant.flowId,
+    });
+
+    if (this.notificationLogRepository) {
+      await this.notificationLogRepository.create({
+        participantId: participant.id,
+        flowId: participant.flowId,
+        emailJobId: job.id,
+        type: SignatureFlowNotificationType.REMINDER,
+        triggeredBy: null,
+      });
+    }
+  }
+
+  /**
+   * Igual que scheduleReminderInternal pero para un participante externo — reutiliza el mismo
+   * enlace de acceso (accessUrl) que ya se le acaba de enviar, en vez de generar uno nuevo,
+   * para no invalidar tokens en uso.
+   */
+  async scheduleReminderExternal(
+    participant: SignatureFlowParticipant,
+    documentName: string,
+    accessUrl: string,
+    intervalMinutes: number,
+  ): Promise<void> {
+    if (!this.emailQueueService || !participant.externalEmail) return;
+    await this.cancelReminder(participant.id);
+
+    const isValidator = participant.role === SignatureFlowParticipantRole.VALIDATOR;
+    const title = isValidator ? 'Recordatorio: documento pendiente de revisión' : 'Recordatorio: documento pendiente de firma';
+    const action = isValidator ? 'revisar y aprobar' : 'firmar';
+    const actionLabel = isValidator ? 'Ir a revisar' : 'Ir a firmar';
+    const message = `Todavía no has completado la acción de ${action} el documento: ${documentName}. Este es un recordatorio automático.`;
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: participant.externalName ?? 'Participante',
+      message,
+      actionLabel,
+      actionUrl: accessUrl,
+    });
+
+    const job = await this.emailQueueService.enqueue({
+      to: participant.externalEmail,
+      subject: title,
+      text: `${message}\n\n${actionLabel}: ${accessUrl}`,
+      html,
+      scheduledAt: new Date(Date.now() + intervalMinutes * 60 * 1000),
+      groupKey: this.reminderGroupKey(participant.id),
+      correlationId: participant.flowId,
+    });
+
+    if (this.notificationLogRepository) {
+      await this.notificationLogRepository.create({
+        participantId: participant.id,
+        flowId: participant.flowId,
+        emailJobId: job.id,
+        type: SignatureFlowNotificationType.REMINDER,
+        triggeredBy: null,
+      });
+    }
   }
 
   private async sendOrEnqueue(options: EmailOptions, logContext?: NotificationLogContext): Promise<void> {

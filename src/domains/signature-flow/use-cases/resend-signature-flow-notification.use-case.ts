@@ -2,7 +2,7 @@ import { SignatureFlowRepository } from '../repositories/signature-flow.reposito
 import { SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { ForbiddenError, NotFoundError, ValidationError } from '@shared/domain/errors';
-import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, ReminderConfig } from '../services/signature-flow-notification.service';
 import { SignatureFlowNotificationType, SignatureFlowStatus } from '../value-objects/signature-flow-enums';
 import { getCurrentlyEnabledParticipants, orderTypeForRole } from '../services/signature-flow-step.util';
 
@@ -57,6 +57,7 @@ export class ResendSignatureFlowNotificationUseCase {
 
     const internalTargets = targets.filter((p) => !p.isExternal);
     const externalTargets = targets.filter((p) => p.isExternal && p.externalEmail);
+    const reminderConfig: ReminderConfig = { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
 
     if (internalTargets.length > 0) {
       const orderType = orderTypeForRole(flow, internalTargets[0].role);
@@ -67,6 +68,7 @@ export class ResendSignatureFlowNotificationUseCase {
         orderType,
         SignatureFlowNotificationType.RESEND,
         input.actorUserId,
+        reminderConfig,
       );
     }
 
@@ -76,6 +78,7 @@ export class ResendSignatureFlowNotificationUseCase {
         document.name,
         SignatureFlowNotificationType.RESEND,
         input.actorUserId,
+        reminderConfig,
       );
     }
   }
