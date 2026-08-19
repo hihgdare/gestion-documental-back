@@ -294,6 +294,8 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       status: entity.status,
       sentAt: entity.sentAt ?? null,
       sentBy: entity.sentBy ?? null,
+      reminderEnabled: entity.reminderEnabled,
+      reminderIntervalMinutes: entity.reminderIntervalMinutes,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -309,6 +311,8 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       status: flow.status,
       sentAt: flow.sentAt ?? undefined,
       sentBy: flow.sentBy ?? undefined,
+      reminderEnabled: flow.reminderEnabled,
+      reminderIntervalMinutes: flow.reminderIntervalMinutes,
     };
   }
 }

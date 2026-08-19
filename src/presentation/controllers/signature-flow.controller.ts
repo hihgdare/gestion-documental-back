@@ -43,7 +43,7 @@ export class SignatureFlowController {
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.auth!.user!.id;
-    const { documentId, orderType, signerOrderType, participants } = req.body;
+    const { documentId, orderType, signerOrderType, participants, reminderEnabled, reminderIntervalMinutes } = req.body;
 
     const flow = await this.createSignatureFlowUseCase.execute({
       documentId,
@@ -51,6 +51,8 @@ export class SignatureFlowController {
       signerOrderType,
       sentBy: userId,
       participants,
+      reminderEnabled,
+      reminderIntervalMinutes,
     });
 
     res.status(201).json({ success: true, data: this.flowToDto(flow) });
@@ -272,6 +274,8 @@ export class SignatureFlowController {
       status: flow.status,
       sentAt: flow.sentAt?.toISOString() ?? null,
       sentBy: flow.sentBy,
+      reminderEnabled: flow.reminderEnabled,
+      reminderIntervalMinutes: flow.reminderIntervalMinutes,
       createdAt: flow.createdAt.toISOString(),
       updatedAt: flow.updatedAt.toISOString(),
     };

@@ -11,7 +11,7 @@ import {
   SignatureFlowStatus,
   SignatureFlowNotificationType,
 } from '../value-objects/signature-flow-enums';
-import { SignatureFlowNotificationService, EmailWithParticipant } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, EmailWithParticipant, ReminderConfig } from '../services/signature-flow-notification.service';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
 import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
@@ -32,6 +32,8 @@ export interface CreateSignatureFlowInput {
   orderType?: string;
   signerOrderType?: string;
   sentBy?: string;
+  reminderEnabled?: boolean;
+  reminderIntervalMinutes?: number;
   participants: Array<{
     userId?: string;
     colaboratorId?: string;
@@ -96,6 +98,8 @@ export class CreateSignatureFlowUseCase {
       status: hasValidators ? SignatureFlowStatus.IN_REVIEW : SignatureFlowStatus.IN_SIGNING,
       sentAt: now,
       sentBy: input.sentBy ?? null,
+      reminderEnabled: input.reminderEnabled,
+      reminderIntervalMinutes: input.reminderIntervalMinutes,
     };
 
     const flow = await this.signatureFlowRepository.save(SignatureFlow.create(flowProps));
@@ -157,18 +161,21 @@ export class CreateSignatureFlowUseCase {
     const toNotify = validators.length > 0 ? validators : signers;
     const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
+    const reminderConfig = this.reminderConfigFor(flow);
+
     // Collect in-app notifications + email data for internal users
     const internalEmails = await this.notificationService.collectEmailsForParticipants(
       toNotify,
       document.id,
       document.name,
       notifyOrderType,
+      reminderConfig,
     );
 
     // Generate tokens and collect email data for external participants
     const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
-    const externalEmails = await this.collectExternalEmails(firstStepExternal, document.name);
+    const externalEmails = await this.collectExternalEmails(firstStepExternal, document.name, reminderConfig);
 
     const allEmails = [...internalEmails, ...externalEmails];
     if (allEmails.length > 0) {
@@ -215,11 +222,25 @@ export class CreateSignatureFlowUseCase {
     const toNotify = validators.length > 0 ? validators : signers;
     const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
-    await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, notifyOrderType);
+    const reminderConfig = this.reminderConfigFor(flow);
+
+    await this.notificationService.notifyParticipantsForCurrentStep(
+      toNotify,
+      document.id,
+      document.name,
+      notifyOrderType,
+      SignatureFlowNotificationType.INITIAL,
+      null,
+      reminderConfig,
+    );
 
     const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
-    await this.notifyExternalParticipants(firstStepExternal, document.name);
+    await this.notifyExternalParticipants(firstStepExternal, document.name, reminderConfig);
+  }
+
+  private reminderConfigFor(flow: SignatureFlow): ReminderConfig {
+    return { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
   }
 
   private async resolveColaboratorParticipants(
@@ -247,6 +268,7 @@ export class CreateSignatureFlowUseCase {
   private async collectExternalEmails(
     participants: SignatureFlowParticipant[],
     documentName: string,
+    reminderConfig?: ReminderConfig,
   ): Promise<EmailWithParticipant[]> {
     if (!this.externalTokenRepository) return [];
     const emails: EmailWithParticipant[] = [];
@@ -267,6 +289,10 @@ export class CreateSignatureFlowUseCase {
         flowId: p.flowId,
         options: this.notificationService.buildExternalParticipantEmailOptions(email, p.externalName, p.role, documentName, accessUrl),
       });
+
+      if (reminderConfig?.enabled) {
+        await this.notificationService.scheduleReminderExternal(p, documentName, accessUrl, reminderConfig.intervalMinutes);
+      }
     }
     return emails;
   }
@@ -274,9 +300,16 @@ export class CreateSignatureFlowUseCase {
   private async notifyExternalParticipants(
     participants: SignatureFlowParticipant[],
     documentName: string,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
     for (const p of participants) {
-      await this.notificationService.refreshTokenAndNotifyExternalParticipant(p, documentName);
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(
+        p,
+        documentName,
+        SignatureFlowNotificationType.INITIAL,
+        null,
+        reminderConfig,
+      );
     }
   }
 }

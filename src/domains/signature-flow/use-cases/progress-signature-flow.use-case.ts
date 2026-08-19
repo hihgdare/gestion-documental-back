@@ -11,7 +11,7 @@ import {
   SignatureFlowParticipantStatus,
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
-import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, ReminderConfig } from '../services/signature-flow-notification.service';
 import { SignatureStatus } from '@domains/signature/value-objects/signature-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
@@ -315,6 +315,14 @@ export class ProcessFlowParticipantActionUseCase {
     const participants = await this.participantRepository.findByFlowId(flow.id);
     const validators = participants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = participants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
+    const reminderConfig: ReminderConfig = { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
+
+    // Quien ya no está pendiente (aprobó/firmó/rechazó) ya no debe recibir el recordatorio agendado.
+    await Promise.all(
+      participants
+        .filter((p) => p.status !== SignatureFlowParticipantStatus.PENDING)
+        .map((p) => this.notificationService.cancelReminder(p.id)),
+    );
 
     const hasRejected = participants.some((p) => p.status === SignatureFlowParticipantStatus.REJECTED);
     if (hasRejected) {
@@ -336,6 +344,9 @@ export class ProcessFlowParticipantActionUseCase {
       }
       document.signatureStatus = SignatureStatus.REJECTED;
       document.comment = rejectionReason;
+
+      // El flujo se cierra: los demás participantes (aunque sigan "pendientes") ya no deben ser recordados.
+      await Promise.all(participants.map((p) => this.notificationService.cancelReminder(p.id)));
 
       await this.flowRepository.update(flow);
       await this.documentRepository.update(document);
@@ -391,6 +402,9 @@ export class ProcessFlowParticipantActionUseCase {
             document.id,
             document.name,
             flow.orderType,
+            undefined,
+            undefined,
+            reminderConfig,
           );
         } catch (err) {
           console.warn('[reconcileFlow] notify next sequential validator failed (non-critical):', err);
@@ -398,7 +412,7 @@ export class ProcessFlowParticipantActionUseCase {
 
         if (nextValidator.isExternal && nextValidator.externalEmail) {
           try {
-            await this.notifyExternalParticipants([nextValidator], document.name);
+            await this.notifyExternalParticipants([nextValidator], document.name, reminderConfig);
           } catch (err) {
             console.warn('[reconcileFlow] notifyExternalParticipants for next validator failed (non-critical):', err);
           }
@@ -431,14 +445,22 @@ export class ProcessFlowParticipantActionUseCase {
 
       const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
       try {
-        await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.signerOrderType);
+        await this.notificationService.notifyParticipantsForCurrentStep(
+          pendingSigners,
+          document.id,
+          document.name,
+          flow.signerOrderType,
+          undefined,
+          undefined,
+          reminderConfig,
+        );
       } catch (err) {
         console.warn('[reconcileFlow] notifyParticipantsForCurrentStep failed (non-critical):', err);
       }
 
       const externalSigners = pendingSigners.filter((p) => p.isExternal && p.externalEmail);
       try {
-        await this.notifyExternalParticipants(externalSigners, document.name);
+        await this.notifyExternalParticipants(externalSigners, document.name, reminderConfig);
       } catch (err) {
         console.warn('[reconcileFlow] notifyExternalParticipants failed (non-critical):', err);
       }
@@ -468,6 +490,9 @@ export class ProcessFlowParticipantActionUseCase {
             document.id,
             document.name,
             flow.signerOrderType,
+            undefined,
+            undefined,
+            reminderConfig,
           );
         } catch (err) {
           console.warn('[reconcileFlow] notify next sequential signer failed (non-critical):', err);
@@ -475,7 +500,7 @@ export class ProcessFlowParticipantActionUseCase {
 
         if (nextSigner.isExternal && nextSigner.externalEmail) {
           try {
-            await this.notifyExternalParticipants([nextSigner], document.name);
+            await this.notifyExternalParticipants([nextSigner], document.name, reminderConfig);
           } catch (err) {
             console.warn('[reconcileFlow] notifyExternalParticipants for next signer failed (non-critical):', err);
           }
@@ -598,9 +623,16 @@ export class ProcessFlowParticipantActionUseCase {
   private async notifyExternalParticipants(
     participants: SignatureFlowParticipant[],
     documentName: string,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
     for (const p of participants) {
-      await this.notificationService.refreshTokenAndNotifyExternalParticipant(p, documentName);
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(
+        p,
+        documentName,
+        undefined,
+        undefined,
+        reminderConfig,
+      );
     }
   }
 
