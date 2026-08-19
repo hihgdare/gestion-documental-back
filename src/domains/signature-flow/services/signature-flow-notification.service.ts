@@ -320,6 +320,123 @@ export class SignatureFlowNotificationService {
     }
   }
 
+  /** Avisa a un firmante que su turno fue saltado o que el proceso se cerró sin que llegara a firmar. */
+  async notifyParticipantSkipped(
+    participant: SignatureFlowParticipant,
+    documentId: string,
+    documentName: string,
+    comment: string,
+    closed: boolean,
+  ): Promise<void> {
+    const title = closed ? 'Proceso de firma cerrado' : 'Tu turno para firmar fue saltado';
+    const message = closed
+      ? `El proceso de firma del documento ${documentName} fue cerrado por el responsable sin que llegaras a firmar. Motivo: ${comment}`
+      : `Tu turno para firmar el documento ${documentName} fue saltado por el responsable. Motivo: ${comment}`;
+
+    if (participant.userId) {
+      await this.inAppNotificationRepository.save(new InAppNotification({
+        userId: participant.userId,
+        title,
+        message,
+        entityType: 'document',
+        entityId: documentId,
+      }));
+
+      const user = await this.userRepository.findById(participant.userId);
+      if (!user?.email) return;
+
+      const html = buildPrimactaNotificationEmail({ title, recipientName: user.firstName, message });
+      await this.sendOrEnqueue({ to: user.email.toString(), subject: title, text: message, html });
+      return;
+    }
+
+    if (!participant.externalEmail) return;
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: participant.externalName ?? 'Participante',
+      message,
+    });
+    await this.sendOrEnqueue({ to: participant.externalEmail, subject: title, text: message, html });
+  }
+
+  async notifyResponsibleOnClose(
+    documentId: string,
+    documentName: string,
+    responsibleUserId: string | null,
+    comment: string,
+  ): Promise<void> {
+    if (!responsibleUserId) return;
+
+    const title = 'Proceso de firma cerrado sin completarse';
+    const message = `Cerraste el proceso de firma del documento ${documentName} antes de que se completara. Motivo: ${comment}`;
+
+    await this.inAppNotificationRepository.save(new InAppNotification({
+      userId: responsibleUserId,
+      title,
+      message,
+      entityType: 'document',
+      entityId: documentId,
+    }));
+
+    const responsibleUser = await this.userRepository.findById(responsibleUserId);
+    if (!responsibleUser?.email) return;
+
+    const actionUrl = buildFrontendUrl(`/documents/${documentId}/signature-history`);
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: responsibleUser.firstName,
+      message,
+      actionLabel: 'Ver seguimiento de firma',
+      actionUrl,
+    });
+
+    await this.sendOrEnqueue({
+      to: responsibleUser.email.toString(),
+      subject: title,
+      text: actionUrl ? `${message}\n\nVer seguimiento: ${actionUrl}` : message,
+      html,
+    });
+  }
+
+  async notifyResponsibleOnReopen(
+    documentId: string,
+    documentName: string,
+    responsibleUserId: string | null,
+    comment: string,
+  ): Promise<void> {
+    if (!responsibleUserId) return;
+
+    const title = 'Proceso de firma reabierto';
+    const message = `Un administrador reabrió el proceso de firma del documento ${documentName} para continuar con los firmantes restantes. Motivo: ${comment}`;
+
+    await this.inAppNotificationRepository.save(new InAppNotification({
+      userId: responsibleUserId,
+      title,
+      message,
+      entityType: 'document',
+      entityId: documentId,
+    }));
+
+    const responsibleUser = await this.userRepository.findById(responsibleUserId);
+    if (!responsibleUser?.email) return;
+
+    const actionUrl = buildFrontendUrl(`/documents/${documentId}/signature-history`);
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: responsibleUser.firstName,
+      message,
+      actionLabel: 'Ver seguimiento de firma',
+      actionUrl,
+    });
+
+    await this.sendOrEnqueue({
+      to: responsibleUser.email.toString(),
+      subject: title,
+      text: actionUrl ? `${message}\n\nVer seguimiento: ${actionUrl}` : message,
+      html,
+    });
+  }
+
   async notifyResponsibleOnRejection(
     documentId: string,
     documentName: string,

@@ -19,6 +19,7 @@ import {
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
 import { GetSignatureFlowTrackingByDocumentUseCase } from '@domains/signature-flow/use-cases/get-signature-flow-tracking.use-case';
+import { SkipSignerUseCase, CloseSignatureFlowUseCase, ReopenSignatureFlowUseCase } from '@domains/signature-flow/use-cases/close-signature-flow.use-case';
 import { SignatureFlow } from '@domains/signature-flow/entities/signature-flow.entity';
 import { SignatureFlowParticipant } from '@domains/signature-flow/entities/signature-flow-participant.entity';
 
@@ -39,6 +40,9 @@ export class SignatureFlowController {
     private readonly resendSignatureFlowNotificationUseCase: ResendSignatureFlowNotificationUseCase,
     private readonly getResendableParticipantsUseCase: GetResendableParticipantsUseCase,
     private readonly getSignatureFlowTrackingByDocumentUseCase: GetSignatureFlowTrackingByDocumentUseCase,
+    private readonly skipSignerUseCase: SkipSignerUseCase,
+    private readonly closeSignatureFlowUseCase: CloseSignatureFlowUseCase,
+    private readonly reopenSignatureFlowUseCase: ReopenSignatureFlowUseCase,
   ) {}
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -235,6 +239,39 @@ export class SignatureFlowController {
       })),
       count: items.length,
     });
+  });
+
+  skipSigner = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanCloseAny = req.auth!.user!.can('signature-flow:close:any');
+
+    await this.skipSignerUseCase.execute({ flowId: id, actorUserId, actorCanCloseAny, comment });
+
+    res.status(200).json({ success: true, message: 'Firmante saltado correctamente' });
+  });
+
+  closeSignatureFlow = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanCloseAny = req.auth!.user!.can('signature-flow:close:any');
+
+    await this.closeSignatureFlowUseCase.execute({ flowId: id, actorUserId, actorCanCloseAny, comment });
+
+    res.status(200).json({ success: true, message: 'Proceso de firma cerrado correctamente' });
+  });
+
+  reopenSignatureFlow = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanReopen = req.auth!.user!.can('signature-flow:reopen');
+
+    await this.reopenSignatureFlowUseCase.execute({ flowId: id, actorUserId, actorCanReopen, comment });
+
+    res.status(200).json({ success: true, message: 'Proceso de firma reabierto correctamente' });
   });
 
   getResendCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {

@@ -7,6 +7,9 @@ import {
   addSignatureFlowParticipantSchema,
   processSignatureFlowParticipantActionSchema,
   resendSignatureFlowNotificationSchema,
+  skipSignerSchema,
+  closeSignatureFlowSchema,
+  reopenSignatureFlowSchema,
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
@@ -60,6 +63,27 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
     authorize('signature-flow:update'),
     validateRequest(resendSignatureFlowNotificationSchema, true),
     controller.resendNotifications,
+  );
+
+  router.post(
+    '/:id/skip-signer',
+    authorize('signature-flow:update'),
+    validateRequest(skipSignerSchema, true),
+    controller.skipSigner,
+  );
+
+  router.post(
+    '/:id/close',
+    authorize('signature-flow:update'),
+    validateRequest(closeSignatureFlowSchema, true),
+    controller.closeSignatureFlow,
+  );
+
+  router.post(
+    '/:id/reopen',
+    authorize('signature-flow:reopen'),
+    validateRequest(reopenSignatureFlowSchema, true),
+    controller.reopenSignatureFlow,
   );
 
   router.post(
