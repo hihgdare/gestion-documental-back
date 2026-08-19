@@ -2,6 +2,7 @@ export enum SignatureStatus {
   PENDING = 'pending',
   SIGNED = 'signed',
   REJECTED = 'rejected',
+  CLOSED = 'closed',
 }
 
 export enum SignatureType {

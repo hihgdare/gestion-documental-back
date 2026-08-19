@@ -49,6 +49,8 @@ const extraPermissions = [
   'signature:delete',
   'signature-flow:report:read',
   'signature-flow:resend:any',
+  'signature-flow:close:any',
+  'signature-flow:reopen',
   'admin:email-queue',
   'landing-settings:read',
   'landing-settings:update',

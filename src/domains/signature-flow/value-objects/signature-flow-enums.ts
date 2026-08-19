@@ -9,6 +9,7 @@ export enum SignatureFlowStatus {
   IN_SIGNING = 'in_signing',
   SIGNED = 'signed',
   REJECTED = 'rejected',
+  CLOSED = 'closed',
 }
 
 export enum SignatureFlowParticipantRole {
@@ -21,6 +22,7 @@ export enum SignatureFlowParticipantStatus {
   APPROVED = 'approved',
   SIGNED = 'signed',
   REJECTED = 'rejected',
+  SKIPPED = 'skipped',
 }
 
 export enum SignatureFlowNotificationType {

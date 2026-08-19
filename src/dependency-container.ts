@@ -250,6 +250,7 @@ import { SignatureFlowNotificationService } from '@domains/signature-flow/servic
 import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
 import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
 import { GetSignatureFlowTrackingByDocumentUseCase } from '@domains/signature-flow/use-cases/get-signature-flow-tracking.use-case';
+import { SkipSignerUseCase, CloseSignatureFlowUseCase, ReopenSignatureFlowUseCase } from '@domains/signature-flow/use-cases/close-signature-flow.use-case';
 import {
   GetExternalParticipantAccessUseCase,
   SubmitExternalParticipantActionUseCase,
@@ -575,6 +576,9 @@ export class DependencyContainer {
   private resendSignatureFlowNotificationUseCase!: ResendSignatureFlowNotificationUseCase;
   private getResendableParticipantsUseCase!: GetResendableParticipantsUseCase;
   private getSignatureFlowTrackingByDocumentUseCase!: GetSignatureFlowTrackingByDocumentUseCase;
+  private skipSignerUseCase!: SkipSignerUseCase;
+  private closeSignatureFlowUseCase!: CloseSignatureFlowUseCase;
+  private reopenSignatureFlowUseCase!: ReopenSignatureFlowUseCase;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -1286,6 +1290,28 @@ export class DependencyContainer {
       this.userRepository,
       this.emailQueueService,
     );
+    this.skipSignerUseCase = new SkipSignerUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.signatureFlowNotificationService,
+      this.processFlowParticipantActionUseCase,
+    );
+    this.closeSignatureFlowUseCase = new CloseSignatureFlowUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.signatureFlowNotificationService,
+    );
+    this.reopenSignatureFlowUseCase = new ReopenSignatureFlowUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.signatureFlowNotificationService,
+    );
     // External participant access
     const getExternalAccessUseCase = new GetExternalParticipantAccessUseCase(
       this.externalParticipantTokenRepository,
@@ -1337,6 +1363,9 @@ export class DependencyContainer {
       this.resendSignatureFlowNotificationUseCase,
       this.getResendableParticipantsUseCase,
       this.getSignatureFlowTrackingByDocumentUseCase,
+      this.skipSignerUseCase,
+      this.closeSignatureFlowUseCase,
+      this.reopenSignatureFlowUseCase,
     );
 
     this.emailQueueController = new EmailQueueController(this.emailQueueService);

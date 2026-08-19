@@ -480,6 +480,18 @@ export const resendSignatureFlowNotificationSchema = Joi.object({
   participantIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
 });
 
+export const skipSignerSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
+export const closeSignatureFlowSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
+export const reopenSignatureFlowSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
 // Landing settings schemas
 export const updateLandingSettingsSchema = Joi.object({
   phone: Joi.string().trim().max(50).optional().allow('', null),

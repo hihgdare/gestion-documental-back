@@ -305,7 +305,7 @@ export class ProcessFlowParticipantActionUseCase {
     await this.reconcileFlow(flow.id);
   }
 
-  private async reconcileFlow(flowId: string): Promise<void> {
+  async reconcileFlow(flowId: string): Promise<void> {
     const flow = await this.flowRepository.findById(flowId);
     if (!flow) return;
 
@@ -468,7 +468,8 @@ export class ProcessFlowParticipantActionUseCase {
     }
 
     const allSignersSigned = signers.length > 0
-      && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
+      && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED || p.status === SignatureFlowParticipantStatus.SKIPPED)
+      && signers.some((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
 
     // Sequential firmantes: notifica al siguiente firmante pendiente después de que uno firma.
     // Análogo al bloque de validadores de arriba — sin esto el segundo firmante nunca sería notificado.
