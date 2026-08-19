@@ -31,6 +31,8 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
 
   router.get('/document/:documentId', authorize('signature-flow:read'), controller.getByDocument);
 
+  router.get('/document/:documentId/tracking', authorize('signature-flow:read'), controller.getDocumentTracking);
+
   router.get('/:id', authorize('signature-flow:read'), controller.getById);
 
   router.get('/:id/participants', authorize('signature-flow:read'), controller.getParticipants);

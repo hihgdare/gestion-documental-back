@@ -31,6 +31,7 @@ import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
 import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
+import { SignatureFlowStatus } from '@domains/signature-flow/value-objects/signature-flow-enums';
 
 export class DocumentController {
   constructor(
@@ -172,7 +173,7 @@ export class DocumentController {
       status,
     });
 
-    const activeFlowByDocumentId = await this.getActiveFlowByDocumentId(documents);
+    const { activeFlowByDocumentId, documentIdsWithFlowHistory } = await this.getSignatureFlowInfoByDocumentId(documents);
 
     const response: {
       success: true;
@@ -182,7 +183,11 @@ export class DocumentController {
       documentTypes?: object[];
     } = {
       success: true,
-      data: documents.map((doc) => this.toResponseDto(doc, activeFlowByDocumentId.get(doc.id) ?? null)),
+      data: documents.map((doc) => this.toResponseDto(
+        doc,
+        activeFlowByDocumentId.get(doc.id) ?? null,
+        documentIdsWithFlowHistory.has(doc.id),
+      )),
       count: documents.length,
     };
 
@@ -381,23 +386,37 @@ export class DocumentController {
     });
   });
 
-  private async getActiveFlowByDocumentId(documents: Document[]): Promise<Map<string, { id: string; sentBy: string | null }>> {
-    const map = new Map<string, { id: string; sentBy: string | null }>();
-    if (!this.signatureFlowRepository) return map;
+  private async getSignatureFlowInfoByDocumentId(documents: Document[]): Promise<{
+    activeFlowByDocumentId: Map<string, { id: string; sentBy: string | null }>;
+    documentIdsWithFlowHistory: Set<string>;
+  }> {
+    const activeFlowByDocumentId = new Map<string, { id: string; sentBy: string | null }>();
+    const documentIdsWithFlowHistory = new Set<string>();
+    if (!this.signatureFlowRepository) return { activeFlowByDocumentId, documentIdsWithFlowHistory };
 
-    const documentIds = [...new Set(
-      documents.filter((doc) => doc.signatureFlowId).map((doc) => doc.id),
-    )];
-    if (documentIds.length === 0) return map;
+    const documentIds = [...new Set(documents.map((doc) => doc.id))];
+    if (documentIds.length === 0) return { activeFlowByDocumentId, documentIdsWithFlowHistory };
 
-    const activeFlows = await this.signatureFlowRepository.findActiveByDocumentIds(documentIds);
-    for (const flow of activeFlows) {
-      map.set(flow.documentId, { id: flow.id, sentBy: flow.sentBy });
+    // Todos los flujos (cualquier estado) que haya tenido cada documento alguna vez.
+    const allFlows = await this.signatureFlowRepository.findByDocumentIds(documentIds);
+    const activeStatuses = new Set([SignatureFlowStatus.IN_REVIEW, SignatureFlowStatus.IN_SIGNING]);
+
+    for (const flow of allFlows) {
+      documentIdsWithFlowHistory.add(flow.documentId);
+      if (activeStatuses.has(flow.status) && !activeFlowByDocumentId.has(flow.documentId)) {
+        // allFlows viene ordenado por created_at DESC, así que el primero que encontremos es el más reciente.
+        activeFlowByDocumentId.set(flow.documentId, { id: flow.id, sentBy: flow.sentBy });
+      }
     }
-    return map;
+
+    return { activeFlowByDocumentId, documentIdsWithFlowHistory };
   }
 
-  private toResponseDto(document: Document, activeFlow?: { id: string; sentBy: string | null } | null): DocumentResponseDto {
+  private toResponseDto(
+    document: Document,
+    activeFlow?: { id: string; sentBy: string | null } | null,
+    hasSignatureFlowHistory?: boolean,
+  ): DocumentResponseDto {
     const json = document.toJSON();
     return {
       id: json.id,
@@ -430,6 +449,7 @@ export class DocumentController {
       updatedAt: json.updatedAt,
       activeSignatureFlowId: activeFlow?.id ?? null,
       activeSignatureFlowSentBy: activeFlow?.sentBy ?? null,
+      hasSignatureFlowHistory: hasSignatureFlowHistory ?? false,
     };
   }
 

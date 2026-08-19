@@ -29,4 +29,5 @@ export interface DocumentResponseDto {
   updatedAt: string; // ISO date string
   activeSignatureFlowId?: string | null;
   activeSignatureFlowSentBy?: string | null;
+  hasSignatureFlowHistory?: boolean;
 }

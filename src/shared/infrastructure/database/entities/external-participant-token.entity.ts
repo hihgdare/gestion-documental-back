@@ -38,6 +38,9 @@ export class ExternalParticipantTokenEntity {
   @Column({ name: 'otp_attempts', type: 'int', default: 0 })
   otpAttempts!: number;
 
+  @Column({ name: 'otp_method', type: 'varchar', length: 10, nullable: true })
+  otpMethod?: string;
+
   @Column({ name: 'used_at', type: 'timestamp', nullable: true })
   usedAt?: Date;
 
