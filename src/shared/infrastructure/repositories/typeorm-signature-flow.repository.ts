@@ -54,6 +54,28 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
     return entities.map((e) => this.toDomain(e));
   }
 
+  async findDueForAutoClose(now: Date): Promise<SignatureFlow[]> {
+    const entities = await this.repository.find({
+      where: { status: SignatureFlowStatus.IN_SIGNING, autoCloseEnabled: true },
+    });
+
+    return entities
+      .filter((e) => e.sentAt && e.sentAt.getTime() + e.autoCloseIntervalMinutes * 60 * 1000 <= now.getTime())
+      .map((e) => this.toDomain(e));
+  }
+
+  async findInSigningWithExpiredDocuments(now: Date): Promise<SignatureFlow[]> {
+    const entities = await this.repository
+      .createQueryBuilder('flow')
+      .innerJoin('documents', 'document', 'document.id = flow.document_id')
+      .where('flow.status = :status', { status: SignatureFlowStatus.IN_SIGNING })
+      .andWhere('document.expiration_date IS NOT NULL')
+      .andWhere('document.expiration_date < :now', { now })
+      .getMany();
+
+    return entities.map((e) => this.toDomain(e));
+  }
+
   async findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]> {
     if (documentIds.length === 0) return [];
 
@@ -296,6 +318,8 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       sentBy: entity.sentBy ?? null,
       reminderEnabled: entity.reminderEnabled,
       reminderIntervalMinutes: entity.reminderIntervalMinutes,
+      autoCloseEnabled: entity.autoCloseEnabled,
+      autoCloseIntervalMinutes: entity.autoCloseIntervalMinutes,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -313,6 +337,8 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       sentBy: flow.sentBy ?? undefined,
       reminderEnabled: flow.reminderEnabled,
       reminderIntervalMinutes: flow.reminderIntervalMinutes,
+      autoCloseEnabled: flow.autoCloseEnabled,
+      autoCloseIntervalMinutes: flow.autoCloseIntervalMinutes,
     };
   }
 }

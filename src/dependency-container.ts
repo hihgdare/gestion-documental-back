@@ -225,6 +225,7 @@ import { NodemailerEmailService } from '@shared/infrastructure/email/nodemailer-
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
 import { EmailQueueProcessor } from '@shared/infrastructure/email/email-queue.processor';
+import { SignatureFlowAutoCloseProcessor } from '@shared/infrastructure/signature-flow/signature-flow-auto-close.processor';
 
 // Signature domain
 import { TypeOrmSignatureRepository } from '@shared/infrastructure/repositories/typeorm-signature.repository';
@@ -588,6 +589,7 @@ export class DependencyContainer {
   private emailService!: EmailService;
   private emailQueueService!: EmailQueueService;
   private emailQueueProcessor!: EmailQueueProcessor;
+  private signatureFlowAutoCloseProcessor!: SignatureFlowAutoCloseProcessor;
 
   // Extra user use cases
   private setPasswordUseCase!: SetPasswordUseCase;
@@ -1378,6 +1380,11 @@ export class DependencyContainer {
       this.documentRepository,
       this.documentHistoryRepository,
     );
+
+    this.signatureFlowAutoCloseProcessor = new SignatureFlowAutoCloseProcessor(
+      this.signatureFlowRepository,
+      this.closeSignatureFlowUseCase,
+    );
   }
 
   // Getters for controllers
@@ -1571,6 +1578,10 @@ export class DependencyContainer {
 
   public getEmailQueueProcessor(): EmailQueueProcessor {
     return this.emailQueueProcessor;
+  }
+
+  public getSignatureFlowAutoCloseProcessor(): SignatureFlowAutoCloseProcessor {
+    return this.signatureFlowAutoCloseProcessor;
   }
 
   public getEmailQueueController(): EmailQueueController {
