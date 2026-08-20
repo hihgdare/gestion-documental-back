@@ -455,6 +455,8 @@ export const createSignatureFlowSchema = Joi.object({
   // TODO: no permitir recordatorio automatico en menos de 1440 (1 dia) una vez que se termine de probar.
   // Por ahora se permite >= 1 minuto para poder probar el envio sin esperar un dia completo.
   reminderIntervalMinutes: Joi.number().integer().min(1).optional(),
+  autoCloseEnabled: Joi.boolean().optional(),
+  autoCloseIntervalMinutes: Joi.number().integer().min(1440).optional(),
 });
 
 export const updateSignatureFlowSchema = Joi.object({

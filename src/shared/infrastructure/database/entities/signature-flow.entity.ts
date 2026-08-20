@@ -59,6 +59,12 @@ export class SignatureFlowEntity {
   @Column({ name: 'reminder_interval_minutes', type: 'int', default: 1440 })
   reminderIntervalMinutes!: number;
 
+  @Column({ name: 'auto_close_enabled', type: 'boolean', default: false })
+  autoCloseEnabled!: boolean;
+
+  @Column({ name: 'auto_close_interval_minutes', type: 'int', default: 43200 })
+  autoCloseIntervalMinutes!: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

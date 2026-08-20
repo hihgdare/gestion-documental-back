@@ -20,9 +20,14 @@ import { ProcessFlowParticipantActionUseCase } from './progress-signature-flow.u
 
 interface AuthorizedActionInput {
   flowId: string;
-  actorUserId: string;
+  /** null = acción automática del sistema (siempre autorizada, sin dueño). */
+  actorUserId: string | null;
   actorCanCloseAny?: boolean;
   comment: string;
+}
+
+function historyActorFields(actorUserId: string | null): { updatedBy?: string; updatedByName?: string } {
+  return actorUserId ? { updatedBy: actorUserId } : { updatedByName: 'Sistema' };
 }
 
 /** Restaura el status del documento como ya se hace al rechazar: si venía aprobado antes del flujo, recupera ese estado. */
@@ -40,7 +45,7 @@ async function assertCanClose(
   const flow = await flowRepository.findById(input.flowId);
   if (!flow) throw new NotFoundError('Flujo de firma no encontrado');
 
-  if (flow.sentBy !== input.actorUserId && !input.actorCanCloseAny) {
+  if (input.actorUserId !== null && flow.sentBy !== input.actorUserId && !input.actorCanCloseAny) {
     throw new ForbiddenError('Solo quien envió el documento a firmar o un administrador puede realizar esta acción');
   }
 
@@ -115,7 +120,7 @@ export class SkipSignerUseCase {
         documentUrl: document.documentUrl,
         status: document.status,
         action: DocumentAction.FLOW_PARTICIPANT_SKIPPED,
-        updatedBy: input.actorUserId,
+        ...historyActorFields(input.actorUserId),
         comment,
         flowParticipantId: participant.id,
         actionComment: comment,
@@ -192,7 +197,7 @@ export class CloseSignatureFlowUseCase {
       documentUrl: document.documentUrl,
       status: document.status,
       action: DocumentAction.FLOW_CLOSED,
-      updatedBy: input.actorUserId,
+      ...historyActorFields(input.actorUserId),
       comment,
     });
 
@@ -259,6 +264,9 @@ export class ReopenSignatureFlowUseCase {
     }
 
     flow.status = SignatureFlowStatus.IN_SIGNING;
+    // El plazo de cierre automático se cuenta desde el envío original (sentAt), que no cambia
+    // al reabrir — lo desactivamos para que no se vuelva a cerrar de inmediato en el próximo ciclo.
+    flow.autoCloseEnabled = false;
     await this.flowRepository.update(flow);
 
     if (

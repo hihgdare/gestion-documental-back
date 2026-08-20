@@ -34,6 +34,8 @@ export interface CreateSignatureFlowInput {
   sentBy?: string;
   reminderEnabled?: boolean;
   reminderIntervalMinutes?: number;
+  autoCloseEnabled?: boolean;
+  autoCloseIntervalMinutes?: number;
   participants: Array<{
     userId?: string;
     colaboratorId?: string;
@@ -100,6 +102,8 @@ export class CreateSignatureFlowUseCase {
       sentBy: input.sentBy ?? null,
       reminderEnabled: input.reminderEnabled,
       reminderIntervalMinutes: input.reminderIntervalMinutes,
+      autoCloseEnabled: input.autoCloseEnabled,
+      autoCloseIntervalMinutes: input.autoCloseIntervalMinutes,
     };
 
     const flow = await this.signatureFlowRepository.save(SignatureFlow.create(flowProps));

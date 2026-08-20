@@ -34,6 +34,8 @@ export interface SignatureFlowRepository {
   findByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]>;
   findActiveByDocumentId(documentId: string): Promise<SignatureFlow | null>;
   findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]>;
+  findDueForAutoClose(now: Date): Promise<SignatureFlow[]>;
+  findInSigningWithExpiredDocuments(now: Date): Promise<SignatureFlow[]>;
   findPendingDocumentsReport(groupId?: number): Promise<PendingSignatureDocumentsReportItem[]>;
   findSigningTimeReport(groupId?: number): Promise<SignatureProcessTimeReportItem[]>;
   save(flow: SignatureFlow): Promise<SignatureFlow>;

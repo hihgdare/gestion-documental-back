@@ -9,6 +9,12 @@ import {
 /** 1440 minutos = 1 día. */
 export const DEFAULT_REMINDER_INTERVAL_MINUTES = 1440;
 
+/** 43200 minutos = 30 días. */
+export const DEFAULT_AUTO_CLOSE_INTERVAL_MINUTES = 43200;
+
+/** Mínimo permitido para el cierre automático: 1 día. */
+export const MIN_AUTO_CLOSE_INTERVAL_MINUTES = 1440;
+
 export interface SignatureFlowProps {
   id?: string;
   documentId: string;
@@ -19,6 +25,8 @@ export interface SignatureFlowProps {
   sentBy?: string | null;
   reminderEnabled?: boolean;
   reminderIntervalMinutes?: number;
+  autoCloseEnabled?: boolean;
+  autoCloseIntervalMinutes?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -33,6 +41,8 @@ export class SignatureFlow {
   sentBy: string | null;
   reminderEnabled: boolean;
   reminderIntervalMinutes: number;
+  autoCloseEnabled: boolean;
+  autoCloseIntervalMinutes: number;
   createdAt: Date;
   updatedAt: Date;
 
@@ -48,6 +58,8 @@ export class SignatureFlow {
       sentBy: (v?: string | null) => v ?? null,
       reminderEnabled: (v?: boolean) => v ?? false,
       reminderIntervalMinutes: (v?: number) => v ?? DEFAULT_REMINDER_INTERVAL_MINUTES,
+      autoCloseEnabled: (v?: boolean) => v ?? false,
+      autoCloseIntervalMinutes: (v?: number) => v ?? DEFAULT_AUTO_CLOSE_INTERVAL_MINUTES,
       createdAt: 'datetime',
       updatedAt: 'datetime',
     });
@@ -65,6 +77,12 @@ export class SignatureFlow {
     // Por ahora se permite cualquier valor >= 1 para poder probar con minutos/horas.
     if (props.reminderIntervalMinutes !== undefined && props.reminderIntervalMinutes < 1) {
       throw new ValidationError('El tiempo del recordatorio debe ser de al menos 1 minuto');
+    }
+    if (
+      props.autoCloseIntervalMinutes !== undefined
+      && props.autoCloseIntervalMinutes < MIN_AUTO_CLOSE_INTERVAL_MINUTES
+    ) {
+      throw new ValidationError('El tiempo de cierre automático debe ser de al menos 1 día');
     }
   }
 }
