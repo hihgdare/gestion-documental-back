@@ -20,6 +20,7 @@ import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeo
 import {
   SignaturePdfStampService,
   SignerStampData,
+  StampTarget,
 } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { Document } from '@domains/document/entities/document.entity';
 import { SignatureFlow } from '../entities/signature-flow.entity';
@@ -531,8 +532,8 @@ export class ProcessFlowParticipantActionUseCase {
     if (!this.pdfStampService || !this.userRepository || !this.signatureRepository || !document.documentUrl) return;
 
     try {
-      const pdfPath = await this.resolvePdfPath(document.documentUrl);
-      if (!pdfPath) return;
+      const stampTarget = await this.resolvePdfPath(document.documentUrl);
+      if (!stampTarget) return;
 
       const signedSigners = participants.filter(
         (p) => p.role === SignatureFlowParticipantRole.SIGNER
@@ -585,7 +586,7 @@ export class ProcessFlowParticipantActionUseCase {
 
       const verifyUrl = buildFrontendUrl(`/verificar?id=${document.id}`) ?? `/verificar?id=${document.id}`;
 
-      await this.pdfStampService.stampConsolidatedPdf(pdfPath, {
+      await this.pdfStampService.stampConsolidatedPdf(stampTarget, {
         documentId: document.id,
         completedAt: new Date(),
         verifyUrl,
@@ -623,8 +624,8 @@ export class ProcessFlowParticipantActionUseCase {
     }
   }
 
-  private async resolvePdfPath(documentUrl: string): Promise<string | null> {
-    if (documentUrl.toLowerCase().endsWith('.pdf')) return documentUrl;
+  private async resolvePdfPath(documentUrl: string): Promise<StampTarget | null> {
+    if (documentUrl.toLowerCase().endsWith('.pdf')) return { storage: 'local', path: documentUrl };
     if (!this.fileRepository) return null;
 
     const file = await this.fileRepository.findById(documentUrl);
@@ -634,8 +635,8 @@ export class ProcessFlowParticipantActionUseCase {
       || file.originalName.toLowerCase().endsWith('.pdf')
       || file.path.toLowerCase().endsWith('.pdf');
 
-    if (!isPdf || file.storage !== 'local') return null;
-    return file.path;
+    if (!isPdf) return null;
+    return { storage: file.storage, path: file.path };
   }
 
   private orderTypeForRole(flow: SignatureFlow, role: SignatureFlowParticipantRole): SignatureFlowOrderType {
