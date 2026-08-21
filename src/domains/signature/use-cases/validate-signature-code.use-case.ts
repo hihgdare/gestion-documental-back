@@ -7,7 +7,7 @@ import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
-import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
+import { SignaturePdfStampService, StampTarget } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
@@ -132,8 +132,8 @@ export class ValidateSignatureCodeUseCase {
   ): Promise<void> {
     if (!this.pdfStampService || !documentUrl) return;
 
-    const pdfPath = await this.resolvePdfPath(documentUrl);
-    if (!pdfPath) return;
+    const stampTarget = await this.resolvePdfPath(documentUrl);
+    if (!stampTarget) return;
 
     try {
       const user = await this.userRepository.findById(userId);
@@ -144,7 +144,7 @@ export class ValidateSignatureCodeUseCase {
 
       const verifyUrl = this.buildVerifyUrl(documentId, tokenHash);
 
-      await this.pdfStampService.stampPdf(pdfPath, {
+      await this.pdfStampService.stampPdf(stampTarget, {
         signerName: `${user.firstName} ${user.lastName}`,
         signerDocumentNumber,
         signerEmail: String(user.email),
@@ -159,9 +159,9 @@ export class ValidateSignatureCodeUseCase {
     }
   }
 
-  private async resolvePdfPath(documentUrl: string): Promise<string | null> {
+  private async resolvePdfPath(documentUrl: string): Promise<StampTarget | null> {
     if (documentUrl.toLowerCase().endsWith('.pdf')) {
-      return documentUrl;
+      return { storage: 'local', path: documentUrl };
     }
 
     if (!this.fileRepository) return null;
@@ -176,12 +176,7 @@ export class ValidateSignatureCodeUseCase {
 
     if (!isPdf) return null;
 
-    if (file.storage !== 'local') {
-      console.warn('[ValidateSignatureCodeUseCase] PDF stamping skipped: only local storage is currently supported.');
-      return null;
-    }
-
-    return file.path;
+    return { storage: file.storage, path: file.path };
   }
 
   private buildVerifyUrl(documentId: string, tokenHash: string): string {
