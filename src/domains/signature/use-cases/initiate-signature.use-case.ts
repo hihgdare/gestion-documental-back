@@ -8,10 +8,12 @@ import { SignatureStatus, SignatureType, SignatureMethod } from '../value-object
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { buildPrimactaNotificationEmail } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { redactSecret } from '@shared/utils/redact';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
 import { SignatureFlowParticipantRepository } from '@domains/signature-flow/repositories/signature-flow-participant.repository';
+import { SignatureCodeNotificationRepository } from '@domains/signature-flow/repositories/signature-code-notification.repository';
 import {
   SignatureFlowOrderType,
   SignatureFlowParticipantRole,
@@ -47,6 +49,7 @@ export class InitiateSignatureUseCase {
     private readonly signatureFlowParticipantRepository: SignatureFlowParticipantRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly emailService: EmailService,
+    private readonly signatureCodeNotificationRepository?: SignatureCodeNotificationRepository,
   ) {}
 
   async execute(params: InitiateSignatureParams): Promise<InitiateSignatureResult> {
@@ -73,6 +76,7 @@ export class InitiateSignatureUseCase {
     }
 
     const activeFlow = await this.signatureFlowRepository.findActiveByDocumentId(documentId);
+    let pendingSignerParticipantId: string | null = null;
     if (activeFlow) {
       if (activeFlow.status === SignatureFlowStatus.IN_REVIEW) {
         throw new ValidationError('El documento aún está en etapa de revisión y no puede firmarse');
@@ -93,6 +97,7 @@ export class InitiateSignatureUseCase {
       if (!pendingSigner) {
         throw new ValidationError('No tienes una firma pendiente en el flujo activo para este documento');
       }
+      pendingSignerParticipantId = pendingSigner.id;
     }
 
     const colaborator = await this.colaboratorRepository.findByUserId(userId);
@@ -137,7 +142,16 @@ export class InitiateSignatureUseCase {
         throw new ValidationError('No existe un telefono disponible para enviar el codigo SMS.');
       }
 
-      await this.sendSmsCode(resolvedPhone, otpCode);
+      const smsBody = `Tu código de verificación para firmar tu documento en Primacta es: ${otpCode}`;
+      await this.sendSmsCode(resolvedPhone, smsBody);
+      await this.logCodeNotification({
+        signatureId: savedSignature.id,
+        participantId: pendingSignerParticipantId,
+        channel: 'sms',
+        recipient: resolvedPhone,
+        textContent: smsBody,
+        otpCode,
+      });
     } else {
       const title = 'Código de verificación para firma de documento';
       const html = buildPrimactaNotificationEmail({
@@ -147,17 +161,29 @@ export class InitiateSignatureUseCase {
         code: otpCode,
         warningMessage: `Este código es válido por ${OTP_EXPIRY_MINUTES} minutos y solo puede utilizarse una vez. No lo compartas con nadie.`,
       });
+      const text = `Su código de verificación es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
 
       const emailSent = await this.emailService.send({
         to: user.email.toString(),
         subject: title,
         html,
-        text: `Su código de verificación es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+        text,
       });
 
       if (!emailSent) {
         throw new ServerError('No se pudo enviar el correo con el código de verificación. Intenta nuevamente.');
       }
+
+      await this.logCodeNotification({
+        signatureId: savedSignature.id,
+        participantId: pendingSignerParticipantId,
+        channel: 'email',
+        recipient: user.email.toString(),
+        subject: title,
+        htmlContent: html,
+        textContent: text,
+        otpCode,
+      });
     }
 
     return { signatureId: savedSignature.id };
@@ -182,7 +208,7 @@ export class InitiateSignatureUseCase {
     return participant.order === Math.min(...pendingOrders);
   }
 
-  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<void> {
+  private async sendSmsCode(phoneNumber: string, body: string): Promise<void> {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -200,7 +226,7 @@ export class InitiateSignatureUseCase {
       const twilioModule = await import('twilio');
       const client = twilioModule.default(accountSid, authToken);
       await client.messages.create({
-        body: `Tu código de verificación para firmar tu documento en Primacta es: ${otpCode}`,
+        body,
         from: fromNumber,
         to: phoneNumber,
       });
@@ -211,6 +237,39 @@ export class InitiateSignatureUseCase {
         ? 'No se pudo enviar el SMS. Verifica que el número de teléfono sea correcto o intenta con el método por correo.'
         : 'No se pudo enviar el SMS con el código de verificación. Intenta nuevamente o usa el método por correo.';
       throw new ServerError(friendlyMessage);
+    }
+  }
+
+  /**
+   * Registra el envío para trazabilidad, censurando el código real antes de guardarlo:
+   * el texto plano del código nunca toca la base de datos, solo llega a la bandeja/teléfono
+   * del firmante. Si falla, no interrumpe el proceso de firma (no crítico).
+   */
+  private async logCodeNotification(params: {
+    signatureId: string;
+    participantId: string | null;
+    channel: 'email' | 'sms';
+    recipient: string;
+    subject?: string;
+    htmlContent?: string;
+    textContent?: string;
+    otpCode: string;
+  }): Promise<void> {
+    if (!this.signatureCodeNotificationRepository) return;
+
+    try {
+      await this.signatureCodeNotificationRepository.create({
+        signatureId: params.signatureId,
+        participantId: params.participantId,
+        channel: params.channel,
+        recipient: params.recipient,
+        subject: params.subject ?? null,
+        htmlContent: redactSecret(params.htmlContent ?? null, params.otpCode),
+        textContent: redactSecret(params.textContent ?? null, params.otpCode),
+        sentAt: new Date(),
+      });
+    } catch (err) {
+      console.warn('[InitiateSignatureUseCase] No se pudo registrar el log del código enviado (no crítico):', err);
     }
   }
 }

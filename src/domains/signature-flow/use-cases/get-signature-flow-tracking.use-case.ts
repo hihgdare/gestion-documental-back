@@ -2,6 +2,8 @@ import { type SignatureFlowRepository } from '../repositories/signature-flow.rep
 import { type SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
 import { type SignatureFlowNotificationRepository } from '../repositories/signature-flow-notification.repository';
 import { type ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
+import { type SignatureCodeNotificationRepository } from '../repositories/signature-code-notification.repository';
+import { SignatureCodeNotification } from '../entities/signature-code-notification.entity';
 import { SignatureFlowParticipant } from '../entities/signature-flow-participant.entity';
 import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus } from '../value-objects/signature-flow-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
@@ -26,6 +28,7 @@ export interface SignatureFlowTrackingNotificationEmail {
   text: string | null;
   status: string;
   sentAt: Date | null;
+  channel: 'email' | 'sms';
 }
 
 export interface SignatureFlowTrackingNotification {
@@ -47,6 +50,8 @@ export interface SignatureFlowTrackingParticipant {
   rejectionComment: string | null;
   actionEvidence: SignatureFlowTrackingActionEvidence | null;
   notifications: SignatureFlowTrackingNotification[];
+  /** Correos/SMS con el código de verificación usado para firmar, ya censurado. Solo para firmantes que ya firmaron. */
+  verificationNotifications: SignatureFlowTrackingNotification[];
 }
 
 export interface SignatureFlowTrackingItem {
@@ -70,6 +75,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
     private readonly externalTokenRepository: ExternalParticipantTokenRepository,
     private readonly userRepository: UserRepository,
     private readonly emailQueueService: EmailQueueService,
+    private readonly codeNotificationRepository: SignatureCodeNotificationRepository,
   ) {}
 
   async execute(documentId: string): Promise<SignatureFlowTrackingItem[]> {
@@ -106,6 +112,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
           rejectionComment: participant.rejectionComment,
           actionEvidence: await this.buildActionEvidence(participant, documentSignatures),
           notifications,
+          verificationNotifications: await this.loadVerificationNotifications(participant, documentSignatures),
         });
       }
 
@@ -163,6 +170,45 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
     return { verifiedByCode: true, method: externalToken.otpMethod, ipAddress: externalToken.ipAddress, channel };
   }
 
+  /**
+   * Correos/SMS con el código de verificación que se enviaron para esta firma, con el código
+   * ya censurado desde que se guardó (nunca se persiste en texto plano). Solo aplica a
+   * firmantes que ya completaron su firma con código — revisores no pasan por este flujo.
+   */
+  private async loadVerificationNotifications(
+    participant: SignatureFlowParticipant,
+    documentSignatures: Signature[],
+  ): Promise<SignatureFlowTrackingNotification[]> {
+    if (participant.role !== SignatureFlowParticipantRole.SIGNER) return [];
+    if (participant.status !== SignatureFlowParticipantStatus.SIGNED) return [];
+
+    let entries: SignatureCodeNotification[] = [];
+    if (participant.userId) {
+      const signature = documentSignatures.find((s) => s.userId === participant.userId && s.signedAt);
+      if (!signature) return [];
+      entries = await this.codeNotificationRepository.findBySignatureId(signature.id);
+    } else {
+      entries = await this.codeNotificationRepository.findByParticipantId(participant.id);
+    }
+
+    return entries.map((entry, i) => ({
+      id: entry.id,
+      number: i + 1,
+      type: 'verification_code',
+      createdAt: entry.createdAt,
+      triggeredByName: null,
+      email: {
+        to: entry.recipient,
+        subject: entry.subject ?? '',
+        html: entry.htmlContent,
+        text: entry.textContent,
+        status: 'sent',
+        sentAt: entry.sentAt,
+        channel: entry.channel,
+      },
+    }));
+  }
+
   private async loadNotifications(
     participants: SignatureFlowParticipant[],
   ): Promise<Map<string, SignatureFlowTrackingNotification[]>> {
@@ -204,6 +250,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
             text: job.textContent ?? null,
             status: job.status,
             sentAt: job.sentAt ?? null,
+            channel: 'email',
           } : null,
         };
       }));

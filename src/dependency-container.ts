@@ -230,6 +230,7 @@ import { SignatureFlowAutoCloseProcessor } from '@shared/infrastructure/signatur
 // Signature domain
 import { TypeOrmSignatureRepository } from '@shared/infrastructure/repositories/typeorm-signature.repository';
 import { TypeOrmSignatureVerificationCodeRepository } from '@shared/infrastructure/repositories/typeorm-signature-verification-code.repository';
+import { TypeOrmSignatureCodeNotificationRepository } from '@shared/infrastructure/repositories/typeorm-signature-code-notification.repository';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { InitiateSignatureUseCase } from '@domains/signature/use-cases/initiate-signature.use-case';
@@ -327,6 +328,7 @@ export class DependencyContainer {
   private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
   private signatureRepository!: TypeOrmSignatureRepository;
   private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
+  private signatureCodeNotificationRepository!: TypeOrmSignatureCodeNotificationRepository;
   private signatureFlowRepository!: TypeOrmSignatureFlowRepository;
   private signatureFlowParticipantRepository!: TypeOrmSignatureFlowParticipantRepository;
   private inAppNotificationRepository!: TypeOrmInAppNotificationRepository;
@@ -624,6 +626,7 @@ export class DependencyContainer {
     this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
     this.signatureRepository = new TypeOrmSignatureRepository();
     this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
+    this.signatureCodeNotificationRepository = new TypeOrmSignatureCodeNotificationRepository();
     this.signatureFlowRepository = new TypeOrmSignatureFlowRepository();
     this.signatureFlowParticipantRepository = new TypeOrmSignatureFlowParticipantRepository();
     this.inAppNotificationRepository = new TypeOrmInAppNotificationRepository();
@@ -1185,6 +1188,7 @@ export class DependencyContainer {
       this.signatureFlowParticipantRepository,
       this.signatureCryptoService,
       this.emailService,
+      this.signatureCodeNotificationRepository,
     );
     this.validateSignatureCodeUseCase = new ValidateSignatureCodeUseCase(
       this.signatureRepository,
@@ -1291,6 +1295,7 @@ export class DependencyContainer {
       this.externalParticipantTokenRepository,
       this.userRepository,
       this.emailQueueService,
+      this.signatureCodeNotificationRepository,
     );
     this.skipSignerUseCase = new SkipSignerUseCase(
       this.signatureFlowRepository,
@@ -1333,6 +1338,7 @@ export class DependencyContainer {
       this.signatureFlowRepository,
       this.signatureCryptoService,
       this.emailService,
+      this.signatureCodeNotificationRepository,
     );
     const validateExternalOtpUseCase = new ValidateExternalSignerOtpUseCase(
       this.externalParticipantTokenRepository,

@@ -101,18 +101,19 @@ export class SignatureFlowNotificationService {
       if (!user?.email) continue;
 
       const actionUrl = buildFrontendUrl(`/signature-flows?documentId=${encodeURIComponent(documentId)}`);
+      const actionLabel = isValidator ? 'Revisar' : 'Firmar';
       const html = buildPrimactaNotificationEmail({
         title,
         recipientName: user.firstName,
         message,
-        actionLabel: 'Ir a pendientes',
+        actionLabel,
         actionUrl,
       });
 
       const options: EmailOptions = {
         to: user.email.toString(),
         subject: title,
-        text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
+        text: actionUrl ? `${message}\n\n${actionLabel}: ${actionUrl}` : message,
         html,
       };
 
@@ -165,11 +166,12 @@ export class SignatureFlowNotificationService {
       if (!user?.email) continue;
 
       const actionUrl = buildFrontendUrl(`/signature-flows?documentId=${encodeURIComponent(documentId)}`);
+      const actionLabel = isValidator ? 'Revisar' : 'Firmar';
       const html = buildPrimactaNotificationEmail({
         title,
         recipientName: user.firstName,
         message,
-        actionLabel: 'Ir a pendientes',
+        actionLabel,
         actionUrl,
       });
 
@@ -179,7 +181,7 @@ export class SignatureFlowNotificationService {
         options: {
           to: user.email.toString(),
           subject: title,
-          text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
+          text: actionUrl ? `${message}\n\n${actionLabel}: ${actionUrl}` : message,
           html,
         },
       });
@@ -522,18 +524,19 @@ export class SignatureFlowNotificationService {
       ? `Todavía no has revisado el documento: ${documentName}. Este es un recordatorio automático.`
       : `Todavía no has firmado el documento: ${documentName}. Este es un recordatorio automático.`;
     const actionUrl = buildFrontendUrl(`/signature-flows?documentId=${encodeURIComponent(documentId)}`);
+    const actionLabel = isValidator ? 'Revisar' : 'Firmar';
     const html = buildPrimactaNotificationEmail({
       title,
       recipientName: user.firstName,
       message,
-      actionLabel: 'Ir a pendientes',
+      actionLabel,
       actionUrl,
     });
 
     const job = await this.emailQueueService.enqueue({
       to: user.email.toString(),
       subject: title,
-      text: actionUrl ? `${message}\n\nIr a pendientes: ${actionUrl}` : message,
+      text: actionUrl ? `${message}\n\n${actionLabel}: ${actionUrl}` : message,
       html,
       scheduledAt: new Date(Date.now() + intervalMinutes * 60 * 1000),
       groupKey: this.reminderGroupKey(participant.id),
