@@ -55,13 +55,17 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
   }
 
   async findDueForAutoClose(now: Date): Promise<SignatureFlow[]> {
-    const entities = await this.repository.find({
-      where: { status: SignatureFlowStatus.IN_SIGNING, autoCloseEnabled: true },
-    });
+    // El vencimiento se calcula en SQL (en vez de traer todos los flujos con auto-cierre
+    // habilitado y filtrar en memoria) para no barrer flujos que todavía no vencen en cada ciclo.
+    const entities = await this.repository
+      .createQueryBuilder('flow')
+      .where('flow.status = :status', { status: SignatureFlowStatus.IN_SIGNING })
+      .andWhere('flow.auto_close_enabled = true')
+      .andWhere('flow.sent_at IS NOT NULL')
+      .andWhere('DATE_ADD(flow.sent_at, INTERVAL flow.auto_close_interval_minutes MINUTE) <= :now', { now })
+      .getMany();
 
-    return entities
-      .filter((e) => e.sentAt && e.sentAt.getTime() + e.autoCloseIntervalMinutes * 60 * 1000 <= now.getTime())
-      .map((e) => this.toDomain(e));
+    return entities.map((e) => this.toDomain(e));
   }
 
   async findInSigningWithExpiredDocuments(now: Date): Promise<SignatureFlow[]> {

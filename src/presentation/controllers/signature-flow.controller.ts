@@ -212,6 +212,7 @@ export class SignatureFlowController {
         sentAt: item.sentAt?.toISOString() ?? null,
         sentBy: item.sentBy,
         sentByName: item.sentByName,
+        nextAutoCloseAt: item.nextAutoCloseAt?.toISOString() ?? null,
         participants: item.participants.map((p) => ({
           participantId: p.participantId,
           name: p.name,
@@ -220,6 +221,7 @@ export class SignatureFlowController {
           status: p.status,
           actionAt: p.actionAt?.toISOString() ?? null,
           rejectionComment: p.rejectionComment,
+          nextReminderAt: p.nextReminderAt?.toISOString() ?? null,
           actionEvidence: p.actionEvidence ? {
             verifiedByCode: p.actionEvidence.verifiedByCode,
             method: p.actionEvidence.method,
@@ -239,6 +241,23 @@ export class SignatureFlowController {
               text: n.email.text,
               status: n.email.status,
               sentAt: n.email.sentAt?.toISOString() ?? null,
+              channel: n.email.channel,
+            } : null,
+          })),
+          verificationNotifications: p.verificationNotifications.map((n) => ({
+            id: n.id,
+            number: n.number,
+            type: n.type,
+            createdAt: n.createdAt.toISOString(),
+            triggeredByName: n.triggeredByName,
+            email: n.email ? {
+              to: n.email.to,
+              subject: n.email.subject,
+              html: n.email.html,
+              text: n.email.text,
+              status: n.email.status,
+              sentAt: n.email.sentAt?.toISOString() ?? null,
+              channel: n.email.channel,
             } : null,
           })),
         })),
@@ -282,7 +301,10 @@ export class SignatureFlowController {
 
   getResendCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
-    const items = await this.getResendableParticipantsUseCase.execute(id);
+    const actorUserId = req.auth!.user!.id;
+    const actorCanResendAny = req.auth!.user!.can('signature-flow:resend:any');
+
+    const items = await this.getResendableParticipantsUseCase.execute({ flowId: id, actorUserId, actorCanResendAny });
     res.status(200).json({ success: true, data: items, count: items.length });
   });
 

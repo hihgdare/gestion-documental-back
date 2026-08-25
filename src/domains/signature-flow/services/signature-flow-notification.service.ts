@@ -134,13 +134,17 @@ export class SignatureFlowNotificationService {
    * Crea notificaciones in-app para participantes internos y retorna los datos de email
    * (junto al participante al que corresponde cada uno) sin enviarlos. Usado por
    * create-signature-flow para encolar el batch inicial.
+   *
+   * No agenda recordatorios aquí: eso debe hacerse recién después de que el correo inicial
+   * ya quedó encolado (con scheduleRemindersForParticipants), para que el recordatorio no quede
+   * registrado con una fecha anterior a la notificación inicial ni compita con su envío si este
+   * se demora o falla.
    */
   async collectEmailsForParticipants(
     participants: SignatureFlowParticipant[],
     documentId: string,
     documentName: string,
     orderType: SignatureFlowOrderType,
-    reminderConfig?: ReminderConfig,
   ): Promise<EmailWithParticipant[]> {
     const toNotify = this.pickParticipantsToNotify(orderType, participants);
     const emails: EmailWithParticipant[] = [];
@@ -185,13 +189,29 @@ export class SignatureFlowNotificationService {
           html,
         },
       });
-
-      if (reminderConfig?.enabled) {
-        await this.scheduleReminderInternal(participant, documentId, documentName, reminderConfig.intervalMinutes);
-      }
     }
 
     return emails;
+  }
+
+  /**
+   * Agenda los recordatorios de los participantes internos del paso actual. Debe llamarse
+   * después de encolar/enviar el correo inicial (nunca antes), para no invertir el orden de
+   * las notificaciones ni competir con el envío inicial si este se demora o falla.
+   */
+  async scheduleRemindersForParticipants(
+    participants: SignatureFlowParticipant[],
+    documentId: string,
+    documentName: string,
+    orderType: SignatureFlowOrderType,
+    reminderConfig?: ReminderConfig,
+  ): Promise<void> {
+    if (!reminderConfig?.enabled) return;
+    const toNotify = this.pickParticipantsToNotify(orderType, participants);
+    for (const participant of toNotify) {
+      if (!participant.userId) continue;
+      await this.scheduleReminderInternal(participant, documentId, documentName, reminderConfig.intervalMinutes);
+    }
   }
 
   /**
@@ -490,14 +510,17 @@ export class SignatureFlowNotificationService {
     })));
   }
 
-  private reminderGroupKey(participantId: string): string {
+  /** Clave de agrupación del job de recordatorio de un participante — pública para que quien
+   * necesite consultar (no solo cancelar) el recordatorio pendiente de un participante (p.ej.
+   * el seguimiento de firma, para mostrar cuándo se enviará) use la misma clave. */
+  static reminderGroupKey(participantId: string): string {
     return `signature-flow-reminder:${participantId}`;
   }
 
   /** Cancela el recordatorio automático pendiente de un participante, si tenía uno agendado. */
   async cancelReminder(participantId: string): Promise<void> {
     if (!this.emailQueueService) return;
-    await this.emailQueueService.cancelPendingByGroupKey(this.reminderGroupKey(participantId));
+    await this.emailQueueService.cancelPendingByGroupKey(SignatureFlowNotificationService.reminderGroupKey(participantId));
   }
 
   /**
@@ -539,7 +562,7 @@ export class SignatureFlowNotificationService {
       text: actionUrl ? `${message}\n\n${actionLabel}: ${actionUrl}` : message,
       html,
       scheduledAt: new Date(Date.now() + intervalMinutes * 60 * 1000),
-      groupKey: this.reminderGroupKey(participant.id),
+      groupKey: SignatureFlowNotificationService.reminderGroupKey(participant.id),
       correlationId: participant.flowId,
     });
 
@@ -587,7 +610,7 @@ export class SignatureFlowNotificationService {
       text: `${message}\n\n${actionLabel}: ${accessUrl}`,
       html,
       scheduledAt: new Date(Date.now() + intervalMinutes * 60 * 1000),
-      groupKey: this.reminderGroupKey(participant.id),
+      groupKey: SignatureFlowNotificationService.reminderGroupKey(participant.id),
       correlationId: participant.flowId,
     });
 

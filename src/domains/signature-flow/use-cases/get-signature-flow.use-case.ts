@@ -9,7 +9,7 @@ import {
   PendingSignatureTaskItem,
   type SignatureFlowParticipantRepository,
 } from '../repositories/signature-flow-participant.repository';
-import { NotFoundError } from '@shared/domain/errors';
+import { ForbiddenError, NotFoundError } from '@shared/domain/errors';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { getCurrentlyEnabledParticipants } from '../services/signature-flow-step.util';
 
@@ -76,6 +76,13 @@ export interface ResendableParticipantItem {
   name: string;
 }
 
+export interface GetResendableParticipantsInput {
+  flowId: string;
+  actorUserId: string;
+  /** true si el usuario tiene el permiso 'signature-flow:resend:any' (puede ver/reenviar aunque no sea quien envió el flujo). */
+  actorCanResendAny?: boolean;
+}
+
 /** Participantes a los que se les puede reenviar la notificación en este momento (su turno actual, aún pendientes). */
 export class GetResendableParticipantsUseCase {
   constructor(
@@ -84,11 +91,17 @@ export class GetResendableParticipantsUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(flowId: string): Promise<ResendableParticipantItem[]> {
-    const flow = await this.flowRepository.findById(flowId);
+  async execute(input: GetResendableParticipantsInput): Promise<ResendableParticipantItem[]> {
+    const flow = await this.flowRepository.findById(input.flowId);
     if (!flow) throw new NotFoundError('Flujo de firma no encontrado');
 
-    const participants = await this.participantRepository.findByFlowId(flowId);
+    // Misma regla que el reenvío real: solo quien envió el flujo o un administrador puede
+    // ver quiénes tienen la acción pendiente (antes se podía consultar sin ser dueño del flujo).
+    if (flow.sentBy !== input.actorUserId && !input.actorCanResendAny) {
+      throw new ForbiddenError('Solo quien envió el documento a firmar o un administrador puede ver a quién reenviar la notificación');
+    }
+
+    const participants = await this.participantRepository.findByFlowId(input.flowId);
     const enabled = getCurrentlyEnabledParticipants(flow, participants);
 
     const items: ResendableParticipantItem[] = [];

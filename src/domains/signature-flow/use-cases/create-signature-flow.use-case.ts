@@ -20,6 +20,11 @@ import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primact
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 
+interface ExternalEmailCollected extends EmailWithParticipant {
+  participant: SignatureFlowParticipant;
+  accessUrl: string;
+}
+
 const ALLOWED_START_STATUSES = [
   DocumentStatus.DRAFT,
   DocumentStatus.UPLOADED,
@@ -173,13 +178,12 @@ export class CreateSignatureFlowUseCase {
       document.id,
       document.name,
       notifyOrderType,
-      reminderConfig,
     );
 
     // Generate tokens and collect email data for external participants
     const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
-    const externalEmails = await this.collectExternalEmails(firstStepExternal, document.name, reminderConfig);
+    const externalEmails = await this.collectExternalEmails(firstStepExternal, document.name);
 
     const allEmails = [...internalEmails, ...externalEmails];
     if (allEmails.length > 0) {
@@ -193,6 +197,16 @@ export class CreateSignatureFlowUseCase {
         type: SignatureFlowNotificationType.INITIAL,
         triggeredBy: null,
       })));
+    }
+
+    // Los recordatorios se agendan recién ahora, después de confirmar que el correo inicial ya
+    // quedó encolado y registrado — así no aparecen antes que la notificación inicial en el
+    // historial ni compiten con su envío si este se demora o falla.
+    await this.notificationService.scheduleRemindersForParticipants(toNotify, document.id, document.name, notifyOrderType, reminderConfig);
+    if (reminderConfig.enabled) {
+      for (const external of externalEmails) {
+        await this.notificationService.scheduleReminderExternal(external.participant, document.name, external.accessUrl, reminderConfig.intervalMinutes);
+      }
     }
   }
 
@@ -269,13 +283,17 @@ export class CreateSignatureFlowUseCase {
     return resolved;
   }
 
+  /**
+   * Genera tokens y arma los correos de los participantes externos, sin agendar recordatorios
+   * todavía: eso se hace en executeWithQueue una vez que el correo inicial ya quedó encolado,
+   * reutilizando el accessUrl/token recién creado (nunca se regenera uno nuevo para el recordatorio).
+   */
   private async collectExternalEmails(
     participants: SignatureFlowParticipant[],
     documentName: string,
-    reminderConfig?: ReminderConfig,
-  ): Promise<EmailWithParticipant[]> {
+  ): Promise<ExternalEmailCollected[]> {
     if (!this.externalTokenRepository) return [];
-    const emails: EmailWithParticipant[] = [];
+    const emails: ExternalEmailCollected[] = [];
     for (const p of participants) {
       const email = p.externalEmail;
       if (!email) continue;
@@ -291,12 +309,10 @@ export class CreateSignatureFlowUseCase {
       emails.push({
         participantId: p.id,
         flowId: p.flowId,
+        participant: p,
+        accessUrl,
         options: this.notificationService.buildExternalParticipantEmailOptions(email, p.externalName, p.role, documentName, accessUrl),
       });
-
-      if (reminderConfig?.enabled) {
-        await this.notificationService.scheduleReminderExternal(p, documentName, accessUrl, reminderConfig.intervalMinutes);
-      }
     }
     return emails;
   }

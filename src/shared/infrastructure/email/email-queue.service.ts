@@ -46,6 +46,12 @@ export class EmailQueueService {
     return this.repo.find({ where: { id: In(ids) } });
   }
 
+  /** Jobs pendientes (aún no enviados) para un conjunto de group keys — usado para saber cuándo se disparará un recordatorio agendado. */
+  async findPendingByGroupKeys(groupKeys: string[]): Promise<EmailJobEntity[]> {
+    if (groupKeys.length === 0) return [];
+    return this.repo.find({ where: { groupKey: In(groupKeys), status: EmailJobStatus.PENDING } });
+  }
+
   async getPendingJobs(limit = 10): Promise<EmailJobEntity[]> {
     return this.repo.find({
       where: {

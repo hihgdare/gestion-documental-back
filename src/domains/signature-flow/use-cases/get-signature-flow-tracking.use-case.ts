@@ -5,11 +5,12 @@ import { type ExternalParticipantTokenRepository } from '../repositories/externa
 import { type SignatureCodeNotificationRepository } from '../repositories/signature-code-notification.repository';
 import { SignatureCodeNotification } from '../entities/signature-code-notification.entity';
 import { SignatureFlowParticipant } from '../entities/signature-flow-participant.entity';
-import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus } from '../value-objects/signature-flow-enums';
+import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus, SignatureFlowStatus } from '../value-objects/signature-flow-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { Signature } from '@domains/signature/entities/signature.entity';
 import { SignatureRepository } from '@domains/signature/repositories/signature.repository';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
+import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
 
 export interface SignatureFlowTrackingActionEvidence {
   /** true si la acción quedó verificada con código de un solo uso (solo aplica a firmantes). */
@@ -52,6 +53,8 @@ export interface SignatureFlowTrackingParticipant {
   notifications: SignatureFlowTrackingNotification[];
   /** Correos/SMS con el código de verificación usado para firmar, ya censurado. Solo para firmantes que ya firmaron. */
   verificationNotifications: SignatureFlowTrackingNotification[];
+  /** Cuándo se enviará el próximo recordatorio automático, si tiene uno agendado (solo participantes pendientes). */
+  nextReminderAt: Date | null;
 }
 
 export interface SignatureFlowTrackingItem {
@@ -63,6 +66,8 @@ export interface SignatureFlowTrackingItem {
   sentBy: string | null;
   sentByName: string | null;
   participants: SignatureFlowTrackingParticipant[];
+  /** Cuándo se cerrará automáticamente el flujo si nadie completa la firma antes, si el cierre automático está habilitado. */
+  nextAutoCloseAt: Date | null;
 }
 
 /** Historial completo del proceso de firma de un documento: uno o más flujos, con notificaciones y evidencia por firmante/revisor. */
@@ -91,6 +96,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
 
       // Notificaciones de todos los participantes del flujo, con el contenido/estado del correo asociado.
       const notificationsByParticipant = await this.loadNotifications(participants);
+      const nextReminderByParticipantId = await this.loadNextReminders(participants);
 
       const sentByName = flow.sentBy ? await this.resolveUserName(flow.sentBy, userNameCache) : null;
 
@@ -113,6 +119,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
           actionEvidence: await this.buildActionEvidence(participant, documentSignatures),
           notifications,
           verificationNotifications: await this.loadVerificationNotifications(participant, documentSignatures),
+          nextReminderAt: nextReminderByParticipantId.get(participant.id) ?? null,
         });
       }
 
@@ -125,6 +132,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
         sentBy: flow.sentBy,
         sentByName,
         participants: trackingParticipants,
+        nextAutoCloseAt: this.computeNextAutoCloseAt(flow),
       });
     }
 
@@ -256,6 +264,32 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
       }));
     });
 
+    return result;
+  }
+
+  /** Cuándo se cerraría automáticamente el flujo si nadie firma antes — misma cuenta que usa el processor. */
+  private computeNextAutoCloseAt(flow: { status: string; autoCloseEnabled: boolean; sentAt: Date | null; autoCloseIntervalMinutes: number }): Date | null {
+    if (flow.status !== SignatureFlowStatus.IN_SIGNING || !flow.autoCloseEnabled || !flow.sentAt) return null;
+    return new Date(flow.sentAt.getTime() + flow.autoCloseIntervalMinutes * 60 * 1000);
+  }
+
+  /** Fecha del próximo recordatorio automático agendado (aún no enviado) por participante pendiente. */
+  private async loadNextReminders(participants: SignatureFlowParticipant[]): Promise<Map<string, Date>> {
+    const pendingIds = participants
+      .filter((p) => p.status === SignatureFlowParticipantStatus.PENDING)
+      .map((p) => p.id);
+    if (pendingIds.length === 0) return new Map();
+
+    const participantIdByGroupKey = new Map(
+      pendingIds.map((id) => [SignatureFlowNotificationService.reminderGroupKey(id), id]),
+    );
+    const jobs = await this.emailQueueService.findPendingByGroupKeys([...participantIdByGroupKey.keys()]);
+
+    const result = new Map<string, Date>();
+    for (const job of jobs) {
+      const participantId = job.groupKey ? participantIdByGroupKey.get(job.groupKey) : undefined;
+      if (participantId) result.set(participantId, job.nextRetryAt);
+    }
     return result;
   }
 

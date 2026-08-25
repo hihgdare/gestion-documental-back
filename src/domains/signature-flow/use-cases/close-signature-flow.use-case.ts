@@ -30,6 +30,40 @@ function historyActorFields(actorUserId: string | null): { updatedBy?: string; u
   return actorUserId ? { updatedBy: actorUserId } : { updatedByName: 'Sistema' };
 }
 
+/**
+ * Registra en el historial del documento (acción NOTIFICATION_ERROR, visible en la UI) que una
+ * notificación no crítica falló al saltar/cerrar/reabrir un flujo. Antes esto solo quedaba en un
+ * console.warn del servidor, invisible para cualquier usuario aunque la acción principal
+ * (saltar/cerrar/reabrir) se hubiera aplicado igual.
+ */
+async function recordNotificationFailure(
+  documentHistoryRepository: DocumentHistoryRepository,
+  document: Document,
+  actorUserId: string | null,
+  context: string,
+  error: unknown,
+): Promise<void> {
+  console.error(`[SignatureFlow] ${context} failed:`, error);
+  try {
+    await documentHistoryRepository.save({
+      documentId: document.id,
+      documentModelId: document.documentModelId,
+      name: document.name,
+      issuedDate: document.issuedDate ?? undefined,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description,
+      documentUrl: document.documentUrl,
+      status: document.status,
+      action: DocumentAction.NOTIFICATION_ERROR,
+      ...historyActorFields(actorUserId),
+      comment: `No se pudo enviar la notificación: ${context}`,
+    });
+  } catch (historyError) {
+    console.error('[SignatureFlow] No se pudo registrar el error de notificación en el historial:', historyError);
+  }
+}
+
 /** Restaura el status del documento como ya se hace al rechazar: si venía aprobado antes del flujo, recupera ese estado. */
 function restoreDocumentStatusOnIncompleteFlow(document: Document): DocumentStatus {
   if (document.preFlowStatus === DocumentStatus.APPROVED) {
@@ -129,7 +163,13 @@ export class SkipSignerUseCase {
       try {
         await this.notificationService.notifyParticipantSkipped(participant, document.id, document.name, comment, false);
       } catch (err) {
-        console.warn('[SkipSignerUseCase] notifyParticipantSkipped failed (non-critical):', err);
+        await recordNotificationFailure(
+          this.documentHistoryRepository,
+          document,
+          input.actorUserId,
+          `aviso de firmante saltado a ${participant.externalEmail || participant.userId || participant.id}`,
+          err,
+        );
       }
     }
 
@@ -173,7 +213,13 @@ export class CloseSignatureFlowUseCase {
       try {
         await this.notificationService.notifyParticipantSkipped(participant, document.id, document.name, comment, true);
       } catch (err) {
-        console.warn('[CloseSignatureFlowUseCase] notifyParticipantSkipped failed (non-critical):', err);
+        await recordNotificationFailure(
+          this.documentHistoryRepository,
+          document,
+          input.actorUserId,
+          `aviso de cierre de flujo a ${participant.externalEmail || participant.userId || participant.id}`,
+          err,
+        );
       }
     }
 
@@ -204,7 +250,13 @@ export class CloseSignatureFlowUseCase {
     try {
       await this.notificationService.notifyResponsibleOnClose(document.id, document.name, document.createdBy, comment);
     } catch (err) {
-      console.warn('[CloseSignatureFlowUseCase] notifyResponsibleOnClose failed (non-critical):', err);
+      await recordNotificationFailure(
+        this.documentHistoryRepository,
+        document,
+        input.actorUserId,
+        'aviso al responsable de cierre de flujo',
+        err,
+      );
     }
   }
 }
@@ -310,7 +362,13 @@ export class ReopenSignatureFlowUseCase {
         reminderConfig,
       );
     } catch (err) {
-      console.warn('[ReopenSignatureFlowUseCase] notifyParticipantsForCurrentStep failed (non-critical):', err);
+      await recordNotificationFailure(
+        this.documentHistoryRepository,
+        document,
+        input.actorUserId,
+        'aviso a firmantes internos de reapertura de flujo',
+        err,
+      );
     }
 
     const currentParticipants = this.notificationService.pickParticipantsToNotify(flow.signerOrderType, pendingSigners);
@@ -325,14 +383,26 @@ export class ReopenSignatureFlowUseCase {
           reminderConfig,
         );
       } catch (err) {
-        console.warn('[ReopenSignatureFlowUseCase] refreshTokenAndNotifyExternalParticipant failed (non-critical):', err);
+        await recordNotificationFailure(
+          this.documentHistoryRepository,
+          document,
+          input.actorUserId,
+          `aviso de reapertura de flujo a ${participant.externalEmail || participant.id}`,
+          err,
+        );
       }
     }
 
     try {
       await this.notificationService.notifyResponsibleOnReopen(document.id, document.name, document.createdBy, comment);
     } catch (err) {
-      console.warn('[ReopenSignatureFlowUseCase] notifyResponsibleOnReopen failed (non-critical):', err);
+      await recordNotificationFailure(
+        this.documentHistoryRepository,
+        document,
+        input.actorUserId,
+        'aviso al responsable de reapertura de flujo',
+        err,
+      );
     }
   }
 }
