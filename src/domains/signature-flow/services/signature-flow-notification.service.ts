@@ -3,6 +3,7 @@ import {
   SignatureFlowOrderType,
   SignatureFlowNotificationType,
   SignatureFlowParticipantRole,
+  REMINDER_GROUP_KEY_PREFIX,
 } from '../value-objects/signature-flow-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { InAppNotificationRepository } from '@domains/notification/repositories/in-app-notification.repository';
@@ -514,7 +515,7 @@ export class SignatureFlowNotificationService {
    * necesite consultar (no solo cancelar) el recordatorio pendiente de un participante (p.ej.
    * el seguimiento de firma, para mostrar cuándo se enviará) use la misma clave. */
   static reminderGroupKey(participantId: string): string {
-    return `signature-flow-reminder:${participantId}`;
+    return `${REMINDER_GROUP_KEY_PREFIX}${participantId}`;
   }
 
   /** Cancela el recordatorio automático pendiente de un participante, si tenía uno agendado. */

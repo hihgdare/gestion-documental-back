@@ -104,6 +104,20 @@ export class EmailQueueService {
     });
   }
 
+  /**
+   * Como countUnfinished, pero excluye jobs cuya group key tenga el prefijo dado. Se usa para no
+   * contar jobs agendados a futuro (p.ej. recordatorios) como "pendientes del batch inicial" —
+   * de lo contrario un recordatorio agendado a días de distancia nunca deja completar el batch.
+   */
+  async countUnfinishedExcludingGroupKeyPrefix(correlationId: string, groupKeyPrefix: string): Promise<number> {
+    return this.repo
+      .createQueryBuilder('job')
+      .where('job.correlation_id = :correlationId', { correlationId })
+      .andWhere('job.status IN (:...statuses)', { statuses: [EmailJobStatus.PENDING, EmailJobStatus.PROCESSING] })
+      .andWhere('(job.group_key IS NULL OR job.group_key NOT LIKE :prefix)', { prefix: `${groupKeyPrefix}%` })
+      .getCount();
+  }
+
   async countAbandoned(correlationId: string): Promise<number> {
     return this.repo.count({
       where: { correlationId, status: EmailJobStatus.ABANDONED },

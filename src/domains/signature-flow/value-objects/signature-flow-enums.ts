@@ -30,3 +30,12 @@ export enum SignatureFlowNotificationType {
   RESEND = 'resend',
   REMINDER = 'reminder',
 }
+
+/**
+ * Prefijo de la group key de los jobs de recordatorio automático de un participante
+ * (ver SignatureFlowNotificationService.reminderGroupKey). Un recordatorio queda agendado con
+ * fecha futura (a veces días), por eso EmailQueueProcessor.checkBatchCompletion debe excluirlo
+ * al contar si el batch inicial de notificaciones ya terminó — de lo contrario el documento
+ * queda en "pending_notification" hasta que el recordatorio se envía.
+ */
+export const REMINDER_GROUP_KEY_PREFIX = 'signature-flow-reminder:';
