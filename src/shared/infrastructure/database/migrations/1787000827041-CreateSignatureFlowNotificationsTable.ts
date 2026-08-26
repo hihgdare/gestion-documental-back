@@ -1,4 +1,4 @@
-import { Table, TableForeignKey, TableIndex } from 'typeorm';
+import { Table } from 'typeorm';
 import { ImprovedRunner, IQueryRunner } from '../runner';
 
 export class CreateSignatureFlowNotificationsTable1787000827041 extends ImprovedRunner {

@@ -1,4 +1,4 @@
-import { SignatureFlow, SignatureFlowProps, MIN_REMINDER_INTERVAL_MINUTES } from '../entities/signature-flow.entity';
+import { SignatureFlow, SignatureFlowProps, MIN_REMINDER_INTERVAL_MINUTES, MIN_AUTO_CLOSE_INTERVAL_MINUTES } from '../entities/signature-flow.entity';
 import { SignatureFlowParticipant, SignatureFlowParticipantProps } from '../entities/signature-flow-participant.entity';
 import { type SignatureFlowRepository } from '../repositories/signature-flow.repository';
 import { type SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
@@ -31,6 +31,8 @@ const ALLOWED_START_STATUSES = [
   DocumentStatus.APPROVED,
   DocumentStatus.REJECTED_FOR_SIGN,
 ];
+
+const AUTO_CLOSE_BUFFER_BEFORE_EXPIRATION_DAYS = 10;
 
 export interface CreateSignatureFlowInput {
   documentId: string;
@@ -81,6 +83,13 @@ export class CreateSignatureFlowUseCase {
       throw new ValidationError('El tiempo del recordatorio debe ser de al menos 1 día');
     }
 
+    if (
+      input.autoCloseIntervalMinutes !== undefined
+      && input.autoCloseIntervalMinutes < MIN_AUTO_CLOSE_INTERVAL_MINUTES
+    ) {
+      throw new ValidationError('El tiempo de cierre automático debe ser de al menos 1 día');
+    }
+
     const document = await this.documentRepository.findById(input.documentId);
     if (!document) {
       throw new NotFoundError('Documento no encontrado');
@@ -104,6 +113,7 @@ export class CreateSignatureFlowUseCase {
 
     const now = new Date();
     const hasValidators = resolvedParticipants.some((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
+    const expirationLimits = this.applyExpirationLimits(input, document, now);
 
     const flowProps: SignatureFlowProps = {
       documentId: input.documentId,
@@ -112,10 +122,10 @@ export class CreateSignatureFlowUseCase {
       status: hasValidators ? SignatureFlowStatus.IN_REVIEW : SignatureFlowStatus.IN_SIGNING,
       sentAt: now,
       sentBy: input.sentBy ?? null,
-      reminderEnabled: input.reminderEnabled,
+      reminderEnabled: expirationLimits.reminderEnabled ?? input.reminderEnabled,
       reminderIntervalMinutes: input.reminderIntervalMinutes,
       autoCloseEnabled: input.autoCloseEnabled,
-      autoCloseIntervalMinutes: input.autoCloseIntervalMinutes,
+      autoCloseIntervalMinutes: expirationLimits.autoCloseIntervalMinutes ?? input.autoCloseIntervalMinutes,
     };
 
     const flow = await this.signatureFlowRepository.save(SignatureFlow.create(flowProps));
@@ -266,6 +276,43 @@ export class CreateSignatureFlowUseCase {
 
   private reminderConfigFor(flow: SignatureFlow): ReminderConfig {
     return { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
+  }
+
+  /**
+   * Si el documento tiene fecha de vencimiento: un recordatorio que se dispararía después de esa
+   * fecha se desactiva, y un cierre automático que caería en o después de esa fecha se reprograma
+   * para unos días antes en su lugar. Mismo criterio que ya aplica el diálogo del frontend — esto
+   * cubre a quien llame la API directamente sin pasar por ahí.
+   */
+  private applyExpirationLimits(
+    input: CreateSignatureFlowInput,
+    document: Document,
+    now: Date,
+  ): { reminderEnabled?: boolean; autoCloseIntervalMinutes?: number } {
+    const result: { reminderEnabled?: boolean; autoCloseIntervalMinutes?: number } = {};
+    const expirationDate = document.expirationDate;
+    if (!expirationDate) return result;
+
+    if (input.reminderEnabled && input.reminderIntervalMinutes !== undefined) {
+      const firesAt = new Date(now.getTime() + input.reminderIntervalMinutes * 60 * 1000);
+      if (firesAt > expirationDate) {
+        result.reminderEnabled = false;
+      }
+    }
+
+    if (input.autoCloseEnabled && input.autoCloseIntervalMinutes !== undefined) {
+      const firesAt = new Date(now.getTime() + input.autoCloseIntervalMinutes * 60 * 1000);
+      if (firesAt >= expirationDate) {
+        const bufferMs = AUTO_CLOSE_BUFFER_BEFORE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000;
+        const targetTime = expirationDate.getTime() - bufferMs;
+        result.autoCloseIntervalMinutes = Math.max(
+          MIN_AUTO_CLOSE_INTERVAL_MINUTES,
+          Math.round((targetTime - now.getTime()) / (60 * 1000)),
+        );
+      }
+    }
+
+    return result;
   }
 
   private async resolveColaboratorParticipants(

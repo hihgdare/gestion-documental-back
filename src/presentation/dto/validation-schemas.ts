@@ -454,7 +454,7 @@ export const createSignatureFlowSchema = Joi.object({
   reminderEnabled: Joi.boolean().optional(),
   reminderIntervalMinutes: Joi.number().integer().min(1440).optional(),
   autoCloseEnabled: Joi.boolean().optional(),
-  autoCloseIntervalMinutes: Joi.number().integer().min(1).optional(),
+  autoCloseIntervalMinutes: Joi.number().integer().min(1440).optional(),
 });
 
 export const updateSignatureFlowSchema = Joi.object({
