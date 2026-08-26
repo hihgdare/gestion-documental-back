@@ -227,6 +227,7 @@ export class SignatureFlowController {
             method: p.actionEvidence.method,
             ipAddress: p.actionEvidence.ipAddress,
             channel: p.actionEvidence.channel,
+            failedAttempts: p.actionEvidence.failedAttempts,
           } : null,
           notifications: p.notifications.map((n) => ({
             id: n.id,

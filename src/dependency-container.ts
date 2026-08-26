@@ -1297,6 +1297,7 @@ export class DependencyContainer {
       this.userRepository,
       this.emailQueueService,
       this.signatureCodeNotificationRepository,
+      this.signatureVerificationCodeRepository,
     );
     this.skipSignerUseCase = new SkipSignerUseCase(
       this.signatureFlowRepository,

@@ -10,6 +10,7 @@ import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus } from '..
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { Signature } from '@domains/signature/entities/signature.entity';
 import { SignatureRepository } from '@domains/signature/repositories/signature.repository';
+import { type SignatureVerificationCodeRepository } from '@domains/signature/repositories/signature-verification-code.repository';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
 import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
 import { getCurrentlyEnabledParticipants, computeEnabledSince } from '../services/signature-flow-step.util';
@@ -22,6 +23,8 @@ export interface SignatureFlowTrackingActionEvidence {
   ipAddress: string | null;
   /** 'internal' = usuario con cuenta autenticado en la plataforma; 'external' = enlace de acceso externo. */
   channel: 'internal' | 'external';
+  /** Intentos con código incorrecto antes del que finalmente verificó — null si no aplica (p. ej. validadores). */
+  failedAttempts: number | null;
 }
 
 export interface SignatureFlowTrackingNotificationEmail {
@@ -87,6 +90,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
     private readonly userRepository: UserRepository,
     private readonly emailQueueService: EmailQueueService,
     private readonly codeNotificationRepository: SignatureCodeNotificationRepository,
+    private readonly signatureVerificationCodeRepository: SignatureVerificationCodeRepository,
   ) {}
 
   async execute(documentId: string): Promise<SignatureFlowTrackingItem[]> {
@@ -170,18 +174,34 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
 
     if (!isSigner) {
       // Los revisores/validadores no pasan por verificación con código: solo queda registrada la acción y desde dónde.
-      return { verifiedByCode: false, method: null, ipAddress: null, channel };
+      return { verifiedByCode: false, method: null, ipAddress: null, channel, failedAttempts: null };
     }
 
     if (participant.userId) {
       const signature = documentSignatures.find((s) => s.userId === participant.userId && s.signedAt);
-      if (!signature) return { verifiedByCode: false, method: null, ipAddress: null, channel };
-      return { verifiedByCode: true, method: signature.signatureMethod, ipAddress: signature.ipAddress, channel };
+      if (!signature) return { verifiedByCode: false, method: null, ipAddress: null, channel, failedAttempts: null };
+
+      const codes = await this.signatureVerificationCodeRepository.findBySignatureId(signature.id);
+      const usedCode = codes.find((c) => c.usedAt !== null);
+
+      return {
+        verifiedByCode: true,
+        method: signature.signatureMethod,
+        ipAddress: signature.ipAddress,
+        channel,
+        failedAttempts: usedCode?.attempts ?? null,
+      };
     }
 
     const externalToken = await this.externalTokenRepository.findByParticipantId(participant.id);
-    if (!externalToken?.usedAt) return { verifiedByCode: false, method: null, ipAddress: null, channel };
-    return { verifiedByCode: true, method: externalToken.otpMethod, ipAddress: externalToken.ipAddress, channel };
+    if (!externalToken?.usedAt) return { verifiedByCode: false, method: null, ipAddress: null, channel, failedAttempts: null };
+    return {
+      verifiedByCode: true,
+      method: externalToken.otpMethod,
+      ipAddress: externalToken.ipAddress,
+      channel,
+      failedAttempts: externalToken.otpAttempts,
+    };
   }
 
   /**
