@@ -20,6 +20,7 @@ export class EmailQueueProcessor {
 
   start(): void {
     const intervalMs = parseInt(process.env.EMAIL_QUEUE_INTERVAL_MS ?? '15000', 10);
+    void this.runCycle();
     this.intervalHandle = setInterval(() => { void this.runCycle(); }, intervalMs);
     console.log(`✅ Email queue processor started (interval: ${intervalMs}ms)`);
   }

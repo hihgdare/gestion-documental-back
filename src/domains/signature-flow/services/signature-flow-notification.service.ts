@@ -382,6 +382,42 @@ export class SignatureFlowNotificationService {
     await this.sendOrEnqueue({ to: participant.externalEmail, subject: title, text: message, html });
   }
 
+  /** Avisa a un validador que su rechazo se registró automáticamente porque no actuó dentro del plazo del cierre automático. */
+  async notifyValidatorAutoRejected(
+    participant: SignatureFlowParticipant,
+    documentId: string,
+    documentName: string,
+    comment: string,
+  ): Promise<void> {
+    const title = 'Documento rechazado automáticamente';
+    const message = `No completaste a tiempo la revisión del documento ${documentName}, por lo que se registró como rechazado. Motivo: ${comment}`;
+
+    if (participant.userId) {
+      await this.inAppNotificationRepository.save(new InAppNotification({
+        userId: participant.userId,
+        title,
+        message,
+        entityType: 'document',
+        entityId: documentId,
+      }));
+
+      const user = await this.userRepository.findById(participant.userId);
+      if (!user?.email) return;
+
+      const html = buildPrimactaNotificationEmail({ title, recipientName: user.firstName, message });
+      await this.sendOrEnqueue({ to: user.email.toString(), subject: title, text: message, html });
+      return;
+    }
+
+    if (!participant.externalEmail) return;
+    const html = buildPrimactaNotificationEmail({
+      title,
+      recipientName: participant.externalName ?? 'Participante',
+      message,
+    });
+    await this.sendOrEnqueue({ to: participant.externalEmail, subject: title, text: message, html });
+  }
+
   async notifyResponsibleOnClose(
     documentId: string,
     documentName: string,

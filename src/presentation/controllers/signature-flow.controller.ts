@@ -212,7 +212,7 @@ export class SignatureFlowController {
         sentAt: item.sentAt?.toISOString() ?? null,
         sentBy: item.sentBy,
         sentByName: item.sentByName,
-        nextAutoCloseAt: item.nextAutoCloseAt?.toISOString() ?? null,
+        nextAutoActionAt: item.nextAutoActionAt?.toISOString() ?? null,
         participants: item.participants.map((p) => ({
           participantId: p.participantId,
           name: p.name,

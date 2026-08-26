@@ -56,3 +56,51 @@ export function getCurrentlyEnabledParticipants(
     && isParticipantEnabledInCurrentStep(orderType, p, allParticipants)
   ));
 }
+
+/** Cuándo pasó a etapa de firma este flujo: apenas se aprobó el último validador, o el envío original si no tuvo validadores. */
+function computeSigningStageStartedAt(flow: SignatureFlow, allParticipants: SignatureFlowParticipant[]): Date | null {
+  const validators = allParticipants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
+  if (validators.length === 0) return flow.sentAt;
+
+  const approvedTimes = validators
+    .filter((p) => p.status === SignatureFlowParticipantStatus.APPROVED && p.actionAt)
+    .map((p) => (p.actionAt as Date).getTime());
+  if (approvedTimes.length === 0) return null;
+
+  return new Date(Math.max(...approvedTimes));
+}
+
+/**
+ * Desde cuándo un participante pendiente y habilitado está esperando actuar. En paralelo, es el
+ * inicio de la etapa (envío original para validadores, o el momento en que se aprobó el último
+ * validador para firmantes). En secuencial, es el momento en que el participante anterior en el
+ * orden actuó o fue saltado — el primero de la secuencia usa el mismo inicio de etapa que en
+ * paralelo. Se usa para medir el plazo individual del recordatorio automático / avance automático
+ * en flujos secuenciales, en vez de contar siempre desde el envío original del flujo.
+ */
+export function computeEnabledSince(
+  flow: SignatureFlow,
+  participant: SignatureFlowParticipant,
+  allParticipants: SignatureFlowParticipant[],
+): Date | null {
+  const stageStartedAt = participant.role === SignatureFlowParticipantRole.VALIDATOR
+    ? flow.sentAt
+    : computeSigningStageStartedAt(flow, allParticipants);
+
+  const orderType = orderTypeForRole(flow, participant.role);
+  if (orderType !== SignatureFlowOrderType.SEQUENTIAL || participant.order === null) {
+    return stageStartedAt;
+  }
+
+  const predecessors = allParticipants.filter((p) => (
+    p.role === participant.role && p.order !== null && (p.order as number) < (participant.order as number)
+  ));
+  if (predecessors.length === 0) return stageStartedAt;
+
+  const predecessorTimes = predecessors
+    .filter((p) => p.status !== SignatureFlowParticipantStatus.PENDING && p.actionAt)
+    .map((p) => (p.actionAt as Date).getTime());
+  if (predecessorTimes.length < predecessors.length) return null; // aún hay un predecesor pendiente
+
+  return new Date(Math.max(...predecessorTimes));
+}

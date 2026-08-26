@@ -406,3 +406,74 @@ export class ReopenSignatureFlowUseCase {
     }
   }
 }
+
+export interface AutoRejectValidatorInput {
+  flowId: string;
+  participantId: string;
+  comment: string;
+}
+
+/**
+ * Rechaza automáticamente al validador que no actuó dentro del plazo del cierre automático.
+ * A diferencia de saltar a un firmante, un validador sin actuar no puede tratarse como
+ * "aprobado implícitamente" — por eso el flujo se rechaza en vez de avanzar al siguiente
+ * validador o a los firmantes, sin importar si otros validadores ya habían aprobado.
+ */
+export class AutoRejectValidatorUseCase {
+  constructor(
+    private readonly flowRepository: SignatureFlowRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly documentRepository: DocumentRepository,
+    private readonly documentHistoryRepository: DocumentHistoryRepository,
+    private readonly notificationService: SignatureFlowNotificationService,
+    private readonly processFlowParticipantActionUseCase: ProcessFlowParticipantActionUseCase,
+  ) {}
+
+  async execute(input: AutoRejectValidatorInput): Promise<void> {
+    const flow = await this.flowRepository.findById(input.flowId);
+    if (!flow || flow.status !== SignatureFlowStatus.IN_REVIEW) return;
+
+    const participant = await this.participantRepository.findById(input.participantId);
+    if (!participant || participant.role !== SignatureFlowParticipantRole.VALIDATOR) return;
+    if (participant.status !== SignatureFlowParticipantStatus.PENDING) return;
+
+    const document = await this.documentRepository.findById(flow.documentId);
+    if (!document) return;
+
+    participant.status = SignatureFlowParticipantStatus.REJECTED;
+    participant.rejectionComment = input.comment;
+    participant.actionAt = new Date();
+    await this.participantRepository.update(participant);
+
+    await this.documentHistoryRepository.save({
+      documentId: document.id,
+      documentModelId: document.documentModelId,
+      name: document.name,
+      issuedDate: document.issuedDate ?? undefined,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description,
+      documentUrl: document.documentUrl,
+      status: document.status,
+      action: DocumentAction.FLOW_PARTICIPANT_REJECTED,
+      updatedByName: 'Sistema',
+      comment: input.comment,
+      flowParticipantId: participant.id,
+      actionComment: input.comment,
+    });
+
+    try {
+      await this.notificationService.notifyValidatorAutoRejected(participant, document.id, document.name, input.comment);
+    } catch (err) {
+      await recordNotificationFailure(
+        this.documentHistoryRepository,
+        document,
+        null,
+        `aviso de rechazo automático a ${participant.externalEmail || participant.userId || participant.id}`,
+        err,
+      );
+    }
+
+    await this.processFlowParticipantActionUseCase.reconcileFlow(flow.id);
+  }
+}

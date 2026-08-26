@@ -35,6 +35,10 @@ export interface SignatureFlowRepository {
   findActiveByDocumentId(documentId: string): Promise<SignatureFlow | null>;
   findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]>;
   findDueForAutoClose(now: Date): Promise<SignatureFlow[]>;
+  /** Flujos en revisión con cierre automático habilitado — el vencimiento se evalúa participante por participante (orden secuencial), así que no se filtra por fecha en la consulta. */
+  findInReviewWithAutoCloseEnabled(): Promise<SignatureFlow[]>;
+  /** Flujos en firma secuencial con cierre automático habilitado — mismo motivo que el anterior. */
+  findSequentialSigningWithAutoCloseEnabled(): Promise<SignatureFlow[]>;
   findInSigningWithExpiredDocuments(now: Date): Promise<SignatureFlow[]>;
   findPendingDocumentsReport(groupId?: number): Promise<PendingSignatureDocumentsReportItem[]>;
   findSigningTimeReport(groupId?: number): Promise<SignatureProcessTimeReportItem[]>;

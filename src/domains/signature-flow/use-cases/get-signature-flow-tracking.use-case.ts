@@ -4,13 +4,15 @@ import { type SignatureFlowNotificationRepository } from '../repositories/signat
 import { type ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
 import { type SignatureCodeNotificationRepository } from '../repositories/signature-code-notification.repository';
 import { SignatureCodeNotification } from '../entities/signature-code-notification.entity';
+import { SignatureFlow } from '../entities/signature-flow.entity';
 import { SignatureFlowParticipant } from '../entities/signature-flow-participant.entity';
-import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus, SignatureFlowStatus } from '../value-objects/signature-flow-enums';
+import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus } from '../value-objects/signature-flow-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { Signature } from '@domains/signature/entities/signature.entity';
 import { SignatureRepository } from '@domains/signature/repositories/signature.repository';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
 import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { getCurrentlyEnabledParticipants, computeEnabledSince } from '../services/signature-flow-step.util';
 
 export interface SignatureFlowTrackingActionEvidence {
   /** true si la acción quedó verificada con código de un solo uso (solo aplica a firmantes). */
@@ -66,8 +68,12 @@ export interface SignatureFlowTrackingItem {
   sentBy: string | null;
   sentByName: string | null;
   participants: SignatureFlowTrackingParticipant[];
-  /** Cuándo se cerrará automáticamente el flujo si nadie completa la firma antes, si el cierre automático está habilitado. */
-  nextAutoCloseAt: Date | null;
+  /**
+   * Cuándo ocurrirá la próxima acción automática si nadie actúa antes, si el cierre automático
+   * está habilitado: rechazo del validador actual (en revisión), o salto/cierre del firmante
+   * actual (en firma) — la misma cuenta que usa el processor, participante por participante.
+   */
+  nextAutoActionAt: Date | null;
 }
 
 /** Historial completo del proceso de firma de un documento: uno o más flujos, con notificaciones y evidencia por firmante/revisor. */
@@ -132,7 +138,7 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
         sentBy: flow.sentBy,
         sentByName,
         participants: trackingParticipants,
-        nextAutoCloseAt: this.computeNextAutoCloseAt(flow),
+        nextAutoActionAt: this.computeNextAutoActionAt(flow, participants),
       });
     }
 
@@ -267,10 +273,22 @@ export class GetSignatureFlowTrackingByDocumentUseCase {
     return result;
   }
 
-  /** Cuándo se cerraría automáticamente el flujo si nadie firma antes — misma cuenta que usa el processor. */
-  private computeNextAutoCloseAt(flow: { status: string; autoCloseEnabled: boolean; sentAt: Date | null; autoCloseIntervalMinutes: number }): Date | null {
-    if (flow.status !== SignatureFlowStatus.IN_SIGNING || !flow.autoCloseEnabled || !flow.sentAt) return null;
-    return new Date(flow.sentAt.getTime() + flow.autoCloseIntervalMinutes * 60 * 1000);
+  /**
+   * Reusa exactamente el mismo cálculo que SignatureFlowAutoCloseProcessor para decidir cuándo
+   * actúa: el participante actualmente habilitado (validador o firmante, según la etapa) más el
+   * intervalo configurado. Sin esto el dato mostrado podía quedar desincronizado del mecanismo
+   * real (p. ej. en firma secuencial, donde el plazo es por firmante y no uno solo para todo el flujo).
+   */
+  private computeNextAutoActionAt(flow: SignatureFlow, participants: SignatureFlowParticipant[]): Date | null {
+    if (!flow.autoCloseEnabled) return null;
+
+    const currentlyEnabled = getCurrentlyEnabledParticipants(flow, participants);
+    if (currentlyEnabled.length === 0) return null;
+
+    const enabledSince = computeEnabledSince(flow, currentlyEnabled[0], participants);
+    if (!enabledSince) return null;
+
+    return new Date(enabledSince.getTime() + flow.autoCloseIntervalMinutes * 60 * 1000);
   }
 
   /** Fecha del próximo recordatorio automático agendado (aún no enviado) por participante pendiente. */

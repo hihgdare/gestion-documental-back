@@ -57,14 +57,35 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
   async findDueForAutoClose(now: Date): Promise<SignatureFlow[]> {
     // El vencimiento se calcula en SQL (en vez de traer todos los flujos con auto-cierre
     // habilitado y filtrar en memoria) para no barrer flujos que todavía no vencen en cada ciclo.
+    // Solo firma en paralelo: en secuencial el plazo se evalúa por participante (ver
+    // findSequentialSigningWithAutoCloseEnabled), no con un único vencimiento para todo el flujo.
     const entities = await this.repository
       .createQueryBuilder('flow')
       .where('flow.status = :status', { status: SignatureFlowStatus.IN_SIGNING })
       .andWhere('flow.auto_close_enabled = true')
+      .andWhere('flow.signer_order_type = :parallel', { parallel: SignatureFlowOrderType.PARALLEL })
       .andWhere('flow.sent_at IS NOT NULL')
       .andWhere('DATE_ADD(flow.sent_at, INTERVAL flow.auto_close_interval_minutes MINUTE) <= :now', { now })
       .getMany();
 
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findInReviewWithAutoCloseEnabled(): Promise<SignatureFlow[]> {
+    const entities = await this.repository.find({
+      where: { status: SignatureFlowStatus.IN_REVIEW, autoCloseEnabled: true },
+    });
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findSequentialSigningWithAutoCloseEnabled(): Promise<SignatureFlow[]> {
+    const entities = await this.repository.find({
+      where: {
+        status: SignatureFlowStatus.IN_SIGNING,
+        autoCloseEnabled: true,
+        signerOrderType: SignatureFlowOrderType.SEQUENTIAL,
+      },
+    });
     return entities.map((e) => this.toDomain(e));
   }
 

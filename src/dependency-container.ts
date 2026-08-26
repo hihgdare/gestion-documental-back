@@ -252,7 +252,7 @@ import { SignatureFlowNotificationService } from '@domains/signature-flow/servic
 import { CreateSignatureFlowUseCase } from '@domains/signature-flow/use-cases/create-signature-flow.use-case';
 import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
 import { GetSignatureFlowTrackingByDocumentUseCase } from '@domains/signature-flow/use-cases/get-signature-flow-tracking.use-case';
-import { SkipSignerUseCase, CloseSignatureFlowUseCase, ReopenSignatureFlowUseCase } from '@domains/signature-flow/use-cases/close-signature-flow.use-case';
+import { SkipSignerUseCase, CloseSignatureFlowUseCase, ReopenSignatureFlowUseCase, AutoRejectValidatorUseCase } from '@domains/signature-flow/use-cases/close-signature-flow.use-case';
 import {
   GetExternalParticipantAccessUseCase,
   SubmitExternalParticipantActionUseCase,
@@ -582,6 +582,7 @@ export class DependencyContainer {
   private skipSignerUseCase!: SkipSignerUseCase;
   private closeSignatureFlowUseCase!: CloseSignatureFlowUseCase;
   private reopenSignatureFlowUseCase!: ReopenSignatureFlowUseCase;
+  private autoRejectValidatorUseCase!: AutoRejectValidatorUseCase;
 
   // Use Cases - FileShare
   private createFileShareUseCase!: CreateFileShareUseCase;
@@ -1319,6 +1320,14 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.signatureFlowNotificationService,
     );
+    this.autoRejectValidatorUseCase = new AutoRejectValidatorUseCase(
+      this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.signatureFlowNotificationService,
+      this.processFlowParticipantActionUseCase,
+    );
     // External participant access
     const getExternalAccessUseCase = new GetExternalParticipantAccessUseCase(
       this.externalParticipantTokenRepository,
@@ -1389,7 +1398,10 @@ export class DependencyContainer {
 
     this.signatureFlowAutoCloseProcessor = new SignatureFlowAutoCloseProcessor(
       this.signatureFlowRepository,
+      this.signatureFlowParticipantRepository,
       this.closeSignatureFlowUseCase,
+      this.skipSignerUseCase,
+      this.autoRejectValidatorUseCase,
     );
   }
 

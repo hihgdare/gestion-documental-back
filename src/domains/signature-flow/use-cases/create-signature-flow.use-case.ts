@@ -1,4 +1,4 @@
-import { SignatureFlow, SignatureFlowProps } from '../entities/signature-flow.entity';
+import { SignatureFlow, SignatureFlowProps, MIN_REMINDER_INTERVAL_MINUTES } from '../entities/signature-flow.entity';
 import { SignatureFlowParticipant, SignatureFlowParticipantProps } from '../entities/signature-flow-participant.entity';
 import { type SignatureFlowRepository } from '../repositories/signature-flow.repository';
 import { type SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
@@ -72,6 +72,13 @@ export class CreateSignatureFlowUseCase {
       if (!p.userId && !p.externalEmail && !p.colaboratorId) {
         throw new ValidationError('Cada participante debe tener un usuario, un colaborador o un correo externo asignado');
       }
+    }
+
+    if (
+      input.reminderIntervalMinutes !== undefined
+      && input.reminderIntervalMinutes < MIN_REMINDER_INTERVAL_MINUTES
+    ) {
+      throw new ValidationError('El tiempo del recordatorio debe ser de al menos 1 día');
     }
 
     const document = await this.documentRepository.findById(input.documentId);

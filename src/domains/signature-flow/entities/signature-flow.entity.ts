@@ -12,6 +12,9 @@ export const DEFAULT_REMINDER_INTERVAL_MINUTES = 1440;
 /** 43200 minutos = 30 días. */
 export const DEFAULT_AUTO_CLOSE_INTERVAL_MINUTES = 43200;
 
+/** Mínimo permitido para el recordatorio automático: 1 día. */
+export const MIN_REMINDER_INTERVAL_MINUTES = 1440;
+
 /** Mínimo permitido para el cierre automático: 1 día. */
 export const MIN_AUTO_CLOSE_INTERVAL_MINUTES = 1440;
 
@@ -72,17 +75,6 @@ export class SignatureFlow {
   private static validateRequired(props: SignatureFlowProps): void {
     if (!props.documentId || props.documentId.trim().length === 0) {
       throw new ValidationError('El ID del documento es requerido');
-    }
-    // TODO: no permitir recordatorio automatico en menos de 1 dia (DEFAULT_REMINDER_INTERVAL_MINUTES).
-    // Por ahora se permite cualquier valor >= 1 para poder probar con minutos/horas.
-    if (props.reminderIntervalMinutes !== undefined && props.reminderIntervalMinutes < 1) {
-      throw new ValidationError('El tiempo del recordatorio debe ser de al menos 1 minuto');
-    }
-    if (
-      props.autoCloseIntervalMinutes !== undefined
-      && props.autoCloseIntervalMinutes < MIN_AUTO_CLOSE_INTERVAL_MINUTES
-    ) {
-      throw new ValidationError('El tiempo de cierre automático debe ser de al menos 1 día');
     }
   }
 }
