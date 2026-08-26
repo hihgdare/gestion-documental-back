@@ -6,6 +6,18 @@ import {
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
 
+/** 1440 minutos = 1 día. */
+export const DEFAULT_REMINDER_INTERVAL_MINUTES = 1440;
+
+/** 43200 minutos = 30 días. */
+export const DEFAULT_AUTO_CLOSE_INTERVAL_MINUTES = 43200;
+
+/** Mínimo permitido para el recordatorio automático: 1 día. */
+export const MIN_REMINDER_INTERVAL_MINUTES = 1440;
+
+/** Mínimo permitido para el cierre automático: 1 día. */
+export const MIN_AUTO_CLOSE_INTERVAL_MINUTES = 1440;
+
 export interface SignatureFlowProps {
   id?: string;
   documentId: string;
@@ -14,6 +26,10 @@ export interface SignatureFlowProps {
   status?: string;
   sentAt?: Date | null;
   sentBy?: string | null;
+  reminderEnabled?: boolean;
+  reminderIntervalMinutes?: number;
+  autoCloseEnabled?: boolean;
+  autoCloseIntervalMinutes?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -26,6 +42,10 @@ export class SignatureFlow {
   status: SignatureFlowStatus;
   sentAt: Date | null;
   sentBy: string | null;
+  reminderEnabled: boolean;
+  reminderIntervalMinutes: number;
+  autoCloseEnabled: boolean;
+  autoCloseIntervalMinutes: number;
   createdAt: Date;
   updatedAt: Date;
 
@@ -39,6 +59,10 @@ export class SignatureFlow {
       status: (v?: string) => parseEnum(v, SignatureFlowStatus) ?? SignatureFlowStatus.DRAFT,
       sentAt: 'datetimeNullable',
       sentBy: (v?: string | null) => v ?? null,
+      reminderEnabled: (v?: boolean) => v ?? false,
+      reminderIntervalMinutes: (v?: number) => v ?? DEFAULT_REMINDER_INTERVAL_MINUTES,
+      autoCloseEnabled: (v?: boolean) => v ?? false,
+      autoCloseIntervalMinutes: (v?: number) => v ?? DEFAULT_AUTO_CLOSE_INTERVAL_MINUTES,
       createdAt: 'datetime',
       updatedAt: 'datetime',
     });

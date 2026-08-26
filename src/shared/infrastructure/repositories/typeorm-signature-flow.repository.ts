@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   PendingSignatureDocumentsReportItem,
   SignatureProcessTimeReportItem,
@@ -42,6 +42,83 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
     if (!entity) return null;
     if (entity.status === SignatureFlowStatus.SIGNED || entity.status === SignatureFlowStatus.REJECTED) return null;
     return this.toDomain(entity);
+  }
+
+  async findByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]> {
+    if (documentIds.length === 0) return [];
+
+    const entities = await this.repository.find({
+      where: { documentId: In(documentIds) },
+      order: { createdAt: 'DESC' },
+    });
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findDueForAutoClose(now: Date): Promise<SignatureFlow[]> {
+    // El vencimiento se calcula en SQL (en vez de traer todos los flujos con auto-cierre
+    // habilitado y filtrar en memoria) para no barrer flujos que todavía no vencen en cada ciclo.
+    // Solo firma en paralelo: en secuencial el plazo se evalúa por participante (ver
+    // findSequentialSigningWithAutoCloseEnabled), no con un único vencimiento para todo el flujo.
+    const entities = await this.repository
+      .createQueryBuilder('flow')
+      .where('flow.status = :status', { status: SignatureFlowStatus.IN_SIGNING })
+      .andWhere('flow.auto_close_enabled = true')
+      .andWhere('flow.signer_order_type = :parallel', { parallel: SignatureFlowOrderType.PARALLEL })
+      .andWhere('flow.sent_at IS NOT NULL')
+      .andWhere('DATE_ADD(flow.sent_at, INTERVAL flow.auto_close_interval_minutes MINUTE) <= :now', { now })
+      .getMany();
+
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findInReviewWithAutoCloseEnabled(): Promise<SignatureFlow[]> {
+    const entities = await this.repository.find({
+      where: { status: SignatureFlowStatus.IN_REVIEW, autoCloseEnabled: true },
+    });
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findSequentialSigningWithAutoCloseEnabled(): Promise<SignatureFlow[]> {
+    const entities = await this.repository.find({
+      where: {
+        status: SignatureFlowStatus.IN_SIGNING,
+        autoCloseEnabled: true,
+        signerOrderType: SignatureFlowOrderType.SEQUENTIAL,
+      },
+    });
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findInSigningWithExpiredDocuments(now: Date): Promise<SignatureFlow[]> {
+    const entities = await this.repository
+      .createQueryBuilder('flow')
+      .innerJoin('documents', 'document', 'document.id = flow.document_id')
+      .where('flow.status = :status', { status: SignatureFlowStatus.IN_SIGNING })
+      .andWhere('document.expiration_date IS NOT NULL')
+      .andWhere('document.expiration_date < :now', { now })
+      .getMany();
+
+    return entities.map((e) => this.toDomain(e));
+  }
+
+  async findActiveByDocumentIds(documentIds: string[]): Promise<SignatureFlow[]> {
+    if (documentIds.length === 0) return [];
+
+    const entities = await this.repository.find({
+      where: {
+        documentId: In(documentIds),
+        status: In([SignatureFlowStatus.IN_REVIEW, SignatureFlowStatus.IN_SIGNING]),
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    // Si por algún motivo hubiera más de un flujo activo por documento, nos quedamos con el más reciente.
+    const latestByDocumentId = new Map<string, SignatureFlowEntity>();
+    for (const entity of entities) {
+      if (!latestByDocumentId.has(entity.documentId)) latestByDocumentId.set(entity.documentId, entity);
+    }
+
+    return Array.from(latestByDocumentId.values()).map((e) => this.toDomain(e));
   }
 
   async findPendingDocumentsReport(groupId?: number): Promise<PendingSignatureDocumentsReportItem[]> {
@@ -110,7 +187,9 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
         'document_subtype.name as documentSubtypeName',
         'contract.contract_number as contractNumber',
         'flow.sent_at as sentAt',
+        'flow.sent_by as sentBy',
         `TRIM(CONCAT_WS(' ', sender.first_name, sender.last_name)) as sentByName`,
+        'participant.id as holderParticipantId',
         `TRIM(CONCAT_WS(' ', holder_user.first_name, holder_user.last_name)) as holderUserName`,
         'participant.external_name as holderExternalName',
         'participant.external_email as holderExternalEmail',
@@ -130,7 +209,9 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       documentSubtypeName: string | null;
       contractNumber: string | null;
       sentAt: Date | null;
+      sentBy: string | null;
       sentByName: string | null;
+      holderParticipantId: string | null;
       holderUserName: string | null;
       holderExternalName: string | null;
       holderExternalEmail: string | null;
@@ -139,10 +220,13 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
     const grouped = new Map<string, PendingSignatureDocumentsReportItem>();
     for (const row of rows) {
       const key = `${row.flowId}:${row.documentId}`;
-      const holder = row.holderUserName?.trim()
+      const holderName = row.holderUserName?.trim()
         || row.holderExternalName?.trim()
         || row.holderExternalEmail?.trim()
         || null;
+      const holder = row.holderParticipantId && holderName
+        ? { participantId: row.holderParticipantId, name: holderName }
+        : null;
 
       const current = grouped.get(key);
       if (!current) {
@@ -155,13 +239,14 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
           documentSubtypeName: row.documentSubtypeName,
           contractNumber: row.contractNumber,
           sentAt: row.sentAt ? new Date(row.sentAt) : null,
+          sentBy: row.sentBy || null,
           sentByName: row.sentByName?.trim() || null,
           currentHolders: holder ? [holder] : [],
         });
         continue;
       }
 
-      if (holder && !current.currentHolders.includes(holder)) {
+      if (holder && !current.currentHolders.some((h) => h.participantId === holder.participantId)) {
         current.currentHolders.push(holder);
       }
     }
@@ -256,6 +341,10 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       status: entity.status,
       sentAt: entity.sentAt ?? null,
       sentBy: entity.sentBy ?? null,
+      reminderEnabled: entity.reminderEnabled,
+      reminderIntervalMinutes: entity.reminderIntervalMinutes,
+      autoCloseEnabled: entity.autoCloseEnabled,
+      autoCloseIntervalMinutes: entity.autoCloseIntervalMinutes,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -271,6 +360,10 @@ export class TypeOrmSignatureFlowRepository implements SignatureFlowRepository {
       status: flow.status,
       sentAt: flow.sentAt ?? undefined,
       sentBy: flow.sentBy ?? undefined,
+      reminderEnabled: flow.reminderEnabled,
+      reminderIntervalMinutes: flow.reminderIntervalMinutes,
+      autoCloseEnabled: flow.autoCloseEnabled,
+      autoCloseIntervalMinutes: flow.autoCloseIntervalMinutes,
     };
   }
 }

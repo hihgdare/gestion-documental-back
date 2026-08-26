@@ -63,6 +63,7 @@ export class App {
     // Start email queue background processor
     if (process.env.NODE_ENV !== 'test') {
       this.dependencyContainer.getEmailQueueProcessor().start();
+      this.dependencyContainer.getSignatureFlowAutoCloseProcessor().start();
     }
 
     // Setup middleware
@@ -258,6 +259,7 @@ export class App {
 
   public async close(): Promise<void> {
     this.dependencyContainer.getEmailQueueProcessor().stop();
+    this.dependencyContainer.getSignatureFlowAutoCloseProcessor().stop();
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();
     }

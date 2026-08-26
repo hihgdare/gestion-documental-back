@@ -6,6 +6,10 @@ import {
   updateSignatureFlowSchema,
   addSignatureFlowParticipantSchema,
   processSignatureFlowParticipantActionSchema,
+  resendSignatureFlowNotificationSchema,
+  skipSignerSchema,
+  closeSignatureFlowSchema,
+  reopenSignatureFlowSchema,
 } from '../dto/validation-schemas';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
@@ -30,6 +34,8 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
 
   router.get('/document/:documentId', authorize('signature-flow:read'), controller.getByDocument);
 
+  router.get('/document/:documentId/tracking', authorize('signature-flow:read'), controller.getDocumentTracking);
+
   router.get('/:id', authorize('signature-flow:read'), controller.getById);
 
   router.get('/:id/participants', authorize('signature-flow:read'), controller.getParticipants);
@@ -49,6 +55,36 @@ export const createSignatureFlowRoutes = (controller: SignatureFlowController): 
   );
 
   router.delete('/:id/participants/:participantId', authorize('signature-flow:update'), controller.removeParticipant);
+
+  router.get('/:id/resend-candidates', authorize('signature-flow:update'), controller.getResendCandidates);
+
+  router.post(
+    '/:id/resend-notifications',
+    authorize('signature-flow:update'),
+    validateRequest(resendSignatureFlowNotificationSchema, true),
+    controller.resendNotifications,
+  );
+
+  router.post(
+    '/:id/skip-signer',
+    authorize('signature-flow:update'),
+    validateRequest(skipSignerSchema, true),
+    controller.skipSigner,
+  );
+
+  router.post(
+    '/:id/close',
+    authorize('signature-flow:update'),
+    validateRequest(closeSignatureFlowSchema, true),
+    controller.closeSignatureFlow,
+  );
+
+  router.post(
+    '/:id/reopen',
+    authorize('signature-flow:reopen'),
+    validateRequest(reopenSignatureFlowSchema, true),
+    controller.reopenSignatureFlow,
+  );
 
   router.post(
     '/participants/:participantId/action',

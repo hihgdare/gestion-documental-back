@@ -1,7 +1,7 @@
 import { EmailQueueService } from './email-queue.service';
 import { EmailService } from './email-service.interface';
 import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
-import { SignatureFlowStatus } from '@domains/signature-flow/value-objects/signature-flow-enums';
+import { SignatureFlowStatus, REMINDER_GROUP_KEY_PREFIX } from '@domains/signature-flow/value-objects/signature-flow-enums';
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentStatus, DocumentAction } from '@domains/document/value-objects/document-enums';
@@ -20,6 +20,7 @@ export class EmailQueueProcessor {
 
   start(): void {
     const intervalMs = parseInt(process.env.EMAIL_QUEUE_INTERVAL_MS ?? '15000', 10);
+    void this.runCycle();
     this.intervalHandle = setInterval(() => { void this.runCycle(); }, intervalMs);
     console.log(`✅ Email queue processor started (interval: ${intervalMs}ms)`);
   }
@@ -87,7 +88,9 @@ export class EmailQueueProcessor {
   }
 
   async checkBatchCompletion(correlationId: string): Promise<void> {
-    const unfinished = await this.queueService.countUnfinished(correlationId);
+    // Excluye recordatorios: quedan agendados con fecha futura (a veces días) y no son parte
+    // del batch inicial — si se contaran, el documento nunca saldría de "pending_notification".
+    const unfinished = await this.queueService.countUnfinishedExcludingGroupKeyPrefix(correlationId, REMINDER_GROUP_KEY_PREFIX);
     if (unfinished > 0) return;
 
     const flow = await this.signatureFlowRepository.findById(correlationId);

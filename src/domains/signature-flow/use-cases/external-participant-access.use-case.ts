@@ -9,6 +9,8 @@ import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus, Signature
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { buildPrimactaNotificationEmail } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { redactSecret } from '@shared/utils/redact';
+import { SignatureCodeNotificationRepository } from '../repositories/signature-code-notification.repository';
 import { ProcessFlowParticipantActionUseCase } from './progress-signature-flow.use-case';
 
 const EXTERNAL_TOKEN_EXPIRY_HOURS = parseInt(process.env.EXTERNAL_PARTICIPANT_TOKEN_EXPIRY_HOURS ?? '168', 10);
@@ -141,6 +143,7 @@ export class RequestExternalSignerOtpUseCase {
     private readonly flowRepository: SignatureFlowRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly emailService: EmailService,
+    private readonly signatureCodeNotificationRepository?: SignatureCodeNotificationRepository,
   ) {}
 
   async execute(token: string, method: 'email' | 'sms' = 'email', phoneNumber?: string): Promise<{ redactedEmail: string; redactedPhone?: string }> {
@@ -173,6 +176,7 @@ export class RequestExternalSignerOtpUseCase {
     tokenRecord.otpHash = otpHash;
     tokenRecord.otpExpiresAt = otpExpiresAt;
     tokenRecord.otpAttempts = 0;
+    tokenRecord.otpMethod = method;
     await this.tokenRepository.update(tokenRecord);
 
     const [user, domain] = externalEmail.split('@');
@@ -183,7 +187,15 @@ export class RequestExternalSignerOtpUseCase {
         throw new ValidationError('Debe proporcionar un número de teléfono para recibir el código por SMS.');
       }
       const phone = phoneNumber.trim();
-      await this.sendSmsCode(phone, otpCode);
+      const smsBody = `Tu código de firma electrónica es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
+      await this.sendSmsCode(phone, smsBody);
+      await this.logCodeNotification({
+        participantId: participant.id,
+        channel: 'sms',
+        recipient: phone,
+        textContent: smsBody,
+        otpCode,
+      });
       const redactedPhone = phone.length > 4
         ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
         : '****';
@@ -200,18 +212,60 @@ export class RequestExternalSignerOtpUseCase {
       code: otpCode,
       warningMessage,
     });
+    const text = `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
 
     await this.emailService.send({
       to: externalEmail,
       subject: title,
-      text: `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+      text,
       html,
+    });
+
+    await this.logCodeNotification({
+      participantId: participant.id,
+      channel: 'email',
+      recipient: externalEmail,
+      subject: title,
+      htmlContent: html,
+      textContent: text,
+      otpCode,
     });
 
     return { redactedEmail };
   }
 
-  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<void> {
+  /**
+   * Registra el envío para trazabilidad, censurando el código real antes de guardarlo:
+   * el texto plano del código nunca toca la base de datos, solo llega a la bandeja/teléfono
+   * del firmante. Si falla, no interrumpe el proceso de firma (no crítico).
+   */
+  private async logCodeNotification(params: {
+    participantId: string;
+    channel: 'email' | 'sms';
+    recipient: string;
+    subject?: string;
+    htmlContent?: string;
+    textContent?: string;
+    otpCode: string;
+  }): Promise<void> {
+    if (!this.signatureCodeNotificationRepository) return;
+
+    try {
+      await this.signatureCodeNotificationRepository.create({
+        participantId: params.participantId,
+        channel: params.channel,
+        recipient: params.recipient,
+        subject: params.subject ?? null,
+        htmlContent: redactSecret(params.htmlContent ?? null, params.otpCode),
+        textContent: redactSecret(params.textContent ?? null, params.otpCode),
+        sentAt: new Date(),
+      });
+    } catch (err) {
+      console.warn('[RequestExternalSignerOtpUseCase] No se pudo registrar el log del código enviado (no crítico):', err);
+    }
+  }
+
+  private async sendSmsCode(phoneNumber: string, body: string): Promise<void> {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -229,7 +283,7 @@ export class RequestExternalSignerOtpUseCase {
       const twilioModule = await import('twilio');
       const client = twilioModule.default(accountSid, authToken);
       await client.messages.create({
-        body: `Tu código de firma electrónica es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+        body,
         from: fromNumber,
         to: phoneNumber,
       });

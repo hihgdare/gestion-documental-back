@@ -463,6 +463,10 @@ export const createSignatureFlowSchema = Joi.object({
   orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
   signerOrderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
   participants: Joi.array().items(signatureFlowParticipantSchema).min(1).required(),
+  reminderEnabled: Joi.boolean().optional(),
+  reminderIntervalMinutes: Joi.number().integer().min(1440).optional(),
+  autoCloseEnabled: Joi.boolean().optional(),
+  autoCloseIntervalMinutes: Joi.number().integer().min(1440).optional(),
 });
 
 export const updateSignatureFlowSchema = Joi.object({
@@ -482,6 +486,22 @@ export const addSignatureFlowParticipantSchema = Joi.object({
 export const processSignatureFlowParticipantActionSchema = Joi.object({
   action: Joi.string().valid('approve', 'reject').required(),
   comment: Joi.string().max(1000).optional().allow('', null),
+});
+
+export const resendSignatureFlowNotificationSchema = Joi.object({
+  participantIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+});
+
+export const skipSignerSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
+export const closeSignatureFlowSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
+export const reopenSignatureFlowSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
 });
 
 // Landing settings schemas

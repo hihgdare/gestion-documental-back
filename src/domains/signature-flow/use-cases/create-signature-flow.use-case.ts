@@ -1,4 +1,4 @@
-import { SignatureFlow, SignatureFlowProps } from '../entities/signature-flow.entity';
+import { SignatureFlow, SignatureFlowProps, MIN_REMINDER_INTERVAL_MINUTES, MIN_AUTO_CLOSE_INTERVAL_MINUTES } from '../entities/signature-flow.entity';
 import { SignatureFlowParticipant, SignatureFlowParticipantProps } from '../entities/signature-flow-participant.entity';
 import { type SignatureFlowRepository } from '../repositories/signature-flow.repository';
 import { type SignatureFlowParticipantRepository } from '../repositories/signature-flow-participant.repository';
@@ -9,16 +9,21 @@ import { DocumentAction, DocumentStatus } from '@domains/document/value-objects/
 import {
   SignatureFlowParticipantRole,
   SignatureFlowStatus,
+  SignatureFlowNotificationType,
 } from '../value-objects/signature-flow-enums';
-import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, EmailWithParticipant, ReminderConfig } from '../services/signature-flow-notification.service';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
 import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
 import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
 import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
-import { EmailOptions } from '@shared/infrastructure/email/email-service.interface';
 import { EmailQueueService } from '@shared/infrastructure/email/email-queue.service';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
+
+interface ExternalEmailCollected extends EmailWithParticipant {
+  participant: SignatureFlowParticipant;
+  accessUrl: string;
+}
 
 const ALLOWED_START_STATUSES = [
   DocumentStatus.DRAFT,
@@ -27,11 +32,17 @@ const ALLOWED_START_STATUSES = [
   DocumentStatus.REJECTED_FOR_SIGN,
 ];
 
+const AUTO_CLOSE_BUFFER_BEFORE_EXPIRATION_DAYS = 10;
+
 export interface CreateSignatureFlowInput {
   documentId: string;
   orderType?: string;
   signerOrderType?: string;
   sentBy?: string;
+  reminderEnabled?: boolean;
+  reminderIntervalMinutes?: number;
+  autoCloseEnabled?: boolean;
+  autoCloseIntervalMinutes?: number;
   participants: Array<{
     userId?: string;
     colaboratorId?: string;
@@ -65,6 +76,20 @@ export class CreateSignatureFlowUseCase {
       }
     }
 
+    if (
+      input.reminderIntervalMinutes !== undefined
+      && input.reminderIntervalMinutes < MIN_REMINDER_INTERVAL_MINUTES
+    ) {
+      throw new ValidationError('El tiempo del recordatorio debe ser de al menos 1 día');
+    }
+
+    if (
+      input.autoCloseIntervalMinutes !== undefined
+      && input.autoCloseIntervalMinutes < MIN_AUTO_CLOSE_INTERVAL_MINUTES
+    ) {
+      throw new ValidationError('El tiempo de cierre automático debe ser de al menos 1 día');
+    }
+
     const document = await this.documentRepository.findById(input.documentId);
     if (!document) {
       throw new NotFoundError('Documento no encontrado');
@@ -88,6 +113,7 @@ export class CreateSignatureFlowUseCase {
 
     const now = new Date();
     const hasValidators = resolvedParticipants.some((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
+    const expirationLimits = this.applyExpirationLimits(input, document, now);
 
     const flowProps: SignatureFlowProps = {
       documentId: input.documentId,
@@ -96,6 +122,10 @@ export class CreateSignatureFlowUseCase {
       status: hasValidators ? SignatureFlowStatus.IN_REVIEW : SignatureFlowStatus.IN_SIGNING,
       sentAt: now,
       sentBy: input.sentBy ?? null,
+      reminderEnabled: expirationLimits.reminderEnabled ?? input.reminderEnabled,
+      reminderIntervalMinutes: input.reminderIntervalMinutes,
+      autoCloseEnabled: input.autoCloseEnabled,
+      autoCloseIntervalMinutes: expirationLimits.autoCloseIntervalMinutes ?? input.autoCloseIntervalMinutes,
     };
 
     const flow = await this.signatureFlowRepository.save(SignatureFlow.create(flowProps));
@@ -157,6 +187,8 @@ export class CreateSignatureFlowUseCase {
     const toNotify = validators.length > 0 ? validators : signers;
     const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
+    const reminderConfig = this.reminderConfigFor(flow);
+
     // Collect in-app notifications + email data for internal users
     const internalEmails = await this.notificationService.collectEmailsForParticipants(
       toNotify,
@@ -172,9 +204,26 @@ export class CreateSignatureFlowUseCase {
 
     const allEmails = [...internalEmails, ...externalEmails];
     if (allEmails.length > 0) {
-      await this.emailQueueService!.enqueueMany(
-        allEmails.map((email) => ({ ...email, correlationId: flow.id })),
+      const jobs = await this.emailQueueService!.enqueueMany(
+        allEmails.map((email) => ({ ...email.options, correlationId: flow.id })),
       );
+      await this.notificationService.logNotifications(allEmails.map((email, index) => ({
+        participantId: email.participantId,
+        flowId: email.flowId,
+        emailJobId: jobs[index]?.id ?? null,
+        type: SignatureFlowNotificationType.INITIAL,
+        triggeredBy: null,
+      })));
+    }
+
+    // Los recordatorios se agendan recién ahora, después de confirmar que el correo inicial ya
+    // quedó encolado y registrado — así no aparecen antes que la notificación inicial en el
+    // historial ni compiten con su envío si este se demora o falla.
+    await this.notificationService.scheduleRemindersForParticipants(toNotify, document.id, document.name, notifyOrderType, reminderConfig);
+    if (reminderConfig.enabled) {
+      for (const external of externalEmails) {
+        await this.notificationService.scheduleReminderExternal(external.participant, document.name, external.accessUrl, reminderConfig.intervalMinutes);
+      }
     }
   }
 
@@ -208,11 +257,62 @@ export class CreateSignatureFlowUseCase {
     const toNotify = validators.length > 0 ? validators : signers;
     const notifyOrderType = validators.length > 0 ? flow.orderType : flow.signerOrderType;
 
-    await this.notificationService.notifyParticipantsForCurrentStep(toNotify, document.id, document.name, notifyOrderType);
+    const reminderConfig = this.reminderConfigFor(flow);
+
+    await this.notificationService.notifyParticipantsForCurrentStep(
+      toNotify,
+      document.id,
+      document.name,
+      notifyOrderType,
+      SignatureFlowNotificationType.INITIAL,
+      null,
+      reminderConfig,
+    );
 
     const firstStepParticipants = this.notificationService.pickParticipantsToNotify(notifyOrderType, toNotify);
     const firstStepExternal = firstStepParticipants.filter((p) => p.isExternal && p.externalEmail);
-    await this.notifyExternalParticipants(firstStepExternal, document.name);
+    await this.notifyExternalParticipants(firstStepExternal, document.name, reminderConfig);
+  }
+
+  private reminderConfigFor(flow: SignatureFlow): ReminderConfig {
+    return { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
+  }
+
+  /**
+   * Si el documento tiene fecha de vencimiento: un recordatorio que se dispararía después de esa
+   * fecha se desactiva, y un cierre automático que caería en o después de esa fecha se reprograma
+   * para unos días antes en su lugar. Mismo criterio que ya aplica el diálogo del frontend — esto
+   * cubre a quien llame la API directamente sin pasar por ahí.
+   */
+  private applyExpirationLimits(
+    input: CreateSignatureFlowInput,
+    document: Document,
+    now: Date,
+  ): { reminderEnabled?: boolean; autoCloseIntervalMinutes?: number } {
+    const result: { reminderEnabled?: boolean; autoCloseIntervalMinutes?: number } = {};
+    const expirationDate = document.expirationDate;
+    if (!expirationDate) return result;
+
+    if (input.reminderEnabled && input.reminderIntervalMinutes !== undefined) {
+      const firesAt = new Date(now.getTime() + input.reminderIntervalMinutes * 60 * 1000);
+      if (firesAt > expirationDate) {
+        result.reminderEnabled = false;
+      }
+    }
+
+    if (input.autoCloseEnabled && input.autoCloseIntervalMinutes !== undefined) {
+      const firesAt = new Date(now.getTime() + input.autoCloseIntervalMinutes * 60 * 1000);
+      if (firesAt >= expirationDate) {
+        const bufferMs = AUTO_CLOSE_BUFFER_BEFORE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000;
+        const targetTime = expirationDate.getTime() - bufferMs;
+        result.autoCloseIntervalMinutes = Math.max(
+          MIN_AUTO_CLOSE_INTERVAL_MINUTES,
+          Math.round((targetTime - now.getTime()) / (60 * 1000)),
+        );
+      }
+    }
+
+    return result;
   }
 
   private async resolveColaboratorParticipants(
@@ -237,12 +337,17 @@ export class CreateSignatureFlowUseCase {
     return resolved;
   }
 
+  /**
+   * Genera tokens y arma los correos de los participantes externos, sin agendar recordatorios
+   * todavía: eso se hace en executeWithQueue una vez que el correo inicial ya quedó encolado,
+   * reutilizando el accessUrl/token recién creado (nunca se regenera uno nuevo para el recordatorio).
+   */
   private async collectExternalEmails(
     participants: SignatureFlowParticipant[],
     documentName: string,
-  ): Promise<EmailOptions[]> {
+  ): Promise<ExternalEmailCollected[]> {
     if (!this.externalTokenRepository) return [];
-    const emails = [];
+    const emails: ExternalEmailCollected[] = [];
     for (const p of participants) {
       const email = p.externalEmail;
       if (!email) continue;
@@ -255,9 +360,13 @@ export class CreateSignatureFlowUseCase {
       const saved = await this.externalTokenRepository.save(token);
       const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
       if (!accessUrl) continue;
-      emails.push(
-        this.notificationService.buildExternalParticipantEmailOptions(email, p.externalName, p.role, documentName, accessUrl),
-      );
+      emails.push({
+        participantId: p.id,
+        flowId: p.flowId,
+        participant: p,
+        accessUrl,
+        options: this.notificationService.buildExternalParticipantEmailOptions(email, p.externalName, p.role, documentName, accessUrl),
+      });
     }
     return emails;
   }
@@ -265,26 +374,15 @@ export class CreateSignatureFlowUseCase {
   private async notifyExternalParticipants(
     participants: SignatureFlowParticipant[],
     documentName: string,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
-    if (!this.externalTokenRepository) return;
     for (const p of participants) {
-      const email = p.externalEmail;
-      if (!email) continue;
-      await this.externalTokenRepository.deleteByParticipantId(p.id);
-      const token = ExternalParticipantToken.create({
-        participantId: p.id,
-        token: generateExternalToken(),
-        expiresAt: buildExternalTokenExpiry(),
-      });
-      const saved = await this.externalTokenRepository.save(token);
-      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
-      if (!accessUrl) continue;
-      await this.notificationService.notifyExternalParticipant(
-        email,
-        p.externalName,
-        p.role,
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(
+        p,
         documentName,
-        accessUrl,
+        SignatureFlowNotificationType.INITIAL,
+        null,
+        reminderConfig,
       );
     }
   }

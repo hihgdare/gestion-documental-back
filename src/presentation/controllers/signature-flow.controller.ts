@@ -8,6 +8,7 @@ import {
   GetMyPendingSignatureTasksUseCase,
   GetPendingSignatureDocumentsReportUseCase,
   GetSignatureProcessTimeReportUseCase,
+  GetResendableParticipantsUseCase,
 } from '@domains/signature-flow/use-cases/get-signature-flow.use-case';
 import {
   UpdateSignatureFlowUseCase,
@@ -16,6 +17,9 @@ import {
   DeleteSignatureFlowUseCase,
 } from '@domains/signature-flow/use-cases/update-signature-flow.use-case';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
+import { ResendSignatureFlowNotificationUseCase } from '@domains/signature-flow/use-cases/resend-signature-flow-notification.use-case';
+import { GetSignatureFlowTrackingByDocumentUseCase } from '@domains/signature-flow/use-cases/get-signature-flow-tracking.use-case';
+import { SkipSignerUseCase, CloseSignatureFlowUseCase, ReopenSignatureFlowUseCase } from '@domains/signature-flow/use-cases/close-signature-flow.use-case';
 import { SignatureFlow } from '@domains/signature-flow/entities/signature-flow.entity';
 import { SignatureFlowParticipant } from '@domains/signature-flow/entities/signature-flow-participant.entity';
 
@@ -33,11 +37,21 @@ export class SignatureFlowController {
     private readonly removeParticipantFromFlowUseCase: RemoveParticipantFromFlowUseCase,
     private readonly processFlowParticipantActionUseCase: ProcessFlowParticipantActionUseCase,
     private readonly deleteSignatureFlowUseCase: DeleteSignatureFlowUseCase,
+    private readonly resendSignatureFlowNotificationUseCase: ResendSignatureFlowNotificationUseCase,
+    private readonly getResendableParticipantsUseCase: GetResendableParticipantsUseCase,
+    private readonly getSignatureFlowTrackingByDocumentUseCase: GetSignatureFlowTrackingByDocumentUseCase,
+    private readonly skipSignerUseCase: SkipSignerUseCase,
+    private readonly closeSignatureFlowUseCase: CloseSignatureFlowUseCase,
+    private readonly reopenSignatureFlowUseCase: ReopenSignatureFlowUseCase,
   ) {}
 
   create = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.auth!.user!.id;
-    const { documentId, orderType, signerOrderType, participants } = req.body;
+    const {
+      documentId, orderType, signerOrderType, participants,
+      reminderEnabled, reminderIntervalMinutes,
+      autoCloseEnabled, autoCloseIntervalMinutes,
+    } = req.body;
 
     const flow = await this.createSignatureFlowUseCase.execute({
       documentId,
@@ -45,6 +59,10 @@ export class SignatureFlowController {
       signerOrderType,
       sentBy: userId,
       participants,
+      reminderEnabled,
+      reminderIntervalMinutes,
+      autoCloseEnabled,
+      autoCloseIntervalMinutes,
     });
 
     res.status(201).json({ success: true, data: this.flowToDto(flow) });
@@ -111,8 +129,9 @@ export class SignatureFlowController {
           contractNumber: item.contractNumber,
         },
         sentAt: item.sentAt?.toISOString() ?? null,
+        sentBy: item.sentBy,
         sentByName: item.sentByName,
-        currentHolders: item.currentHolders,
+        currentHolders: item.currentHolders.map((h) => ({ participantId: h.participantId, name: h.name })),
       })),
       count: items.length,
     });
@@ -179,6 +198,133 @@ export class SignatureFlowController {
     res.status(200).json({ success: true, message: 'Acción aplicada correctamente' });
   });
 
+  getDocumentTracking = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { documentId } = req.params;
+    const items = await this.getSignatureFlowTrackingByDocumentUseCase.execute(documentId);
+
+    res.status(200).json({
+      success: true,
+      data: items.map((item) => ({
+        flowId: item.flowId,
+        orderType: item.orderType,
+        signerOrderType: item.signerOrderType,
+        status: item.status,
+        sentAt: item.sentAt?.toISOString() ?? null,
+        sentBy: item.sentBy,
+        sentByName: item.sentByName,
+        nextAutoActionAt: item.nextAutoActionAt?.toISOString() ?? null,
+        participants: item.participants.map((p) => ({
+          participantId: p.participantId,
+          name: p.name,
+          role: p.role,
+          order: p.order,
+          status: p.status,
+          actionAt: p.actionAt?.toISOString() ?? null,
+          rejectionComment: p.rejectionComment,
+          nextReminderAt: p.nextReminderAt?.toISOString() ?? null,
+          actionEvidence: p.actionEvidence ? {
+            verifiedByCode: p.actionEvidence.verifiedByCode,
+            method: p.actionEvidence.method,
+            ipAddress: p.actionEvidence.ipAddress,
+            channel: p.actionEvidence.channel,
+            failedAttempts: p.actionEvidence.failedAttempts,
+          } : null,
+          notifications: p.notifications.map((n) => ({
+            id: n.id,
+            number: n.number,
+            type: n.type,
+            createdAt: n.createdAt.toISOString(),
+            triggeredByName: n.triggeredByName,
+            email: n.email ? {
+              to: n.email.to,
+              subject: n.email.subject,
+              html: n.email.html,
+              text: n.email.text,
+              status: n.email.status,
+              sentAt: n.email.sentAt?.toISOString() ?? null,
+              channel: n.email.channel,
+            } : null,
+          })),
+          verificationNotifications: p.verificationNotifications.map((n) => ({
+            id: n.id,
+            number: n.number,
+            type: n.type,
+            createdAt: n.createdAt.toISOString(),
+            triggeredByName: n.triggeredByName,
+            email: n.email ? {
+              to: n.email.to,
+              subject: n.email.subject,
+              html: n.email.html,
+              text: n.email.text,
+              status: n.email.status,
+              sentAt: n.email.sentAt?.toISOString() ?? null,
+              channel: n.email.channel,
+            } : null,
+          })),
+        })),
+      })),
+      count: items.length,
+    });
+  });
+
+  skipSigner = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanCloseAny = req.auth!.user!.can('signature-flow:close:any');
+
+    await this.skipSignerUseCase.execute({ flowId: id, actorUserId, actorCanCloseAny, comment });
+
+    res.status(200).json({ success: true, message: 'Firmante saltado correctamente' });
+  });
+
+  closeSignatureFlow = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanCloseAny = req.auth!.user!.can('signature-flow:close:any');
+
+    await this.closeSignatureFlowUseCase.execute({ flowId: id, actorUserId, actorCanCloseAny, comment });
+
+    res.status(200).json({ success: true, message: 'Proceso de firma cerrado correctamente' });
+  });
+
+  reopenSignatureFlow = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { comment } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanReopen = req.auth!.user!.can('signature-flow:reopen');
+
+    await this.reopenSignatureFlowUseCase.execute({ flowId: id, actorUserId, actorCanReopen, comment });
+
+    res.status(200).json({ success: true, message: 'Proceso de firma reabierto correctamente' });
+  });
+
+  getResendCandidates = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanResendAny = req.auth!.user!.can('signature-flow:resend:any');
+
+    const items = await this.getResendableParticipantsUseCase.execute({ flowId: id, actorUserId, actorCanResendAny });
+    res.status(200).json({ success: true, data: items, count: items.length });
+  });
+
+  resendNotifications = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { participantIds } = req.body;
+    const actorUserId = req.auth!.user!.id;
+    const actorCanResendAny = req.auth!.user!.can('signature-flow:resend:any');
+
+    await this.resendSignatureFlowNotificationUseCase.execute({
+      flowId: id,
+      participantIds,
+      actorUserId,
+      actorCanResendAny,
+    });
+
+    res.status(200).json({ success: true, message: 'Notificación reenviada correctamente' });
+  });
+
   delete = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     await this.deleteSignatureFlowUseCase.execute(id);
@@ -194,6 +340,10 @@ export class SignatureFlowController {
       status: flow.status,
       sentAt: flow.sentAt?.toISOString() ?? null,
       sentBy: flow.sentBy,
+      reminderEnabled: flow.reminderEnabled,
+      reminderIntervalMinutes: flow.reminderIntervalMinutes,
+      autoCloseEnabled: flow.autoCloseEnabled,
+      autoCloseIntervalMinutes: flow.autoCloseIntervalMinutes,
       createdAt: flow.createdAt.toISOString(),
       updatedAt: flow.updatedAt.toISOString(),
     };

@@ -53,6 +53,18 @@ export class SignatureFlowEntity {
   @JoinColumn({ name: 'sent_by' })
   sentByUser?: UserEntity;
 
+  @Column({ name: 'reminder_enabled', type: 'boolean', default: false })
+  reminderEnabled!: boolean;
+
+  @Column({ name: 'reminder_interval_minutes', type: 'int', default: 1440 })
+  reminderIntervalMinutes!: number;
+
+  @Column({ name: 'auto_close_enabled', type: 'boolean', default: false })
+  autoCloseEnabled!: boolean;
+
+  @Column({ name: 'auto_close_interval_minutes', type: 'int', default: 43200 })
+  autoCloseIntervalMinutes!: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

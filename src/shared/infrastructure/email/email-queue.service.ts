@@ -41,6 +41,17 @@ export class EmailQueueService {
     });
   }
 
+  async findByIds(ids: string[]): Promise<EmailJobEntity[]> {
+    if (ids.length === 0) return [];
+    return this.repo.find({ where: { id: In(ids) } });
+  }
+
+  /** Jobs pendientes (aún no enviados) para un conjunto de group keys — usado para saber cuándo se disparará un recordatorio agendado. */
+  async findPendingByGroupKeys(groupKeys: string[]): Promise<EmailJobEntity[]> {
+    if (groupKeys.length === 0) return [];
+    return this.repo.find({ where: { groupKey: In(groupKeys), status: EmailJobStatus.PENDING } });
+  }
+
   async getPendingJobs(limit = 10): Promise<EmailJobEntity[]> {
     return this.repo.find({
       where: {
@@ -91,6 +102,20 @@ export class EmailQueueService {
         status: In([EmailJobStatus.PENDING, EmailJobStatus.PROCESSING]),
       },
     });
+  }
+
+  /**
+   * Como countUnfinished, pero excluye jobs cuya group key tenga el prefijo dado. Se usa para no
+   * contar jobs agendados a futuro (p.ej. recordatorios) como "pendientes del batch inicial" —
+   * de lo contrario un recordatorio agendado a días de distancia nunca deja completar el batch.
+   */
+  async countUnfinishedExcludingGroupKeyPrefix(correlationId: string, groupKeyPrefix: string): Promise<number> {
+    return this.repo
+      .createQueryBuilder('job')
+      .where('job.correlation_id = :correlationId', { correlationId })
+      .andWhere('job.status IN (:...statuses)', { statuses: [EmailJobStatus.PENDING, EmailJobStatus.PROCESSING] })
+      .andWhere('(job.group_key IS NULL OR job.group_key NOT LIKE :prefix)', { prefix: `${groupKeyPrefix}%` })
+      .getCount();
   }
 
   async countAbandoned(correlationId: string): Promise<number> {

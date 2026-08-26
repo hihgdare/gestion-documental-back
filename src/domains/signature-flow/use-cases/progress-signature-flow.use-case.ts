@@ -11,7 +11,7 @@ import {
   SignatureFlowParticipantStatus,
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
-import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, ReminderConfig } from '../services/signature-flow-notification.service';
 import { SignatureStatus } from '@domains/signature/value-objects/signature-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
@@ -25,9 +25,8 @@ import {
 import { Document } from '@domains/document/entities/document.entity';
 import { SignatureFlow } from '../entities/signature-flow.entity';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
-import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
-import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
 import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { isParticipantEnabledInCurrentStep, orderTypeForRole } from '../services/signature-flow-step.util';
 
 export interface ProcessFlowParticipantActionInput {
   participantId: string;
@@ -69,7 +68,7 @@ export class ProcessFlowParticipantActionUseCase {
       throw new ValidationError('El participante no está pendiente de acción');
     }
 
-    if (!this.isParticipantEnabledInCurrentStep(this.orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
+    if (!isParticipantEnabledInCurrentStep(orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
       throw new ValidationError('Este participante aún no puede actuar por el orden configurado del flujo');
     }
 
@@ -128,7 +127,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
+      && isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return false;
@@ -274,7 +273,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
+      && isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return;
@@ -307,7 +306,7 @@ export class ProcessFlowParticipantActionUseCase {
     await this.reconcileFlow(flow.id);
   }
 
-  private async reconcileFlow(flowId: string): Promise<void> {
+  async reconcileFlow(flowId: string): Promise<void> {
     const flow = await this.flowRepository.findById(flowId);
     if (!flow) return;
 
@@ -317,6 +316,14 @@ export class ProcessFlowParticipantActionUseCase {
     const participants = await this.participantRepository.findByFlowId(flow.id);
     const validators = participants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = participants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
+    const reminderConfig: ReminderConfig = { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
+
+    // Quien ya no está pendiente (aprobó/firmó/rechazó) ya no debe recibir el recordatorio agendado.
+    await Promise.all(
+      participants
+        .filter((p) => p.status !== SignatureFlowParticipantStatus.PENDING)
+        .map((p) => this.notificationService.cancelReminder(p.id)),
+    );
 
     const hasRejected = participants.some((p) => p.status === SignatureFlowParticipantStatus.REJECTED);
     if (hasRejected) {
@@ -338,6 +345,9 @@ export class ProcessFlowParticipantActionUseCase {
       }
       document.signatureStatus = SignatureStatus.REJECTED;
       document.comment = rejectionReason;
+
+      // El flujo se cierra: los demás participantes (aunque sigan "pendientes") ya no deben ser recordados.
+      await Promise.all(participants.map((p) => this.notificationService.cancelReminder(p.id)));
 
       await this.flowRepository.update(flow);
       await this.documentRepository.update(document);
@@ -393,6 +403,9 @@ export class ProcessFlowParticipantActionUseCase {
             document.id,
             document.name,
             flow.orderType,
+            undefined,
+            undefined,
+            reminderConfig,
           );
         } catch (err) {
           console.warn('[reconcileFlow] notify next sequential validator failed (non-critical):', err);
@@ -400,7 +413,7 @@ export class ProcessFlowParticipantActionUseCase {
 
         if (nextValidator.isExternal && nextValidator.externalEmail) {
           try {
-            await this.notifyExternalParticipants([nextValidator], document.name);
+            await this.notifyExternalParticipants([nextValidator], document.name, reminderConfig);
           } catch (err) {
             console.warn('[reconcileFlow] notifyExternalParticipants for next validator failed (non-critical):', err);
           }
@@ -433,14 +446,22 @@ export class ProcessFlowParticipantActionUseCase {
 
       const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
       try {
-        await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.signerOrderType);
+        await this.notificationService.notifyParticipantsForCurrentStep(
+          pendingSigners,
+          document.id,
+          document.name,
+          flow.signerOrderType,
+          undefined,
+          undefined,
+          reminderConfig,
+        );
       } catch (err) {
         console.warn('[reconcileFlow] notifyParticipantsForCurrentStep failed (non-critical):', err);
       }
 
       const externalSigners = pendingSigners.filter((p) => p.isExternal && p.externalEmail);
       try {
-        await this.notifyExternalParticipants(externalSigners, document.name);
+        await this.notifyExternalParticipants(externalSigners, document.name, reminderConfig);
       } catch (err) {
         console.warn('[reconcileFlow] notifyExternalParticipants failed (non-critical):', err);
       }
@@ -448,7 +469,8 @@ export class ProcessFlowParticipantActionUseCase {
     }
 
     const allSignersSigned = signers.length > 0
-      && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
+      && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED || p.status === SignatureFlowParticipantStatus.SKIPPED)
+      && signers.some((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
 
     // Sequential firmantes: notifica al siguiente firmante pendiente después de que uno firma.
     // Análogo al bloque de validadores de arriba — sin esto el segundo firmante nunca sería notificado.
@@ -470,6 +492,9 @@ export class ProcessFlowParticipantActionUseCase {
             document.id,
             document.name,
             flow.signerOrderType,
+            undefined,
+            undefined,
+            reminderConfig,
           );
         } catch (err) {
           console.warn('[reconcileFlow] notify next sequential signer failed (non-critical):', err);
@@ -477,7 +502,7 @@ export class ProcessFlowParticipantActionUseCase {
 
         if (nextSigner.isExternal && nextSigner.externalEmail) {
           try {
-            await this.notifyExternalParticipants([nextSigner], document.name);
+            await this.notifyExternalParticipants([nextSigner], document.name, reminderConfig);
           } catch (err) {
             console.warn('[reconcileFlow] notifyExternalParticipants for next signer failed (non-critical):', err);
           }
@@ -600,26 +625,15 @@ export class ProcessFlowParticipantActionUseCase {
   private async notifyExternalParticipants(
     participants: SignatureFlowParticipant[],
     documentName: string,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
-    if (!this.externalTokenRepository) return;
     for (const p of participants) {
-      const email = p.externalEmail;
-      if (!email) continue;
-      await this.externalTokenRepository.deleteByParticipantId(p.id);
-      const token = ExternalParticipantToken.create({
-        participantId: p.id,
-        token: generateExternalToken(),
-        expiresAt: buildExternalTokenExpiry(),
-      });
-      const saved = await this.externalTokenRepository.save(token);
-      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
-      if (!accessUrl) continue;
-      await this.notificationService.notifyExternalParticipant(
-        email,
-        p.externalName,
-        p.role,
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(
+        p,
         documentName,
-        accessUrl,
+        undefined,
+        undefined,
+        reminderConfig,
       );
     }
   }
@@ -637,26 +651,5 @@ export class ProcessFlowParticipantActionUseCase {
 
     if (!isPdf) return null;
     return { storage: file.storage, path: file.path };
-  }
-
-  private orderTypeForRole(flow: SignatureFlow, role: SignatureFlowParticipantRole): SignatureFlowOrderType {
-    return role === SignatureFlowParticipantRole.SIGNER ? flow.signerOrderType : flow.orderType;
-  }
-
-  private isParticipantEnabledInCurrentStep(
-    orderType: SignatureFlowOrderType,
-    participant: SignatureFlowParticipant,
-    participants: SignatureFlowParticipant[],
-  ): boolean {
-    if (orderType !== SignatureFlowOrderType.SEQUENTIAL) return true;
-    if (participant.order === null) return true;
-
-    const pendingSameRole = participants
-      .filter((p) => p.role === participant.role && p.status === SignatureFlowParticipantStatus.PENDING && p.order !== null)
-      .map((p) => p.order as number);
-
-    if (pendingSameRole.length === 0) return true;
-
-    return participant.order === Math.min(...pendingSameRole);
   }
 }
