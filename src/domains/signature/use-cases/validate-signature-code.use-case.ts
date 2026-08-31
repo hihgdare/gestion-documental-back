@@ -16,6 +16,7 @@ export interface ValidateSignatureCodeParams {
   signatureId: string;
   code: string;
   ipAddress: string;
+  timezone?: string;
 }
 
 export class ValidateSignatureCodeUseCase {
@@ -33,7 +34,7 @@ export class ValidateSignatureCodeUseCase {
   ) {}
 
   async execute(params: ValidateSignatureCodeParams): Promise<void> {
-    const { signatureId, code, ipAddress } = params;
+    const { signatureId, code, ipAddress, timezone } = params;
 
     const signature = await this.signatureRepository.findById(signatureId);
     if (!signature) {
@@ -103,6 +104,7 @@ export class ValidateSignatureCodeUseCase {
     signature.status = SignatureStatus.SIGNED;
     signature.tokenHash = tokenHash;
     signature.ipAddress = ipAddress;
+    signature.signerTimezone = timezone ?? null;
     signature.signedAt = signedAt;
     signature.updatedAt = signedAt;
     await this.signatureRepository.update(signature);

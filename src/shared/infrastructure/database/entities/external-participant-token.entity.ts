@@ -53,6 +53,9 @@ export class ExternalParticipantTokenEntity {
   @Column({ name: 'document_number', type: 'varchar', length: 50, nullable: true })
   documentNumber?: string;
 
+  @Column({ name: 'timezone', type: 'varchar', length: 64, nullable: true })
+  timezone?: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

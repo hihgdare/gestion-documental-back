@@ -88,14 +88,14 @@ export class ExternalParticipantController {
   async validateOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { token } = req.params;
-      const { code, documentNumber } = req.body as { code: string; documentNumber?: string };
+      const { code, documentNumber, timezone } = req.body as { code: string; documentNumber?: string; timezone?: string };
       const ipAddress = extractClientIp(req);
 
       if (!code || typeof code !== 'string' || code.length !== 6) {
         throw new ValidationError('El código debe ser de 6 dígitos.');
       }
 
-      await this.validateOtpUseCase.execute(token, code, ipAddress, documentNumber?.trim());
+      await this.validateOtpUseCase.execute(token, code, ipAddress, documentNumber?.trim(), timezone?.trim());
       res.json({ success: true });
     } catch (err) {
       next(err);

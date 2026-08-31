@@ -302,7 +302,7 @@ export class ValidateExternalSignerOtpUseCase {
     private readonly colaboratorRepository?: ColaboratorRepository,
   ) {}
 
-  async execute(token: string, code: string, ipAddress: string, documentNumber?: string): Promise<void> {
+  async execute(token: string, code: string, ipAddress: string, documentNumber?: string, timezone?: string): Promise<void> {
     const tokenRecord = await this.tokenRepository.findByToken(token);
     if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
       throw new ValidationError('El enlace de acceso no es válido o ha expirado.');
@@ -345,6 +345,7 @@ export class ValidateExternalSignerOtpUseCase {
     tokenRecord.signatureTokenHash = signatureTokenHash;
     tokenRecord.ipAddress = ipAddress;
     tokenRecord.documentNumber = resolvedDocumentNumber;
+    tokenRecord.timezone = timezone ?? null;
     tokenRecord.usedAt = signedAt;
     tokenRecord.otpHash = null;
     await this.tokenRepository.update(tokenRecord);

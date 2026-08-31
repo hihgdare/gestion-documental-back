@@ -40,6 +40,14 @@ export interface ConsolidatedStampData {
   signers: SignerStampData[];
 }
 
+/**
+ * Zona horaria usada para mostrar la fecha/hora en el estampado de firma.
+ * La plataforma por ahora opera con una única zona horaria global (Chile continental);
+ * la zona horaria real del firmante se captura y persiste aparte (Signature.signerTimezone /
+ * ExternalParticipantToken.timezone) solo con fines de trazabilidad, no para el estampado.
+ */
+const DEFAULT_STAMP_TIMEZONE = 'America/Santiago';
+
 export class SignaturePdfStampService {
   async stampPdf(target: StampTarget, data: SignatureStampData): Promise<void> {
     const pdfBytes = await this.readBytes(target);
@@ -96,7 +104,7 @@ export class SignaturePdfStampService {
 
     const textLines = [
       `Nombre: ${data.signerName}`,
-      `Número de Documento: ${data.signerDocumentNumber}`,
+      `Cédula de Identidad: ${data.signerDocumentNumber}`,
       `Email: ${data.signerEmail}`,
       `Fecha: ${formattedDate}`,
       `IP: ${data.ipAddress}`,
@@ -141,18 +149,52 @@ export class SignaturePdfStampService {
     await this.writeBytes(target, modifiedBytes);
   }
 
-  private formatSignedAt(date: Date): string {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+  /**
+   * Formatea la fecha/hora de firma en la zona horaria fija de la plataforma
+   * (DEFAULT_STAMP_TIMEZONE) en vez de la zona horaria del servidor.
+   */
+  private formatSignedAt(date: Date, timezone: string = DEFAULT_STAMP_TIMEZONE): string {
+    const tz = timezone || DEFAULT_STAMP_TIMEZONE;
 
-    const offsetHours = -date.getTimezoneOffset() / 60;
-    const sign = offsetHours >= 0 ? '+' : '-';
-    const tz = `GMT${sign}${Math.abs(offsetHours)}`;
+    let day = '--';
+    let month = '--';
+    let year = '----';
+    let hours = '--';
+    let minutes = '--';
 
-    return `${day}/${month}/${year} a las ${hours}:${minutes} - TZ: ${tz}`;
+    try {
+      const parts = new Intl.DateTimeFormat('es-CL', {
+        timeZone: tz,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).formatToParts(date);
+
+      const get = (type: string) => parts.find((p) => p.type === type)?.value;
+      day = get('day') ?? day;
+      month = get('month') ?? month;
+      year = get('year') ?? year;
+      hours = get('hour') ?? hours;
+      minutes = get('minute') ?? minutes;
+    } catch {
+      // Zona horaria inválida — se mantiene el respaldo "--" y se sigue con GMT+0 abajo.
+    }
+
+    let tzLabel = 'GMT+0';
+    try {
+      const offsetParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        timeZoneName: 'shortOffset',
+      }).formatToParts(date);
+      tzLabel = offsetParts.find((p) => p.type === 'timeZoneName')?.value ?? tzLabel;
+    } catch {
+      // Zona horaria inválida — se mantiene "GMT+0".
+    }
+
+    return `${day}/${month}/${year} a las ${hours}:${minutes} - TZ: ${tzLabel}`;
   }
 
   async stampConsolidatedPdf(target: StampTarget, data: ConsolidatedStampData): Promise<void> {
@@ -260,7 +302,7 @@ export class SignaturePdfStampService {
       });
 
       ty -= 11;
-      stampPage.drawText(`${signer.signerEmail}  |  Doc: ${signer.signerDocumentNumber}`, {
+      stampPage.drawText(`${signer.signerEmail}  |  Cédula de Identidad: ${signer.signerDocumentNumber}`, {
         x: contentX + PADDING, y: ty, size: 7, font,
         color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2,
       });
