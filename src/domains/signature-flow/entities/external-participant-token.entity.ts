@@ -15,6 +15,7 @@ export interface ExternalParticipantTokenProps {
   ipAddress?: string | null;
   documentNumber?: string | null;
   timezone?: string | null;
+  signatureImageFileId?: string | null;
   createdAt?: Date;
 }
 
@@ -32,6 +33,7 @@ export class ExternalParticipantToken {
   ipAddress: string | null;
   documentNumber: string | null;
   timezone: string | null;
+  signatureImageFileId: string | null;
   createdAt: Date;
 
   constructor(props: ExternalParticipantTokenProps) {
@@ -46,6 +48,7 @@ export class ExternalParticipantToken {
       ipAddress: (v?: string | null) => v ?? null,
       documentNumber: (v?: string | null) => v ?? null,
       timezone: (v?: string | null) => v ?? null,
+      signatureImageFileId: (v?: string | null) => v ?? null,
       createdAt: 'datetime',
     });
   }

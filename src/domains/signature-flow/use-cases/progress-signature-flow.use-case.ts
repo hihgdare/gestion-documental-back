@@ -587,6 +587,7 @@ export class ProcessFlowParticipantActionUseCase {
             signerDocumentNumber: colaborator?.numeroDocumento ?? 'N/A',
             signerEmail: String(user.email),
             signedAt: signature.signedAt ?? s.actionAt ?? new Date(),
+            signatureImageBytes: await this.loadSignatureImageBytes(signature.signatureImageFileId),
             ipAddress: signature.ipAddress ?? 'N/A',
             tokenHash: signature.tokenHash,
           });
@@ -601,6 +602,7 @@ export class ProcessFlowParticipantActionUseCase {
             signerDocumentNumber: extToken?.documentNumber ?? 'N/A',
             signerEmail: s.externalEmail,
             signedAt: s.actionAt ?? new Date(),
+            signatureImageBytes: await this.loadSignatureImageBytes(extToken?.signatureImageFileId ?? null),
             ipAddress: extToken?.ipAddress ?? 'N/A',
             tokenHash: extToken?.signatureTokenHash ?? 'N/A',
           });
@@ -619,6 +621,18 @@ export class ProcessFlowParticipantActionUseCase {
       });
     } catch (err) {
       console.warn('[ProcessFlowParticipantActionUseCase] Consolidated PDF stamping failed (non-critical):', err);
+    }
+  }
+
+  private async loadSignatureImageBytes(fileId: string | null): Promise<Buffer | undefined> {
+    if (!fileId || !this.fileRepository) return undefined;
+    try {
+      const file = await this.fileRepository.findById(fileId);
+      if (!file) return undefined;
+      return await this.fileRepository.getContent(file);
+    } catch (err) {
+      console.warn('[ProcessFlowParticipantActionUseCase] No se pudo cargar la imagen de la firma (no crítico):', err);
+      return undefined;
     }
   }
 

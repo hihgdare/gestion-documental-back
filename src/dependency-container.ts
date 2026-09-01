@@ -231,6 +231,7 @@ import { SignatureFlowAutoCloseProcessor } from '@shared/infrastructure/signatur
 import { TypeOrmSignatureRepository } from '@shared/infrastructure/repositories/typeorm-signature.repository';
 import { TypeOrmSignatureVerificationCodeRepository } from '@shared/infrastructure/repositories/typeorm-signature-verification-code.repository';
 import { TypeOrmSignatureCodeNotificationRepository } from '@shared/infrastructure/repositories/typeorm-signature-code-notification.repository';
+import { TypeOrmUserSignatureRepository } from '@shared/infrastructure/repositories/typeorm-user-signature.repository';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { InitiateSignatureUseCase } from '@domains/signature/use-cases/initiate-signature.use-case';
@@ -239,6 +240,7 @@ import { CancelSignatureUseCase } from '@domains/signature/use-cases/cancel-sign
 import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@domains/signature/use-cases/get-signature.use-case';
 import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
 import { GetSignatureSmsPhoneUseCase } from '@domains/signature/use-cases/get-signature-sms-phone.use-case';
+import { GetSavedSignaturePreviewUseCase } from '@domains/signature/use-cases/get-saved-signature-preview.use-case';
 import { GetPublicDocumentVerificationUseCase } from '@domains/signature-flow/use-cases/get-public-document-verification.use-case';
 import { SignatureController } from '@presentation/controllers/signature.controller';
 
@@ -258,6 +260,7 @@ import {
   SubmitExternalParticipantActionUseCase,
   RequestExternalSignerOtpUseCase,
   ValidateExternalSignerOtpUseCase,
+  GetExternalSignerSavedSignatureUseCase,
 } from '@domains/signature-flow/use-cases/external-participant-access.use-case';
 import { ExternalParticipantController } from '@presentation/controllers/external-participant.controller';
 import {
@@ -329,6 +332,7 @@ export class DependencyContainer {
   private signatureRepository!: TypeOrmSignatureRepository;
   private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
   private signatureCodeNotificationRepository!: TypeOrmSignatureCodeNotificationRepository;
+  private userSignatureRepository!: TypeOrmUserSignatureRepository;
   private signatureFlowRepository!: TypeOrmSignatureFlowRepository;
   private signatureFlowParticipantRepository!: TypeOrmSignatureFlowParticipantRepository;
   private inAppNotificationRepository!: TypeOrmInAppNotificationRepository;
@@ -562,6 +566,7 @@ export class DependencyContainer {
   private verifyDocumentSignatureUseCase!: VerifyDocumentSignatureUseCase;
   private getSignatureSmsPhoneUseCase!: GetSignatureSmsPhoneUseCase;
   private getPublicDocumentVerificationUseCase!: GetPublicDocumentVerificationUseCase;
+  private getSavedSignaturePreviewUseCase!: GetSavedSignaturePreviewUseCase;
 
   // Use Cases - SignatureFlow
   private createSignatureFlowUseCase!: CreateSignatureFlowUseCase;
@@ -628,6 +633,7 @@ export class DependencyContainer {
     this.signatureRepository = new TypeOrmSignatureRepository();
     this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
     this.signatureCodeNotificationRepository = new TypeOrmSignatureCodeNotificationRepository();
+    this.userSignatureRepository = new TypeOrmUserSignatureRepository();
     this.signatureFlowRepository = new TypeOrmSignatureFlowRepository();
     this.signatureFlowParticipantRepository = new TypeOrmSignatureFlowParticipantRepository();
     this.inAppNotificationRepository = new TypeOrmInAppNotificationRepository();
@@ -1205,6 +1211,7 @@ export class DependencyContainer {
       this.processFlowParticipantActionUseCase,
       this.signaturePdfStampService,
       this.fileRepository,
+      this.userSignatureRepository,
     );
     this.cancelSignatureUseCase = new CancelSignatureUseCase(
       this.signatureRepository,
@@ -1229,6 +1236,10 @@ export class DependencyContainer {
       this.userRepository,
       this.colaboratorRepository,
     );
+    this.getSavedSignaturePreviewUseCase = new GetSavedSignaturePreviewUseCase(
+      this.userSignatureRepository,
+      this.fileRepository,
+    );
     this.signatureController = new SignatureController(
       this.initiateSignatureUseCase,
       this.validateSignatureCodeUseCase,
@@ -1239,6 +1250,7 @@ export class DependencyContainer {
       this.getSignatureSmsPhoneUseCase,
       this.fileRepository,
       this.getPublicDocumentVerificationUseCase,
+      this.getSavedSignaturePreviewUseCase,
     );
 
     // Initialize SignatureFlow use cases and controller
@@ -1359,6 +1371,13 @@ export class DependencyContainer {
       this.signatureCryptoService,
       this.processFlowParticipantActionUseCase,
       this.colaboratorRepository,
+      this.fileRepository,
+      this.userSignatureRepository,
+    );
+    const getExternalSignerSavedSignatureUseCase = new GetExternalSignerSavedSignatureUseCase(
+      this.externalParticipantTokenRepository,
+      this.signatureFlowParticipantRepository,
+      this.getSavedSignaturePreviewUseCase,
     );
     this.externalParticipantController = new ExternalParticipantController(
       getExternalAccessUseCase,
@@ -1366,6 +1385,7 @@ export class DependencyContainer {
       requestExternalOtpUseCase,
       validateExternalOtpUseCase,
       this.fileRepository,
+      getExternalSignerSavedSignatureUseCase,
     );
 
     this.signatureFlowController = new SignatureFlowController(

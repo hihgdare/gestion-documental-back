@@ -9,6 +9,7 @@ import { GetSignatureByDocumentUseCase, GetSignatureByTokenHashUseCase } from '@
 import { VerifyDocumentSignatureUseCase } from '@domains/signature/use-cases/verify-document-signature.use-case';
 import { GetSignatureSmsPhoneUseCase } from '@domains/signature/use-cases/get-signature-sms-phone.use-case';
 import { GetPublicDocumentVerificationUseCase } from '@domains/signature-flow/use-cases/get-public-document-verification.use-case';
+import { GetSavedSignaturePreviewUseCase } from '@domains/signature/use-cases/get-saved-signature-preview.use-case';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { Signature } from '@domains/signature/entities/signature.entity';
 import { extractClientIp } from '@shared/utils/ip';
@@ -43,6 +44,7 @@ export class SignatureController {
     private readonly getSignatureSmsPhoneUseCase: GetSignatureSmsPhoneUseCase,
     private readonly fileRepository?: TypeOrmFileRepository,
     private readonly getPublicDocumentVerificationUseCase?: GetPublicDocumentVerificationUseCase,
+    private readonly getSavedSignaturePreviewUseCase?: GetSavedSignaturePreviewUseCase,
   ) {}
 
   initiate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -64,7 +66,7 @@ export class SignatureController {
   });
 
   validate = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const { signatureId, code, timezone } = req.body;
+    const { signatureId, code, timezone, signatureImage, saveSignatureForFuture } = req.body;
     const ipAddress = extractClientIp(req);
 
     await this.validateSignatureCodeUseCase.execute({
@@ -72,12 +74,26 @@ export class SignatureController {
       code,
       ipAddress,
       timezone,
+      signatureImage,
+      saveSignatureForFuture,
     });
 
     res.status(200).json({
       success: true,
       message: 'Documento firmado exitosamente',
     });
+  });
+
+  getMySignature = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const userId = req.auth!.user!.id;
+
+    if (!this.getSavedSignaturePreviewUseCase) {
+      res.status(200).json({ success: true, data: { available: false } });
+      return;
+    }
+
+    const result = await this.getSavedSignaturePreviewUseCase.execute({ userId });
+    res.status(200).json({ success: true, data: result });
   });
 
   cancel = asyncHandler(async (req: Request, res: Response): Promise<void> => {

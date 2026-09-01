@@ -51,6 +51,9 @@ export class SignatureEntity {
   @Column({ name: 'signer_timezone', type: 'varchar', length: 64, nullable: true })
   signerTimezone?: string;
 
+  @Column({ name: 'signature_image_file_id', type: 'varchar', length: 36, nullable: true })
+  signatureImageFileId?: string;
+
   @Column({ name: 'rejection_reason', type: 'text', nullable: true })
   rejectionReason?: string;
 

@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
@@ -18,6 +18,8 @@ export interface SignatureStampData {
   signerDocumentNumber: string;
   signerEmail: string;
   signedAt: Date;
+  /** PNG de la firma dibujada por el firmante. Si no viene, el estampado se hace sin ella. */
+  signatureImageBytes?: Buffer;
   ipAddress: string;
   documentId: string;
   tokenHash: string;
@@ -29,6 +31,8 @@ export interface SignerStampData {
   signerDocumentNumber: string;
   signerEmail: string;
   signedAt: Date;
+  /** PNG de la firma dibujada por el firmante. Si no viene, el estampado se hace sin ella. */
+  signatureImageBytes?: Buffer;
   ipAddress: string;
   tokenHash: string;
 }
@@ -70,6 +74,9 @@ export class SignaturePdfStampService {
     const STAMP_H = 174;
     const PADDING = 8;
     const QR_SIZE = 78;
+    const SIG_W = 130;
+    const SIG_H = 55;
+    const RIGHT_COL_W = Math.max(QR_SIZE, SIG_W);
 
     // Add a dedicated new page for the signature stamp so it never overlaps
     // existing content (e.g. page numbers on the last page).
@@ -79,7 +86,7 @@ export class SignaturePdfStampService {
     const stampX = MARGIN;
     const stampY = MARGIN * 2;
     const stampW = width - MARGIN * 2;
-    const textW = stampW - QR_SIZE - PADDING * 3;
+    const textW = stampW - RIGHT_COL_W - PADDING * 3;
 
     // Simple bordered container for the signature proof block.
     stampPage.drawRectangle({
@@ -145,8 +152,51 @@ export class SignaturePdfStampService {
       height: QR_SIZE,
     });
 
+    // Firma dibujada por el firmante, arriba del QR en la misma columna derecha.
+    await this.drawSignatureImage(pdfDoc, stampPage, data.signatureImageBytes, {
+      x: stampX + stampW - SIG_W - PADDING,
+      y: stampY + STAMP_H - PADDING - SIG_H,
+      width: SIG_W,
+      height: SIG_H,
+    });
+
     const modifiedBytes = await pdfDoc.save();
     await this.writeBytes(target, modifiedBytes);
+  }
+
+  /** Dibuja la imagen de la firma centrada dentro de un recuadro con borde, preservando su proporción. */
+  private async drawSignatureImage(
+    pdfDoc: PDFDocument,
+    page: PDFPage,
+    imageBytes: Buffer | undefined,
+    box: { x: number; y: number; width: number; height: number },
+  ): Promise<void> {
+    page.drawRectangle({
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+      color: rgb(1, 1, 1),
+      borderColor: rgb(0.75, 0.75, 0.75),
+      borderWidth: 0.5,
+    });
+
+    if (!imageBytes) return;
+
+    try {
+      const image = await pdfDoc.embedPng(imageBytes);
+      const scale = Math.min(box.width / image.width, box.height / image.height, 1);
+      const drawW = image.width * scale;
+      const drawH = image.height * scale;
+      page.drawImage(image, {
+        x: box.x + (box.width - drawW) / 2,
+        y: box.y + (box.height - drawH) / 2,
+        width: drawW,
+        height: drawH,
+      });
+    } catch (err) {
+      console.warn('[SignaturePdfStampService] No se pudo embeber la imagen de la firma (no crítico):', err);
+    }
   }
 
   /**
@@ -220,6 +270,8 @@ export class SignaturePdfStampService {
     const QR_SIZE = 70;
     const HEADER_H = QR_SIZE + 20; // tall enough to fit the QR with vertical padding
     const SIGNER_ROW_H = 60; // per signer (rect + gap below), no QR needed
+    const ROW_SIG_W = 80;
+    const ROW_SIG_H = 36;
 
     const pageHeight = MARGIN * 2
       + HEADER_H
@@ -283,6 +335,8 @@ export class SignaturePdfStampService {
     });
     y -= 14;
 
+    const rowTextW = contentW - PADDING * 3 - ROW_SIG_W;
+
     for (const signer of data.signers) {
       const rectBottom = y - (SIGNER_ROW_H - PADDING);
       stampPage.drawRectangle({
@@ -293,24 +347,32 @@ export class SignaturePdfStampService {
         borderWidth: 0.5,
       });
 
+      // Firma dibujada por el firmante, a la derecha de la fila.
+      await this.drawSignatureImage(pdfDoc, stampPage, signer.signatureImageBytes, {
+        x: contentX + contentW - PADDING - ROW_SIG_W,
+        y: rectBottom + (SIGNER_ROW_H - PADDING - ROW_SIG_H) / 2,
+        width: ROW_SIG_W,
+        height: ROW_SIG_H,
+      });
+
       let ty = y - PADDING;
 
       ty -= 9;
       stampPage.drawText(signer.signerName, {
         x: contentX + PADDING, y: ty, size: 9, font: boldFont,
-        color: rgb(0.08, 0.08, 0.08), maxWidth: contentW - PADDING * 2,
+        color: rgb(0.08, 0.08, 0.08), maxWidth: rowTextW,
       });
 
       ty -= 11;
       stampPage.drawText(`${signer.signerEmail}  |  Cédula de Identidad: ${signer.signerDocumentNumber}`, {
         x: contentX + PADDING, y: ty, size: 7, font,
-        color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2,
+        color: rgb(0.2, 0.2, 0.2), maxWidth: rowTextW,
       });
 
       ty -= 10;
       stampPage.drawText(
         `Fecha: ${this.formatSignedAt(signer.signedAt)}  |  IP: ${signer.ipAddress}`,
-        { x: contentX + PADDING, y: ty, size: 7, font, color: rgb(0.2, 0.2, 0.2), maxWidth: contentW - PADDING * 2 },
+        { x: contentX + PADDING, y: ty, size: 7, font, color: rgb(0.2, 0.2, 0.2), maxWidth: rowTextW },
       );
 
       ty -= 10;
@@ -319,7 +381,7 @@ export class SignaturePdfStampService {
         : signer.tokenHash;
       stampPage.drawText(`Token: ${shortToken}`, {
         x: contentX + PADDING, y: ty, size: 6.5, font,
-        color: rgb(0.45, 0.45, 0.45), maxWidth: contentW - PADDING * 2,
+        color: rgb(0.45, 0.45, 0.45), maxWidth: rowTextW,
       });
 
       y -= SIGNER_ROW_H;
