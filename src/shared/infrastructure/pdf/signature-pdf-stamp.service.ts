@@ -2,9 +2,7 @@ import { PDFDocument, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
-import crypto from 'crypto';
 import { Bucket } from '@shared/utils/Bucket';
-import FileUtils from '@shared/utils/FileUtils';
 import { ServerError } from '@shared/domain/errors';
 
 export interface StampTarget {
@@ -53,7 +51,8 @@ export interface ConsolidatedStampData {
 const DEFAULT_STAMP_TIMEZONE = 'America/Santiago';
 
 export class SignaturePdfStampService {
-  async stampPdf(target: StampTarget, data: SignatureStampData): Promise<void> {
+  /** Devuelve los bytes del PDF ya estampado — no escribe nada, eso lo decide quien llama. */
+  async stampPdf(target: StampTarget, data: SignatureStampData): Promise<Buffer> {
     const pdfBytes = await this.readBytes(target);
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
@@ -160,8 +159,7 @@ export class SignaturePdfStampService {
       height: SIG_H,
     });
 
-    const modifiedBytes = await pdfDoc.save();
-    await this.writeBytes(target, modifiedBytes);
+    return Buffer.from(await pdfDoc.save());
   }
 
   /** Dibuja la imagen de la firma centrada dentro de un recuadro con borde, preservando su proporción. */
@@ -247,7 +245,8 @@ export class SignaturePdfStampService {
     return `${day}/${month}/${year} a las ${hours}:${minutes} - TZ: ${tzLabel}`;
   }
 
-  async stampConsolidatedPdf(target: StampTarget, data: ConsolidatedStampData): Promise<void> {
+  /** Devuelve los bytes del PDF consolidado ya estampado — no escribe nada, eso lo decide quien llama. */
+  async stampConsolidatedPdf(target: StampTarget, data: ConsolidatedStampData): Promise<Buffer> {
     const pdfBytes = await this.readBytes(target);
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
@@ -399,8 +398,7 @@ export class SignaturePdfStampService {
       x: contentX, y, size: 6.5, font, color: rgb(0.45, 0.45, 0.45), maxWidth: contentW,
     });
 
-    const modifiedBytes = await pdfDoc.save();
-    await this.writeBytes(target, modifiedBytes);
+    return Buffer.from(await pdfDoc.save());
   }
 
   private resolveLocalPath(filePath: string): string {
@@ -434,24 +432,5 @@ export class SignaturePdfStampService {
       return this.getBucket().downloadFile({ source: target.path });
     }
     return fs.promises.readFile(this.resolveLocalPath(target.path));
-  }
-
-  private async writeBytes(target: StampTarget, bytes: Uint8Array): Promise<void> {
-    if (target.storage === 's3') {
-      const tempDir = FileUtils.buildPath('temp');
-      await fs.promises.mkdir(tempDir, { recursive: true });
-      const tempPath = path.join(tempDir, `${crypto.randomUUID()}.pdf`);
-
-      try {
-        await fs.promises.writeFile(tempPath, bytes);
-        // Overwrite the same S3 key with the stamped version.
-        await this.getBucket().uploadFile({ source: tempPath, target: target.path });
-      } finally {
-        await FileUtils.delete(tempPath);
-      }
-      return;
-    }
-
-    await fs.promises.writeFile(this.resolveLocalPath(target.path), bytes);
   }
 }

@@ -56,6 +56,7 @@ import {
   GetExpiringDocumentsUseCase,
 } from '@domains/document/use-cases/get-document.use-case';
 import { UpdateDocumentUseCase, DeleteDocumentUseCase } from '@domains/document/use-cases/update-document.use-case';
+import { DocumentVersioningService } from '@domains/document/services/document-versioning.service';
 import { SendToReviewDocumentUseCase } from '@domains/document/use-cases/send-to-review-document.use-case';
 import { ApproveDocumentUseCase } from '@domains/document/use-cases/approve-document.use-case';
 import { DirectApproveDocumentUseCase } from '@domains/document/use-cases/direct-approve-document.use-case';
@@ -555,6 +556,7 @@ export class DependencyContainer {
   // Services - Signature
   private signatureCryptoService!: SignatureCryptoService;
   private signaturePdfStampService!: SignaturePdfStampService;
+  private documentVersioningService!: DocumentVersioningService;
   private signatureFlowNotificationService!: SignatureFlowNotificationService;
 
   // Use Cases - Signature
@@ -1173,6 +1175,11 @@ export class DependencyContainer {
     // Initialize Signature crypto and stamp service first (needed by flow use case)
     this.signatureCryptoService = new SignatureCryptoService();
     this.signaturePdfStampService = new SignaturePdfStampService();
+    this.documentVersioningService = new DocumentVersioningService(
+      this.documentRepository,
+      this.documentHistoryRepository,
+      this.documentFieldValueRepository,
+    );
 
     this.processFlowParticipantActionUseCase = new ProcessFlowParticipantActionUseCase(
       this.signatureFlowRepository,
@@ -1186,6 +1193,7 @@ export class DependencyContainer {
       this.fileRepository,
       this.signaturePdfStampService,
       this.externalParticipantTokenRepository,
+      this.documentVersioningService,
     );
     this.initiateSignatureUseCase = new InitiateSignatureUseCase(
       this.signatureRepository,
@@ -1212,6 +1220,7 @@ export class DependencyContainer {
       this.signaturePdfStampService,
       this.fileRepository,
       this.userSignatureRepository,
+      this.documentVersioningService,
     );
     this.cancelSignatureUseCase = new CancelSignatureUseCase(
       this.signatureRepository,
