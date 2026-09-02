@@ -1,21 +1,28 @@
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
+import { Document } from '@domains/document/entities/document.entity';
+import { DocumentVersioningService } from '@domains/document/services/document-versioning.service';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
+import { UserSignatureRepository } from '../repositories/user-signature.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { SignaturePdfStampService, StampTarget } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
+import { decodeSignatureImage } from '@shared/utils/image';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface ValidateSignatureCodeParams {
   signatureId: string;
   code: string;
   ipAddress: string;
+  timezone?: string;
+  signatureImage: string;
+  saveSignatureForFuture?: boolean;
 }
 
 export class ValidateSignatureCodeUseCase {
@@ -30,10 +37,12 @@ export class ValidateSignatureCodeUseCase {
     private readonly processFlowParticipantActionUseCase?: ProcessFlowParticipantActionUseCase,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly userSignatureRepository?: UserSignatureRepository,
+    private readonly documentVersioningService?: DocumentVersioningService,
   ) {}
 
   async execute(params: ValidateSignatureCodeParams): Promise<void> {
-    const { signatureId, code, ipAddress } = params;
+    const { signatureId, code, ipAddress, timezone, signatureImage, saveSignatureForFuture } = params;
 
     const signature = await this.signatureRepository.findById(signatureId);
     if (!signature) {
@@ -89,6 +98,8 @@ export class ValidateSignatureCodeUseCase {
       throw new ValidationError(`Código incorrecto. Te quedan ${remaining} intento(s).`);
     }
 
+    const signatureImageBuffer = decodeSignatureImage(signatureImage);
+
     const signedAt = new Date();
     const tokenHash = this.cryptoService.generateTokenHash({
       documentId: signature.documentId,
@@ -100,9 +111,21 @@ export class ValidateSignatureCodeUseCase {
     verificationCode.usedAt = signedAt;
     await this.signatureCodeRepository.update(verificationCode);
 
+    let signatureImageFileId: string | null = null;
+    if (this.fileRepository) {
+      const savedImage = await this.fileRepository.saveBuffer(signatureImageBuffer, 'signature.png', 'image/png');
+      signatureImageFileId = savedImage.id;
+
+      if (saveSignatureForFuture && this.userSignatureRepository) {
+        await this.userSignatureRepository.upsertForUser(signature.userId, savedImage.id);
+      }
+    }
+
     signature.status = SignatureStatus.SIGNED;
     signature.tokenHash = tokenHash;
     signature.ipAddress = ipAddress;
+    signature.signerTimezone = timezone ?? null;
+    signature.signatureImageFileId = signatureImageFileId;
     signature.signedAt = signedAt;
     signature.updatedAt = signedAt;
     await this.signatureRepository.update(signature);
@@ -117,22 +140,22 @@ export class ValidateSignatureCodeUseCase {
       await this.documentRepository.save(document);
 
       if (!wasPartOfFlow) {
-        await this.tryStampPdf(document.documentUrl, signature.documentId, signature.userId, tokenHash, ipAddress, signedAt);
+        await this.tryStampPdf(document, signature.userId, tokenHash, ipAddress, signedAt, signatureImageFileId);
       }
     }
   }
 
   private async tryStampPdf(
-    documentUrl: string | undefined,
-    documentId: string,
+    document: Document,
     userId: string,
     tokenHash: string,
     ipAddress: string,
     signedAt: Date,
+    signatureImageFileId: string | null,
   ): Promise<void> {
-    if (!this.pdfStampService || !documentUrl) return;
+    if (!this.pdfStampService || !document.documentUrl) return;
 
-    const stampTarget = await this.resolvePdfPath(documentUrl);
+    const stampTarget = await this.resolvePdfPath(document.documentUrl);
     if (!stampTarget) return;
 
     try {
@@ -142,20 +165,77 @@ export class ValidateSignatureCodeUseCase {
       const colaborator = await this.colaboratorRepository.findByUserId(userId);
       const signerDocumentNumber = colaborator?.numeroDocumento ?? 'N/A';
 
-      const verifyUrl = this.buildVerifyUrl(documentId, tokenHash);
+      const verifyUrl = this.buildVerifyUrl(document.id, tokenHash);
 
-      await this.pdfStampService.stampPdf(stampTarget, {
+      const stampedBytes = await this.pdfStampService.stampPdf(stampTarget, {
         signerName: `${user.firstName} ${user.lastName}`,
         signerDocumentNumber,
         signerEmail: String(user.email),
         signedAt,
+        signatureImageBytes: await this.loadSignatureImageBytes(signatureImageFileId),
         ipAddress,
-        documentId,
+        documentId: document.id,
         tokenHash,
         verifyUrl,
       });
+
+      await this.persistStampedDocument(document, stampedBytes, userId);
     } catch (err) {
       console.warn('[ValidateSignatureCodeUseCase] PDF stamping failed (non-critical):', err);
+    }
+  }
+
+  /**
+   * Guarda el PDF estampado como un archivo nuevo (nunca sobrescribe el original) y
+   * archiva la versión previa del documento, para poder compararlas o recuperar el
+   * original ante cualquier error — mismo patrón que ya usa UpdateDocumentUseCase al
+   * reemplazar el archivo de un documento.
+   */
+  private async persistStampedDocument(document: Document, stampedBytes: Buffer, userId: string): Promise<void> {
+    if (!this.fileRepository) return;
+
+    const previousDocumentUrl = document.documentUrl;
+    if (!previousDocumentUrl) return;
+
+    const originalFile = await this.fileRepository.findById(previousDocumentUrl).catch(() => null);
+    const fileName = originalFile?.originalName ?? `${document.name}.pdf`;
+
+    const newFile = await this.fileRepository.saveBuffer(stampedBytes, fileName, 'application/pdf');
+
+    const archived = this.documentVersioningService
+      ? await this.documentVersioningService.archiveCurrentFileVersion(
+        document,
+        'Versión reemplazada automáticamente al estampar la firma.',
+      )
+      : null;
+
+    document.updateDocumentUrl(newFile.id);
+    if (archived) {
+      document.previousVersionId = archived.id;
+    }
+    await this.documentRepository.update(document);
+
+    if (archived && this.documentVersioningService) {
+      await this.documentVersioningService.recordFileReplacedHistory({
+        liveDocument: document,
+        archivedDocument: archived,
+        previousDocumentUrl,
+        action: DocumentAction.SIGNATURE_SIGNED,
+        updatedBy: userId,
+        comment: 'Documento firmado electrónicamente.',
+      });
+    }
+  }
+
+  private async loadSignatureImageBytes(fileId: string | null): Promise<Buffer | undefined> {
+    if (!fileId || !this.fileRepository) return undefined;
+    try {
+      const file = await this.fileRepository.findById(fileId);
+      if (!file) return undefined;
+      return await this.fileRepository.getContent(file);
+    } catch (err) {
+      console.warn('[ValidateSignatureCodeUseCase] No se pudo cargar la imagen de la firma (no crítico):', err);
+      return undefined;
     }
   }
 
