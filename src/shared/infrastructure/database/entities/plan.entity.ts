@@ -4,8 +4,12 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Plan } from '@domains/plan/entities/plan.entity';
+import { PlanBadge } from '@domains/plan/value-objects/plan-badge';
+import { FeatureEntity } from './feature.entity';
 
 @Entity('plans')
 export class PlanEntity {
@@ -27,6 +31,23 @@ export class PlanEntity {
   @Column({ name: 'max_storage_gb', type: 'int', nullable: true, comment: 'NULL means unlimited' })
   maxStorageGb!: number | null;
 
+  @Column({ name: 'max_active_users', type: 'int', nullable: true, comment: 'NULL means unlimited' })
+  maxActiveUsers!: number | null;
+
+  @Column({ name: 'is_visible', type: 'tinyint', default: 1 })
+  isVisible!: boolean;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  badge!: PlanBadge | null;
+
+  @ManyToMany(() => FeatureEntity)
+  @JoinTable({
+    name: 'plan_features',
+    joinColumn: { name: 'plan_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'feature_id', referencedColumnName: 'id' },
+  })
+  features!: FeatureEntity[];
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
@@ -41,6 +62,9 @@ export class PlanEntity {
     entity.maxActiveContracts = plan.maxActiveContracts;
     entity.maxDocuments = plan.maxDocuments;
     entity.maxStorageGb = plan.maxStorageGb;
+    entity.maxActiveUsers = plan.maxActiveUsers;
+    entity.isVisible = plan.isVisible;
+    entity.badge = plan.badge;
     return entity;
   }
 
@@ -52,6 +76,10 @@ export class PlanEntity {
       maxActiveContracts: entity.maxActiveContracts,
       maxDocuments: entity.maxDocuments,
       maxStorageGb: entity.maxStorageGb,
+      maxActiveUsers: entity.maxActiveUsers,
+      isVisible: !!entity.isVisible,
+      badge: entity.badge,
+      features: (entity.features || []).map((f) => FeatureEntity.toDomain(f).toJSON()),
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     });

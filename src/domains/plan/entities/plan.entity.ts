@@ -1,5 +1,7 @@
 import { EntityUtils } from '@shared/utils/common';
 import { ValidationError } from '@shared/domain/errors';
+import { FeatureJson } from '@domains/feature/entities/feature.entity';
+import { isValidPlanBadge, PlanBadge } from '../value-objects/plan-badge';
 
 export interface PlanProps {
   id?: string;
@@ -8,6 +10,10 @@ export interface PlanProps {
   maxActiveContracts?: number | null;
   maxDocuments?: number | null;
   maxStorageGb?: number | null;
+  maxActiveUsers?: number | null;
+  isVisible?: boolean;
+  badge?: PlanBadge | null;
+  features?: FeatureJson[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,6 +25,10 @@ export interface PlanJson {
   maxActiveContracts: number | null;
   maxDocuments: number | null;
   maxStorageGb: number | null;
+  maxActiveUsers: number | null;
+  isVisible: boolean;
+  badge: PlanBadge | null;
+  features: FeatureJson[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -30,6 +40,10 @@ export class Plan {
   maxActiveContracts: number | null;
   maxDocuments: number | null;
   maxStorageGb: number | null;
+  maxActiveUsers: number | null;
+  isVisible: boolean;
+  badge: PlanBadge | null;
+  features: FeatureJson[];
   createdAt: Date;
   updatedAt: Date;
 
@@ -41,6 +55,10 @@ export class Plan {
       maxActiveContracts: (v: number | null | undefined) => v ?? null,
       maxDocuments: (v: number | null | undefined) => v ?? null,
       maxStorageGb: (v: number | null | undefined) => v ?? null,
+      maxActiveUsers: (v: number | null | undefined) => v ?? null,
+      isVisible: (v: boolean | undefined) => v ?? true,
+      badge: (v: PlanBadge | null | undefined) => v ?? null,
+      features: (v: FeatureJson[] | undefined) => v ?? [],
       createdAt: 'datetime',
       updatedAt: 'datetime',
     });
@@ -65,6 +83,12 @@ export class Plan {
     if (props.maxStorageGb !== undefined && props.maxStorageGb !== null && props.maxStorageGb < 0) {
       throw new ValidationError('maxStorageGb must be non-negative', 'maxStorageGb');
     }
+    if (props.maxActiveUsers !== undefined && props.maxActiveUsers !== null && props.maxActiveUsers < 0) {
+      throw new ValidationError('maxActiveUsers must be non-negative', 'maxActiveUsers');
+    }
+    if (props.badge !== undefined && props.badge !== null && !isValidPlanBadge(props.badge)) {
+      throw new ValidationError('Invalid plan badge', 'badge');
+    }
   }
 
   toJSON(): PlanJson {
@@ -75,6 +99,10 @@ export class Plan {
       maxActiveContracts: this.maxActiveContracts,
       maxDocuments: this.maxDocuments,
       maxStorageGb: this.maxStorageGb,
+      maxActiveUsers: this.maxActiveUsers,
+      isVisible: this.isVisible,
+      badge: this.badge,
+      features: this.features,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

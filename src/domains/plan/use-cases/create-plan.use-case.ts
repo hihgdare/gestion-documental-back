@@ -1,5 +1,6 @@
 import { PlanRepository } from '../repositories/plan.repository';
 import { Plan } from '../entities/plan.entity';
+import { PlanBadge } from '../value-objects/plan-badge';
 import { ValidationError } from '@shared/domain/errors';
 
 export interface CreatePlanInput {
@@ -8,6 +9,9 @@ export interface CreatePlanInput {
   maxActiveContracts?: number | null;
   maxDocuments?: number | null;
   maxStorageGb?: number | null;
+  maxActiveUsers?: number | null;
+  isVisible?: boolean;
+  badge?: PlanBadge | null;
 }
 
 export class CreatePlanUseCase {

@@ -13,4 +13,5 @@ export interface UserRepository {
   update(request: UpdateUserProps): Promise<User>;
   updatePasswordNonce(userId: string, nonce: string | null): Promise<void>;
   delete(id: string): Promise<void>;
+  countActiveByGroupId(groupId: number): Promise<number>;
 }

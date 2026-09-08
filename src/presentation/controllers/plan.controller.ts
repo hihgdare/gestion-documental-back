@@ -9,10 +9,19 @@ import {
   GetActiveGroupPlanUseCase,
 } from '@domains/plan/use-cases/get-group-plan.use-case';
 import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
+import { AssignFeaturesToPlanUseCase } from '@domains/plan/use-cases/assign-features-to-plan.use-case';
+import { GetGroupFeaturesUseCase } from '@domains/plan/use-cases/get-group-features.use-case';
+import {
+  SetGroupFeatureOverrideUseCase,
+  RemoveGroupFeatureOverrideUseCase,
+} from '@domains/plan/use-cases/set-group-feature-override.use-case';
+import { ListFeatureCatalogUseCase } from '@domains/feature/use-cases/list-feature-catalog.use-case';
 import { CreatePlanDto } from '../dto/plan/create-plan.dto';
 import { UpdatePlanDto } from '../dto/plan/update-plan.dto';
 import { AssignPlanToGroupDto } from '../dto/plan/assign-plan-to-group.dto';
 import { UpdateGroupPlanDto } from '../dto/plan/update-group-plan.dto';
+import { AssignFeaturesToPlanDto } from '../dto/plan/assign-features-to-plan.dto';
+import { SetGroupFeatureOverrideDto } from '../dto/plan/set-group-feature-override.dto';
 
 export class PlanController {
   constructor(
@@ -27,7 +36,47 @@ export class PlanController {
     private readonly getActiveGroupPlanUseCase: GetActiveGroupPlanUseCase,
     private readonly updateGroupPlanUseCase: UpdateGroupPlanUseCase,
     private readonly deleteGroupPlanUseCase: DeleteGroupPlanUseCase,
+    private readonly listFeatureCatalogUseCase: ListFeatureCatalogUseCase,
+    private readonly assignFeaturesToPlanUseCase: AssignFeaturesToPlanUseCase,
+    private readonly getGroupFeaturesUseCase: GetGroupFeaturesUseCase,
+    private readonly setGroupFeatureOverrideUseCase: SetGroupFeatureOverrideUseCase,
+    private readonly removeGroupFeatureOverrideUseCase: RemoveGroupFeatureOverrideUseCase,
   ) {}
+
+  // Feature catalog & assignment
+
+  public listFeatureCatalog = async (_req: Request, res: Response) => {
+    const catalog = await this.listFeatureCatalogUseCase.execute();
+    res.status(200).json({ success: true, data: catalog });
+  };
+
+  public assignFeaturesToPlan = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { featureIds } = req.body as AssignFeaturesToPlanDto;
+    const plan = await this.assignFeaturesToPlanUseCase.execute(id, featureIds);
+    res.status(200).json({ success: true, data: plan.toJSON() });
+  };
+
+  public getGroupFeatures = async (req: Request, res: Response) => {
+    const groupId = parseInt(req.params.groupId, 10);
+    const result = await this.getGroupFeaturesUseCase.execute(groupId);
+    res.status(200).json({ success: true, data: result });
+  };
+
+  public setGroupFeatureOverride = async (req: Request, res: Response) => {
+    const groupId = parseInt(req.params.groupId, 10);
+    const { featureId } = req.params;
+    const { granted } = req.body as SetGroupFeatureOverrideDto;
+    const override = await this.setGroupFeatureOverrideUseCase.execute(groupId, featureId, granted);
+    res.status(200).json({ success: true, data: override.toJSON() });
+  };
+
+  public removeGroupFeatureOverride = async (req: Request, res: Response) => {
+    const groupId = parseInt(req.params.groupId, 10);
+    const { featureId } = req.params;
+    await this.removeGroupFeatureOverrideUseCase.execute(groupId, featureId);
+    res.status(200).json({ success: true, message: 'Feature override removed successfully' });
+  };
 
   // Plans CRUD
 

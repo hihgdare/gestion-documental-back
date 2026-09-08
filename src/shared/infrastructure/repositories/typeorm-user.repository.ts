@@ -166,4 +166,13 @@ export class TypeOrmUserRepository implements UserRepository {
     const count = await this.repository.count({ where: { email } });
     return count > 0;
   }
+
+  async countActiveByGroupId(groupId: number): Promise<number> {
+    return await this.repository
+      .createQueryBuilder('user')
+      .innerJoin('group_users', 'gu', 'gu.user_id = user.id')
+      .where('gu.group_id = :groupId', { groupId })
+      .andWhere('user.status = :status', { status: UserStatus.ACTIVE })
+      .getCount();
+  }
 }

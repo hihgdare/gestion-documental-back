@@ -300,9 +300,24 @@ import { UpdatePlanUseCase, DeletePlanUseCase } from '@domains/plan/use-cases/up
 import { AssignPlanToGroupUseCase } from '@domains/plan/use-cases/assign-plan-to-group.use-case';
 import { GetGroupPlanUseCase, ListGroupPlansByGroupUseCase, GetActiveGroupPlanUseCase } from '@domains/plan/use-cases/get-group-plan.use-case';
 import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
+import { AssignFeaturesToPlanUseCase } from '@domains/plan/use-cases/assign-features-to-plan.use-case';
+import { GetGroupFeaturesUseCase } from '@domains/plan/use-cases/get-group-features.use-case';
+import {
+  SetGroupFeatureOverrideUseCase,
+  RemoveGroupFeatureOverrideUseCase,
+} from '@domains/plan/use-cases/set-group-feature-override.use-case';
 import { TypeOrmPlanRepository } from '@shared/infrastructure/repositories/typeorm-plan.repository';
 import { TypeOrmGroupPlanRepository } from '@shared/infrastructure/repositories/typeorm-group-plan.repository';
 import { PlanController } from '@presentation/controllers/plan.controller';
+
+// Feature domain
+import { ListFeatureCatalogUseCase } from '@domains/feature/use-cases/list-feature-catalog.use-case';
+import { TypeOrmFeatureCategoryRepository } from '@shared/infrastructure/repositories/typeorm-feature-category.repository';
+import { TypeOrmFeatureRepository } from '@shared/infrastructure/repositories/typeorm-feature.repository';
+import { TypeOrmGroupFeatureOverrideRepository } from '@shared/infrastructure/repositories/typeorm-group-feature-override.repository';
+
+// User quota
+import { GetUserQuotaUseCase } from '@domains/user/use-cases/get-user-quota.use-case';
 
 import { EmailQueueController } from '@presentation/controllers/email-queue.controller';
 import { LandingSettingsController } from '@presentation/controllers/landing-settings.controller';
@@ -335,6 +350,9 @@ export class DependencyContainer {
   private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
   private planRepository!: TypeOrmPlanRepository;
   private groupPlanRepository!: TypeOrmGroupPlanRepository;
+  private featureCategoryRepository!: TypeOrmFeatureCategoryRepository;
+  private featureRepository!: TypeOrmFeatureRepository;
+  private groupFeatureOverrideRepository!: TypeOrmGroupFeatureOverrideRepository;
   private signatureRepository!: TypeOrmSignatureRepository;
   private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
   private signatureFlowRepository!: TypeOrmSignatureFlowRepository;
@@ -366,12 +384,18 @@ export class DependencyContainer {
   private getActiveGroupPlanUseCase!: GetActiveGroupPlanUseCase;
   private updateGroupPlanUseCase!: UpdateGroupPlanUseCase;
   private deleteGroupPlanUseCase!: DeleteGroupPlanUseCase;
+  private listFeatureCatalogUseCase!: ListFeatureCatalogUseCase;
+  private assignFeaturesToPlanUseCase!: AssignFeaturesToPlanUseCase;
+  private getGroupFeaturesUseCase!: GetGroupFeaturesUseCase;
+  private setGroupFeatureOverrideUseCase!: SetGroupFeatureOverrideUseCase;
+  private removeGroupFeatureOverrideUseCase!: RemoveGroupFeatureOverrideUseCase;
 
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
   private getUserByIdUseCase!: GetUserByIdUseCase;
   private getAllUsersUseCase!: GetAllUsersUseCase;
   private updateUserUseCase!: UpdateUserUseCase;
+  private getUserQuotaUseCase!: GetUserQuotaUseCase;
   private deleteUserUseCase!: DeleteUserUseCase;
   private assignRoleToUserUseCase!: AssignRoleToUserUseCase;
   private loginUserUseCase!: LoginUserUseCase;
@@ -642,6 +666,9 @@ export class DependencyContainer {
     this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
     this.planRepository = new TypeOrmPlanRepository();
     this.groupPlanRepository = new TypeOrmGroupPlanRepository();
+    this.featureCategoryRepository = new TypeOrmFeatureCategoryRepository();
+    this.featureRepository = new TypeOrmFeatureRepository();
+    this.groupFeatureOverrideRepository = new TypeOrmGroupFeatureOverrideRepository();
     this.signatureRepository = new TypeOrmSignatureRepository();
     this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
     this.signatureFlowRepository = new TypeOrmSignatureFlowRepository();
@@ -653,7 +680,14 @@ export class DependencyContainer {
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
     this.getUserByIdUseCase = new GetUserByIdUseCase(this.userRepository);
     this.getAllUsersUseCase = new GetAllUsersUseCase(this.userRepository);
-    this.updateUserUseCase = new UpdateUserUseCase(this.userRepository, this.roleRepository);
+    this.updateUserUseCase = new UpdateUserUseCase(
+      this.userRepository,
+      this.roleRepository,
+      this.groupRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
+    this.getUserQuotaUseCase = new GetUserQuotaUseCase(this.userRepository, this.groupPlanRepository, this.planRepository);
     this.deleteUserUseCase = new DeleteUserUseCase(this.userRepository);
     this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
     this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
@@ -1033,9 +1067,19 @@ export class DependencyContainer {
     this.getAllGroupsUseCase = new GetAllGroupsUseCase(this.groupRepository);
     this.updateGroupUseCase = new UpdateGroupUseCase(this.groupRepository);
     this.deleteGroupUseCase = new DeleteGroupUseCase(this.groupRepository);
-    this.addUserToGroupUseCase = new AddUserToGroupUseCase(this.groupRepository, this.userRepository);
+    this.addUserToGroupUseCase = new AddUserToGroupUseCase(
+      this.groupRepository,
+      this.userRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
     this.removeUserFromGroupUseCase = new RemoveUserFromGroupUseCase(this.groupRepository, this.userRepository);
-    this.assignGroupToUserUseCase = new AssignGroupToUserUseCase(this.groupRepository, this.userRepository);
+    this.assignGroupToUserUseCase = new AssignGroupToUserUseCase(
+      this.groupRepository,
+      this.userRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
 
     this.groupController = new GroupController(
       this.createGroupUseCase,
@@ -1112,6 +1156,7 @@ export class DependencyContainer {
       this.deleteUserUseCase,
       this.assignRoleToUserUseCase,
       this.sendActivationEmailUseCase,
+      this.getUserQuotaUseCase,
     );
 
     this.authController = new AuthController(
@@ -1182,6 +1227,20 @@ export class DependencyContainer {
     this.getActiveGroupPlanUseCase = new GetActiveGroupPlanUseCase(this.groupPlanRepository);
     this.updateGroupPlanUseCase = new UpdateGroupPlanUseCase(this.groupPlanRepository);
     this.deleteGroupPlanUseCase = new DeleteGroupPlanUseCase(this.groupPlanRepository);
+    this.listFeatureCatalogUseCase = new ListFeatureCatalogUseCase(this.featureCategoryRepository, this.featureRepository);
+    this.assignFeaturesToPlanUseCase = new AssignFeaturesToPlanUseCase(this.planRepository, this.featureRepository);
+    this.getGroupFeaturesUseCase = new GetGroupFeaturesUseCase(
+      this.groupPlanRepository,
+      this.planRepository,
+      this.groupFeatureOverrideRepository,
+      this.featureRepository,
+    );
+    this.setGroupFeatureOverrideUseCase = new SetGroupFeatureOverrideUseCase(
+      this.groupFeatureOverrideRepository,
+      this.featureRepository,
+      this.groupRepository,
+    );
+    this.removeGroupFeatureOverrideUseCase = new RemoveGroupFeatureOverrideUseCase(this.groupFeatureOverrideRepository);
 
     this.planController = new PlanController(
       this.createPlanUseCase,
@@ -1195,6 +1254,11 @@ export class DependencyContainer {
       this.getActiveGroupPlanUseCase,
       this.updateGroupPlanUseCase,
       this.deleteGroupPlanUseCase,
+      this.listFeatureCatalogUseCase,
+      this.assignFeaturesToPlanUseCase,
+      this.getGroupFeaturesUseCase,
+      this.setGroupFeatureOverrideUseCase,
+      this.removeGroupFeatureOverrideUseCase,
     );
 
     this.signatureFlowNotificationService = new SignatureFlowNotificationService(

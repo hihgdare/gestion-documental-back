@@ -1,6 +1,7 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import { SignatureType, SignatureMethod } from '@domains/signature/value-objects/signature-enums';
+import { PlanBadge } from '@domains/plan/value-objects/plan-badge';
 import {
   SignatureFlowOrderType,
   SignatureFlowParticipantRole,
@@ -317,6 +318,9 @@ export const createPlanSchema = Joi.object({
   maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
   maxDocuments: Joi.number().integer().min(0).optional().allow(null),
   maxStorageGb: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveUsers: Joi.number().integer().min(0).optional().allow(null),
+  isVisible: Joi.boolean().optional(),
+  badge: Joi.string().valid(...Object.values(PlanBadge)).optional().allow(null),
 });
 
 export const updatePlanSchema = Joi.object({
@@ -325,7 +329,18 @@ export const updatePlanSchema = Joi.object({
   maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
   maxDocuments: Joi.number().integer().min(0).optional().allow(null),
   maxStorageGb: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveUsers: Joi.number().integer().min(0).optional().allow(null),
+  isVisible: Joi.boolean().optional(),
+  badge: Joi.string().valid(...Object.values(PlanBadge)).optional().allow(null),
 }).min(1);
+
+export const assignFeaturesToPlanSchema = Joi.object({
+  featureIds: Joi.array().items(Joi.string().uuid()).required(),
+});
+
+export const setGroupFeatureOverrideSchema = Joi.object({
+  granted: Joi.boolean().required(),
+});
 
 export const assignPlanToGroupSchema = Joi.object({
   groupId: Joi.number().integer().positive().required(),

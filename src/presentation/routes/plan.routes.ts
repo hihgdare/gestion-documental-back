@@ -8,6 +8,8 @@ import {
   updatePlanSchema,
   assignPlanToGroupSchema,
   updateGroupPlanSchema,
+  assignFeaturesToPlanSchema,
+  setGroupFeatureOverrideSchema,
 } from '../dto/validation-schemas';
 
 export const createPlanRoutes = (controller: PlanController) => {
@@ -43,6 +45,19 @@ export const createPlanRoutes = (controller: PlanController) => {
     controller.deletePlan,
   );
 
+  // Feature catalog & plan assignment
+
+  router.get('/features/catalog',
+    authorize(['plan:read', 'plan:update', 'group:assign:plan']),
+    controller.listFeatureCatalog,
+  );
+
+  router.put('/:id/features',
+    authorize('plan:update'),
+    validateRequest(assignFeaturesToPlanSchema, true),
+    controller.assignFeaturesToPlan,
+  );
+
   // Group Plans
   router.post('/group-plans',
     authorize('group:assign:plan'),
@@ -74,6 +89,24 @@ export const createPlanRoutes = (controller: PlanController) => {
   router.delete('/group-plans/:id',
     authorize('group:assign:plan'),
     controller.deleteGroupPlan,
+  );
+
+  // Group feature overrides (custom/personalized plans)
+
+  router.get('/groups/:groupId/features',
+    authorize(['group:assign:plan', 'plan:read']),
+    controller.getGroupFeatures,
+  );
+
+  router.put('/groups/:groupId/features/:featureId',
+    authorize('group:assign:plan'),
+    validateRequest(setGroupFeatureOverrideSchema, true),
+    controller.setGroupFeatureOverride,
+  );
+
+  router.delete('/groups/:groupId/features/:featureId',
+    authorize('group:assign:plan'),
+    controller.removeGroupFeatureOverride,
   );
 
   return router;

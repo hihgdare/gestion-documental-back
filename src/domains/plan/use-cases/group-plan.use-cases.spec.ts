@@ -36,6 +36,7 @@ function makePlanRepo(overrides: Partial<PlanRepository> = {}): PlanRepository {
     save: mock((p: Plan) => Promise.resolve(p)),
     update: mock((p: Plan) => Promise.resolve(p)),
     delete: mock(() => Promise.resolve()),
+    setFeatures: mock((_planId: string, _featureIds: string[]) => Promise.resolve(mockPlan)),
     ...overrides,
   };
 }

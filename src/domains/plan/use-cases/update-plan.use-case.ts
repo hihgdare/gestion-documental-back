@@ -1,5 +1,6 @@
 import { PlanRepository } from '../repositories/plan.repository';
 import { Plan } from '../entities/plan.entity';
+import { PlanBadge } from '../value-objects/plan-badge';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface UpdatePlanInput {
@@ -9,6 +10,9 @@ export interface UpdatePlanInput {
   maxActiveContracts?: number | null;
   maxDocuments?: number | null;
   maxStorageGb?: number | null;
+  maxActiveUsers?: number | null;
+  isVisible?: boolean;
+  badge?: PlanBadge | null;
 }
 
 export class UpdatePlanUseCase {
@@ -32,6 +36,9 @@ export class UpdatePlanUseCase {
     if (input.maxActiveContracts !== undefined) plan.maxActiveContracts = input.maxActiveContracts;
     if (input.maxDocuments !== undefined) plan.maxDocuments = input.maxDocuments;
     if (input.maxStorageGb !== undefined) plan.maxStorageGb = input.maxStorageGb;
+    if (input.maxActiveUsers !== undefined) plan.maxActiveUsers = input.maxActiveUsers;
+    if (input.isVisible !== undefined) plan.isVisible = input.isVisible;
+    if (input.badge !== undefined) plan.badge = input.badge;
 
     plan.updatedAt = new Date();
     return await this.planRepository.update(plan);

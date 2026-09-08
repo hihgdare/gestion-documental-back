@@ -19,6 +19,9 @@ export const createUserRoutes = (userController: UserController): Router => {
   // GET /api/users - Get all users
   router.get('/', authorize('user:read'), userController.getAllUsers);
 
+  // GET /api/users/quota - Get active user quota for current group
+  router.get('/quota', authorize('user:read'), userController.getUserQuota);
+
   // GET /api/users/:id - Get user by ID
   router.get('/:id', authorize('user:read'), userController.getUserById);
 

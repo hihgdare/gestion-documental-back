@@ -7,4 +7,5 @@ export interface PlanRepository {
   save(plan: Plan): Promise<Plan>;
   update(plan: Plan): Promise<Plan>;
   delete(id: string): Promise<void>;
+  setFeatures(planId: string, featureIds: string[]): Promise<Plan>;
 }
