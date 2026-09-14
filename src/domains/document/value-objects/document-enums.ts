@@ -13,6 +13,7 @@ export enum DocumentStatus {
   EXPIRED = 'expired',
   OBSOLETE = 'obsolete',
   ARCHIVED = 'archived',
+  SIGNATURE_CLOSED = 'signature_closed',
 }
 
 export enum DocumentAction {
@@ -36,6 +37,9 @@ export enum DocumentAction {
   FLOW_REJECTED = 'flow_rejected',
   FLOW_SIGNED = 'flow_signed',
   FLOW_PARTICIPANT_REJECTED = 'flow_participant_rejected',
+  FLOW_PARTICIPANT_SKIPPED = 'flow_participant_skipped',
+  FLOW_CLOSED = 'flow_closed',
+  FLOW_REOPENED = 'flow_reopened',
   FLOW_COMPLETED = 'flow_completed',
   VERSION_SUPERSEDED = 'version_superseded',
   NOTIFICATION_ERROR = 'notification_error',

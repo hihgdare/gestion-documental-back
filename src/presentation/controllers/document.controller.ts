@@ -31,6 +31,8 @@ import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
 import { GetDocumentQuotaUseCase } from '@domains/document/use-cases/get-document-quota.use-case';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
+import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
+import { SignatureFlowStatus } from '@domains/signature-flow/value-objects/signature-flow-enums';
 
 export class DocumentController {
   constructor(
@@ -55,6 +57,7 @@ export class DocumentController {
     private assignDocumentsToGroupUseCase?: AssignDocumentsToGroupUseCase,
     private getDocumentQuotaUseCase?: GetDocumentQuotaUseCase,
     private downloadDocumentsZipUseCase?: DownloadDocumentsZipUseCase,
+    private signatureFlowRepository?: SignatureFlowRepository,
   ) {}
 
   assignDocumentsToGroup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -136,6 +139,10 @@ export class DocumentController {
       createdBy: req.auth.user?.id,
       templateId: dto.templateId,
       fieldValues: dto.fieldValues,
+      code: dto.code,
+      reviewDate: dto.reviewDate ? new Date(dto.reviewDate) : undefined,
+      responsibleColaboratorId: dto.responsibleColaboratorId,
+      areaId: dto.areaId,
     });
 
     res.status(201).json({
@@ -172,6 +179,8 @@ export class DocumentController {
       status,
     });
 
+    const { activeFlowByDocumentId, documentIdsWithFlowHistory } = await this.getSignatureFlowInfoByDocumentId(documents);
+
     const response: {
       success: true;
       data: DocumentResponseDto[];
@@ -180,7 +189,11 @@ export class DocumentController {
       documentTypes?: object[];
     } = {
       success: true,
-      data: documents.map((doc) => this.toResponseDto(doc)),
+      data: documents.map((doc) => this.toResponseDto(
+        doc,
+        activeFlowByDocumentId.get(doc.id) ?? null,
+        documentIdsWithFlowHistory.has(doc.id),
+      )),
       count: documents.length,
     };
 
@@ -286,6 +299,10 @@ export class DocumentController {
       comment: dto.comment,
       templateId: dto.templateId,
       fieldValues: dto.fieldValues,
+      code: dto.code !== undefined ? (dto.code || null) : undefined,
+      reviewDate: dto.reviewDate !== undefined ? (dto.reviewDate ? new Date(dto.reviewDate) : null) : undefined,
+      responsibleColaboratorId: dto.responsibleColaboratorId !== undefined ? (dto.responsibleColaboratorId || null) : undefined,
+      areaId: dto.areaId !== undefined ? (dto.areaId || null) : undefined,
     });
 
     res.status(200).json({
@@ -379,7 +396,41 @@ export class DocumentController {
     });
   });
 
-  private toResponseDto(document: Document): DocumentResponseDto {
+  private async getSignatureFlowInfoByDocumentId(documents: Document[]): Promise<{
+    activeFlowByDocumentId: Map<string, { id: string; sentBy: string | null; requireSignatureDrawing: boolean }>;
+    documentIdsWithFlowHistory: Set<string>;
+  }> {
+    const activeFlowByDocumentId = new Map<string, { id: string; sentBy: string | null; requireSignatureDrawing: boolean }>();
+    const documentIdsWithFlowHistory = new Set<string>();
+    if (!this.signatureFlowRepository) return { activeFlowByDocumentId, documentIdsWithFlowHistory };
+
+    const documentIds = [...new Set(documents.map((doc) => doc.id))];
+    if (documentIds.length === 0) return { activeFlowByDocumentId, documentIdsWithFlowHistory };
+
+    // Todos los flujos (cualquier estado) que haya tenido cada documento alguna vez.
+    const allFlows = await this.signatureFlowRepository.findByDocumentIds(documentIds);
+    const activeStatuses = new Set([SignatureFlowStatus.IN_REVIEW, SignatureFlowStatus.IN_SIGNING]);
+
+    for (const flow of allFlows) {
+      documentIdsWithFlowHistory.add(flow.documentId);
+      if (activeStatuses.has(flow.status) && !activeFlowByDocumentId.has(flow.documentId)) {
+        // allFlows viene ordenado por created_at DESC, así que el primero que encontremos es el más reciente.
+        activeFlowByDocumentId.set(flow.documentId, {
+          id: flow.id,
+          sentBy: flow.sentBy,
+          requireSignatureDrawing: flow.requireSignatureDrawing,
+        });
+      }
+    }
+
+    return { activeFlowByDocumentId, documentIdsWithFlowHistory };
+  }
+
+  private toResponseDto(
+    document: Document,
+    activeFlow?: { id: string; sentBy: string | null; requireSignatureDrawing: boolean } | null,
+    hasSignatureFlowHistory?: boolean,
+  ): DocumentResponseDto {
     const json = document.toJSON();
     return {
       id: json.id,
@@ -401,6 +452,14 @@ export class DocumentController {
       description: json.description,
       documentUrl: json.documentUrl,
       status: json.status,
+      previousVersionId: document.previousVersionId,
+      isSuperseded: document.isSuperseded,
+      code: document.code,
+      reviewDate: json.reviewDate ?? null,
+      responsibleColaboratorId: document.responsibleColaboratorId,
+      responsibleColaboratorName: document.responsibleColaboratorName,
+      areaId: document.areaId,
+      areaName: document.areaName,
       requiredForContract: json.requiredForContract ?? false,
       requiredForColaborator: json.requiredForColaborator ?? false,
       requiredExpirationDate: json.requiredExpirationDate ?? false,
@@ -410,6 +469,10 @@ export class DocumentController {
       daysUntilExpiration: document.daysUntilExpiration,
       createdAt: json.createdAt,
       updatedAt: json.updatedAt,
+      activeSignatureFlowId: activeFlow?.id ?? null,
+      activeSignatureFlowSentBy: activeFlow?.sentBy ?? null,
+      activeSignatureFlowRequiresDrawing: activeFlow ? activeFlow.requireSignatureDrawing : null,
+      hasSignatureFlowHistory: hasSignatureFlowHistory ?? false,
     };
   }
 

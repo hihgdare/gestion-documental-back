@@ -15,4 +15,8 @@ export interface CreateDocumentDto {
   requiredColaboratorsCount?: number;
   templateId?: string;
   fieldValues?: DocumentFieldValueDto[];
+  code?: string;
+  reviewDate?: string; // ISO date string
+  responsibleColaboratorId?: string;
+  areaId?: string;
 }

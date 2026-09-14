@@ -11,7 +11,7 @@ import {
   SignatureFlowParticipantStatus,
   SignatureFlowStatus,
 } from '../value-objects/signature-flow-enums';
-import { SignatureFlowNotificationService } from '../services/signature-flow-notification.service';
+import { SignatureFlowNotificationService, ReminderConfig } from '../services/signature-flow-notification.service';
 import { SignatureStatus } from '@domains/signature/value-objects/signature-enums';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
@@ -20,13 +20,14 @@ import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeo
 import {
   SignaturePdfStampService,
   SignerStampData,
+  StampTarget,
 } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { Document } from '@domains/document/entities/document.entity';
+import { DocumentVersioningService } from '@domains/document/services/document-versioning.service';
 import { SignatureFlow } from '../entities/signature-flow.entity';
 import { ExternalParticipantTokenRepository } from '../repositories/external-participant-token.repository';
-import { ExternalParticipantToken } from '../entities/external-participant-token.entity';
-import { generateExternalToken, buildExternalTokenExpiry } from './external-participant-access.use-case';
 import { buildFrontendUrl } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { isParticipantEnabledInCurrentStep, orderTypeForRole } from '../services/signature-flow-step.util';
 
 export interface ProcessFlowParticipantActionInput {
   participantId: string;
@@ -48,6 +49,7 @@ export class ProcessFlowParticipantActionUseCase {
     private readonly fileRepository?: TypeOrmFileRepository,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly externalTokenRepository?: ExternalParticipantTokenRepository,
+    private readonly documentVersioningService?: DocumentVersioningService,
   ) {}
 
   async execute(input: ProcessFlowParticipantActionInput): Promise<void> {
@@ -68,7 +70,7 @@ export class ProcessFlowParticipantActionUseCase {
       throw new ValidationError('El participante no está pendiente de acción');
     }
 
-    if (!this.isParticipantEnabledInCurrentStep(this.orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
+    if (!isParticipantEnabledInCurrentStep(orderTypeForRole(flow, participant.role), participant, await this.participantRepository.findByFlowId(flow.id))) {
       throw new ValidationError('Este participante aún no puede actuar por el orden configurado del flujo');
     }
 
@@ -127,7 +129,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
+      && isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return false;
@@ -273,7 +275,7 @@ export class ProcessFlowParticipantActionUseCase {
       p.role === SignatureFlowParticipantRole.SIGNER
       && p.userId === userId
       && p.status === SignatureFlowParticipantStatus.PENDING
-      && this.isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
+      && isParticipantEnabledInCurrentStep(flow.signerOrderType, p, participants)
     ));
 
     if (!participant) return;
@@ -306,7 +308,7 @@ export class ProcessFlowParticipantActionUseCase {
     await this.reconcileFlow(flow.id);
   }
 
-  private async reconcileFlow(flowId: string): Promise<void> {
+  async reconcileFlow(flowId: string): Promise<void> {
     const flow = await this.flowRepository.findById(flowId);
     if (!flow) return;
 
@@ -316,6 +318,14 @@ export class ProcessFlowParticipantActionUseCase {
     const participants = await this.participantRepository.findByFlowId(flow.id);
     const validators = participants.filter((p) => p.role === SignatureFlowParticipantRole.VALIDATOR);
     const signers = participants.filter((p) => p.role === SignatureFlowParticipantRole.SIGNER);
+    const reminderConfig: ReminderConfig = { enabled: flow.reminderEnabled, intervalMinutes: flow.reminderIntervalMinutes };
+
+    // Quien ya no está pendiente (aprobó/firmó/rechazó) ya no debe recibir el recordatorio agendado.
+    await Promise.all(
+      participants
+        .filter((p) => p.status !== SignatureFlowParticipantStatus.PENDING)
+        .map((p) => this.notificationService.cancelReminder(p.id)),
+    );
 
     const hasRejected = participants.some((p) => p.status === SignatureFlowParticipantStatus.REJECTED);
     if (hasRejected) {
@@ -337,6 +347,9 @@ export class ProcessFlowParticipantActionUseCase {
       }
       document.signatureStatus = SignatureStatus.REJECTED;
       document.comment = rejectionReason;
+
+      // El flujo se cierra: los demás participantes (aunque sigan "pendientes") ya no deben ser recordados.
+      await Promise.all(participants.map((p) => this.notificationService.cancelReminder(p.id)));
 
       await this.flowRepository.update(flow);
       await this.documentRepository.update(document);
@@ -392,6 +405,9 @@ export class ProcessFlowParticipantActionUseCase {
             document.id,
             document.name,
             flow.orderType,
+            undefined,
+            undefined,
+            reminderConfig,
           );
         } catch (err) {
           console.warn('[reconcileFlow] notify next sequential validator failed (non-critical):', err);
@@ -399,7 +415,7 @@ export class ProcessFlowParticipantActionUseCase {
 
         if (nextValidator.isExternal && nextValidator.externalEmail) {
           try {
-            await this.notifyExternalParticipants([nextValidator], document.name);
+            await this.notifyExternalParticipants([nextValidator], document.name, reminderConfig);
           } catch (err) {
             console.warn('[reconcileFlow] notifyExternalParticipants for next validator failed (non-critical):', err);
           }
@@ -432,14 +448,22 @@ export class ProcessFlowParticipantActionUseCase {
 
       const pendingSigners = signers.filter((p) => p.status === SignatureFlowParticipantStatus.PENDING);
       try {
-        await this.notificationService.notifyParticipantsForCurrentStep(pendingSigners, document.id, document.name, flow.signerOrderType);
+        await this.notificationService.notifyParticipantsForCurrentStep(
+          pendingSigners,
+          document.id,
+          document.name,
+          flow.signerOrderType,
+          undefined,
+          undefined,
+          reminderConfig,
+        );
       } catch (err) {
         console.warn('[reconcileFlow] notifyParticipantsForCurrentStep failed (non-critical):', err);
       }
 
       const externalSigners = pendingSigners.filter((p) => p.isExternal && p.externalEmail);
       try {
-        await this.notifyExternalParticipants(externalSigners, document.name);
+        await this.notifyExternalParticipants(externalSigners, document.name, reminderConfig);
       } catch (err) {
         console.warn('[reconcileFlow] notifyExternalParticipants failed (non-critical):', err);
       }
@@ -447,7 +471,8 @@ export class ProcessFlowParticipantActionUseCase {
     }
 
     const allSignersSigned = signers.length > 0
-      && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
+      && signers.every((p) => p.status === SignatureFlowParticipantStatus.SIGNED || p.status === SignatureFlowParticipantStatus.SKIPPED)
+      && signers.some((p) => p.status === SignatureFlowParticipantStatus.SIGNED);
 
     // Sequential firmantes: notifica al siguiente firmante pendiente después de que uno firma.
     // Análogo al bloque de validadores de arriba — sin esto el segundo firmante nunca sería notificado.
@@ -469,6 +494,9 @@ export class ProcessFlowParticipantActionUseCase {
             document.id,
             document.name,
             flow.signerOrderType,
+            undefined,
+            undefined,
+            reminderConfig,
           );
         } catch (err) {
           console.warn('[reconcileFlow] notify next sequential signer failed (non-critical):', err);
@@ -476,7 +504,7 @@ export class ProcessFlowParticipantActionUseCase {
 
         if (nextSigner.isExternal && nextSigner.externalEmail) {
           try {
-            await this.notifyExternalParticipants([nextSigner], document.name);
+            await this.notifyExternalParticipants([nextSigner], document.name, reminderConfig);
           } catch (err) {
             console.warn('[reconcileFlow] notifyExternalParticipants for next signer failed (non-critical):', err);
           }
@@ -524,15 +552,17 @@ export class ProcessFlowParticipantActionUseCase {
   }
 
   private async tryStampConsolidatedPdf(
-    _flow: SignatureFlow,
+    flow: SignatureFlow,
     document: Document,
     participants: SignatureFlowParticipant[],
   ): Promise<void> {
     if (!this.pdfStampService || !this.userRepository || !this.signatureRepository || !document.documentUrl) return;
 
     try {
-      const pdfPath = await this.resolvePdfPath(document.documentUrl);
-      if (!pdfPath) return;
+      const stampTarget = await this.resolvePdfPath(document.documentUrl);
+      if (!stampTarget) return;
+
+      const requiresDrawing = flow.requireSignatureDrawing;
 
       const signedSigners = participants.filter(
         (p) => p.role === SignatureFlowParticipantRole.SIGNER
@@ -541,6 +571,8 @@ export class ProcessFlowParticipantActionUseCase {
 
       const documentSignatures = await this.signatureRepository.findByDocumentId(document.id);
       const signerData: SignerStampData[] = [];
+      const missingSignatureReasons: string[] = [];
+      const signatureImageFiles: Array<{ signerName: string; fileId: string }> = [];
       for (const s of signedSigners) {
         if (s.userId) {
           // Internal signer — look up Signature record for tokenHash/IP
@@ -556,11 +588,22 @@ export class ProcessFlowParticipantActionUseCase {
             ? await this.colaboratorRepository.findByUserId(s.userId)
             : null;
 
+          const signerName = `${user.firstName} ${user.lastName}`;
+          const { bytes, reason } = requiresDrawing
+            ? await this.loadSignatureImageBytes(signature.signatureImageFileId)
+            : {};
+          if (reason) missingSignatureReasons.push(`${signerName}: ${reason}`);
+          if (signature.signatureImageFileId) {
+            signatureImageFiles.push({ signerName, fileId: signature.signatureImageFileId });
+          }
+
           signerData.push({
-            signerName: `${user.firstName} ${user.lastName}`,
+            signerName,
             signerDocumentNumber: colaborator?.numeroDocumento ?? 'N/A',
             signerEmail: String(user.email),
             signedAt: signature.signedAt ?? s.actionAt ?? new Date(),
+            signatureImageBytes: bytes,
+            signatureRequired: requiresDrawing,
             ipAddress: signature.ipAddress ?? 'N/A',
             tokenHash: signature.tokenHash,
           });
@@ -570,11 +613,22 @@ export class ProcessFlowParticipantActionUseCase {
             ? await this.externalTokenRepository.findByParticipantId(s.id)
             : null;
 
+          const signerName = s.externalName ?? 'Firmante externo';
+          const { bytes, reason } = requiresDrawing
+            ? await this.loadSignatureImageBytes(extToken?.signatureImageFileId ?? null)
+            : {};
+          if (reason) missingSignatureReasons.push(`${signerName}: ${reason}`);
+          if (extToken?.signatureImageFileId) {
+            signatureImageFiles.push({ signerName, fileId: extToken.signatureImageFileId });
+          }
+
           signerData.push({
-            signerName: s.externalName ?? 'Firmante externo',
+            signerName,
             signerDocumentNumber: extToken?.documentNumber ?? 'N/A',
             signerEmail: s.externalEmail,
             signedAt: s.actionAt ?? new Date(),
+            signatureImageBytes: bytes,
+            signatureRequired: requiresDrawing,
             ipAddress: extToken?.ipAddress ?? 'N/A',
             tokenHash: extToken?.signatureTokenHash ?? 'N/A',
           });
@@ -585,46 +639,117 @@ export class ProcessFlowParticipantActionUseCase {
 
       const verifyUrl = buildFrontendUrl(`/verificar?id=${document.id}`) ?? `/verificar?id=${document.id}`;
 
-      await this.pdfStampService.stampConsolidatedPdf(pdfPath, {
+      const { bytes: stampedBytes, signerWarnings } = await this.pdfStampService.stampConsolidatedPdf(stampTarget, {
         documentId: document.id,
         completedAt: new Date(),
         verifyUrl,
         signers: signerData,
       });
+
+      const allReasons = [
+        ...missingSignatureReasons,
+        ...signerWarnings.map((w) => `${w.signerName}: ${w.reason}`),
+      ];
+
+      await this.persistStampedDocument(document, stampedBytes, allReasons, signatureImageFiles);
     } catch (err) {
       console.warn('[ProcessFlowParticipantActionUseCase] Consolidated PDF stamping failed (non-critical):', err);
+    }
+  }
+
+  /**
+   * Guarda el PDF consolidado como un archivo nuevo (nunca sobrescribe el original) y
+   * archiva la versión previa del documento, para poder compararlas o recuperar el
+   * original ante cualquier error — mismo patrón que ya usa UpdateDocumentUseCase al
+   * reemplazar el archivo de un documento.
+   * `signatureIssues`, si viene, queda registrado en el Historial. `signatureImageFiles`
+   * adjunta la imagen PNG cruda de cada firmante como entrada previsualizable del
+   * Historial — así se puede auditar visualmente lo que realmente quedó guardado sin
+   * necesitar acceso a los logs del servidor, la base de datos ni el bucket S3.
+   */
+  private async persistStampedDocument(
+    document: Document,
+    stampedBytes: Buffer,
+    signatureIssues: string[] = [],
+    signatureImageFiles: Array<{ signerName: string; fileId: string }> = [],
+  ): Promise<void> {
+    if (!this.fileRepository) return;
+
+    const previousDocumentUrl = document.documentUrl;
+    if (!previousDocumentUrl) return;
+
+    const originalFile = await this.fileRepository.findById(previousDocumentUrl).catch(() => null);
+    const fileName = originalFile?.originalName ?? `${document.name}.pdf`;
+
+    const newFile = await this.fileRepository.saveBuffer(stampedBytes, fileName, 'application/pdf');
+
+    const archived = this.documentVersioningService
+      ? await this.documentVersioningService.archiveCurrentFileVersion(
+        document,
+        'Versión reemplazada automáticamente al estampar la firma.',
+      )
+      : null;
+
+    document.updateDocumentUrl(newFile.id);
+    if (archived) {
+      document.previousVersionId = archived.id;
+    }
+    await this.documentRepository.update(document);
+
+    const comment = signatureIssues.length > 0
+      ? `Todos los firmantes completaron la firma. Aviso: no se pudo incluir el dibujo de la firma de: ${signatureIssues.join('; ')}.`
+      : 'Todos los firmantes completaron la firma.';
+
+    if (archived && this.documentVersioningService) {
+      await this.documentVersioningService.recordFileReplacedHistory({
+        liveDocument: document,
+        archivedDocument: archived,
+        previousDocumentUrl,
+        extraChanges: signatureImageFiles.map((f) => ({
+          field: `signatureImage:${f.fileId}`,
+          label: `Firma dibujada — ${f.signerName}`,
+          afterFileId: f.fileId,
+        })),
+        action: DocumentAction.VERSION_SUPERSEDED,
+        updatedByName: 'Sistema',
+        comment,
+      });
+    }
+  }
+
+  private async loadSignatureImageBytes(fileId: string | null): Promise<{ bytes?: Buffer; reason?: string }> {
+    if (!fileId) return { reason: 'la firma dibujada nunca quedó asociada a un archivo guardado' };
+    if (!this.fileRepository) return { reason: 'el repositorio de archivos no está disponible' };
+    try {
+      const file = await this.fileRepository.findById(fileId);
+      if (!file) return { reason: `no se encontró el archivo guardado (id ${fileId})` };
+      const bytes = await this.fileRepository.getContent(file);
+      return { bytes };
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.warn(`[ProcessFlowParticipantActionUseCase] loadSignatureImageBytes: fallo leyendo File ${fileId} (no crítico):`, err);
+      return { reason: `no se pudo leer el archivo guardado (id ${fileId}): ${reason}` };
     }
   }
 
   private async notifyExternalParticipants(
     participants: SignatureFlowParticipant[],
     documentName: string,
+    reminderConfig?: ReminderConfig,
   ): Promise<void> {
-    if (!this.externalTokenRepository) return;
     for (const p of participants) {
-      const email = p.externalEmail;
-      if (!email) continue;
-      await this.externalTokenRepository.deleteByParticipantId(p.id);
-      const token = ExternalParticipantToken.create({
-        participantId: p.id,
-        token: generateExternalToken(),
-        expiresAt: buildExternalTokenExpiry(),
-      });
-      const saved = await this.externalTokenRepository.save(token);
-      const accessUrl = buildFrontendUrl(`/external-signature/${saved.token}`);
-      if (!accessUrl) continue;
-      await this.notificationService.notifyExternalParticipant(
-        email,
-        p.externalName,
-        p.role,
+      await this.notificationService.refreshTokenAndNotifyExternalParticipant(
+        p,
         documentName,
-        accessUrl,
+        undefined,
+        undefined,
+        reminderConfig,
       );
     }
   }
 
-  private async resolvePdfPath(documentUrl: string): Promise<string | null> {
-    if (documentUrl.toLowerCase().endsWith('.pdf')) return documentUrl;
+  private async resolvePdfPath(documentUrl: string): Promise<StampTarget | null> {
+    if (documentUrl.toLowerCase().endsWith('.pdf')) return { storage: 'local', path: documentUrl };
     if (!this.fileRepository) return null;
 
     const file = await this.fileRepository.findById(documentUrl);
@@ -634,28 +759,7 @@ export class ProcessFlowParticipantActionUseCase {
       || file.originalName.toLowerCase().endsWith('.pdf')
       || file.path.toLowerCase().endsWith('.pdf');
 
-    if (!isPdf || file.storage !== 'local') return null;
-    return file.path;
-  }
-
-  private orderTypeForRole(flow: SignatureFlow, role: SignatureFlowParticipantRole): SignatureFlowOrderType {
-    return role === SignatureFlowParticipantRole.SIGNER ? flow.signerOrderType : flow.orderType;
-  }
-
-  private isParticipantEnabledInCurrentStep(
-    orderType: SignatureFlowOrderType,
-    participant: SignatureFlowParticipant,
-    participants: SignatureFlowParticipant[],
-  ): boolean {
-    if (orderType !== SignatureFlowOrderType.SEQUENTIAL) return true;
-    if (participant.order === null) return true;
-
-    const pendingSameRole = participants
-      .filter((p) => p.role === participant.role && p.status === SignatureFlowParticipantStatus.PENDING && p.order !== null)
-      .map((p) => p.order as number);
-
-    if (pendingSameRole.length === 0) return true;
-
-    return participant.order === Math.min(...pendingSameRole);
+    if (!isPdf) return null;
+    return { storage: file.storage, path: file.path };
   }
 }

@@ -47,10 +47,13 @@ export class TypeOrmExternalParticipantTokenRepository implements ExternalPartic
       otpHash: entity.otpHash ?? null,
       otpExpiresAt: entity.otpExpiresAt ?? null,
       otpAttempts: entity.otpAttempts,
+      otpMethod: entity.otpMethod ?? null,
       usedAt: entity.usedAt ?? null,
       signatureTokenHash: entity.signatureTokenHash ?? null,
       ipAddress: entity.ipAddress ?? null,
       documentNumber: entity.documentNumber ?? null,
+      timezone: entity.timezone ?? null,
+      signatureImageFileId: entity.signatureImageFileId ?? null,
       createdAt: entity.createdAt,
     };
     return ExternalParticipantToken.create(props);
@@ -65,10 +68,13 @@ export class TypeOrmExternalParticipantTokenRepository implements ExternalPartic
       otpHash: token.otpHash ?? undefined,
       otpExpiresAt: token.otpExpiresAt ?? undefined,
       otpAttempts: token.otpAttempts,
+      otpMethod: token.otpMethod ?? undefined,
       usedAt: token.usedAt ?? undefined,
       signatureTokenHash: token.signatureTokenHash ?? undefined,
       ipAddress: token.ipAddress ?? undefined,
       documentNumber: token.documentNumber ?? undefined,
+      timezone: token.timezone ?? undefined,
+      signatureImageFileId: token.signatureImageFileId ?? undefined,
     };
   }
 }

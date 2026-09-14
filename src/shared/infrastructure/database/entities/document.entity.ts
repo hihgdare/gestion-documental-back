@@ -10,6 +10,7 @@ import {
   JoinColumn,
   JoinTable,
   Index,
+  type Relation,
 } from 'typeorm';
 import { DocumentModelEntity } from './document-model.entity';
 import { ColaboratorEntity } from './colaborators.entity';
@@ -17,6 +18,7 @@ import { ContractEntity } from './contract.entity';
 import { UserEntity } from './user.entity';
 import { DocumentTemplateEntity } from './document-template.entity';
 import { SignatureFlowEntity } from './signature-flow.entity';
+import { AreaEntity } from './area.entity';
 
 @Entity('documents')
 @Index('IDX_documents_status', ['status'])
@@ -25,6 +27,7 @@ import { SignatureFlowEntity } from './signature-flow.entity';
 @Index('IDX_documents_contract_id', ['contractId'])
 @Index('IDX_documents_signature_flow_id', ['signatureFlowId'])
 @Index('IDX_documents_is_superseded', ['isSuperseded'])
+@Index('IDX_documents_group_id_code', ['groupId', 'code'], { unique: true })
 export class DocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -87,6 +90,26 @@ export class DocumentEntity {
 
   @Column({ name: 'is_superseded', type: 'boolean', default: false })
   isSuperseded!: boolean;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  code?: string;
+
+  @Column({ name: 'review_date', type: 'date', nullable: true })
+  reviewDate?: Date;
+
+  @Column({ name: 'responsible_colaborator_id', type: 'varchar', length: 36, nullable: true })
+  responsibleColaboratorId?: string;
+
+  @ManyToOne(() => ColaboratorEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'responsible_colaborator_id' })
+  responsibleColaborator?: Relation<ColaboratorEntity>;
+
+  @Column({ name: 'area_id', type: 'varchar', length: 36, nullable: true })
+  areaId?: string;
+
+  @ManyToOne(() => AreaEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'area_id' })
+  area?: AreaEntity;
 
   @Column({ name: 'group_id', type: 'integer' })
   groupId!: number;

@@ -9,7 +9,16 @@ import { SignatureFlowParticipantRole, SignatureFlowParticipantStatus, Signature
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { EmailService } from '@shared/infrastructure/email/email-service.interface';
 import { buildPrimactaNotificationEmail } from '@shared/infrastructure/email/templates/primacta-notification-email.template';
+import { redactSecret } from '@shared/utils/redact';
+import { SignatureCodeNotificationRepository } from '../repositories/signature-code-notification.repository';
 import { ProcessFlowParticipantActionUseCase } from './progress-signature-flow.use-case';
+import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { UserSignatureRepository } from '@domains/signature/repositories/user-signature.repository';
+import {
+  GetSavedSignaturePreviewUseCase,
+  type SavedSignaturePreview,
+} from '@domains/signature/use-cases/get-saved-signature-preview.use-case';
+import { decodeSignatureImage } from '@shared/utils/image';
 
 const EXTERNAL_TOKEN_EXPIRY_HOURS = parseInt(process.env.EXTERNAL_PARTICIPANT_TOKEN_EXPIRY_HOURS ?? '168', 10);
 const OTP_EXPIRY_MINUTES = 10;
@@ -25,6 +34,8 @@ export interface ExternalAccessInfo {
     status: string;
     canAct: boolean;
     requiresDocumentNumber: boolean;
+    canSaveSignature: boolean;
+    requiresSignatureDrawing: boolean;
   } | null;
   document: {
     id: string;
@@ -92,6 +103,8 @@ export class GetExternalParticipantAccessUseCase {
         status: participant.status,
         canAct,
         requiresDocumentNumber: !participant.colaboratorId,
+        canSaveSignature: Boolean(participant.colaboratorId),
+        requiresSignatureDrawing: flow.requireSignatureDrawing,
       },
       document: { id: document.id, name: document.name, documentUrl: document.documentUrl ?? null },
       flow: { id: flow.id, status: flow.status },
@@ -141,6 +154,7 @@ export class RequestExternalSignerOtpUseCase {
     private readonly flowRepository: SignatureFlowRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly emailService: EmailService,
+    private readonly signatureCodeNotificationRepository?: SignatureCodeNotificationRepository,
   ) {}
 
   async execute(token: string, method: 'email' | 'sms' = 'email', phoneNumber?: string): Promise<{ redactedEmail: string; redactedPhone?: string }> {
@@ -173,6 +187,7 @@ export class RequestExternalSignerOtpUseCase {
     tokenRecord.otpHash = otpHash;
     tokenRecord.otpExpiresAt = otpExpiresAt;
     tokenRecord.otpAttempts = 0;
+    tokenRecord.otpMethod = method;
     await this.tokenRepository.update(tokenRecord);
 
     const [user, domain] = externalEmail.split('@');
@@ -183,7 +198,15 @@ export class RequestExternalSignerOtpUseCase {
         throw new ValidationError('Debe proporcionar un número de teléfono para recibir el código por SMS.');
       }
       const phone = phoneNumber.trim();
-      await this.sendSmsCode(phone, otpCode);
+      const smsBody = `Tu código de firma electrónica es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
+      await this.sendSmsCode(phone, smsBody);
+      await this.logCodeNotification({
+        participantId: participant.id,
+        channel: 'sms',
+        recipient: phone,
+        textContent: smsBody,
+        otpCode,
+      });
       const redactedPhone = phone.length > 4
         ? phone.slice(0, -4).replace(/\d/g, '*') + phone.slice(-4)
         : '****';
@@ -200,18 +223,60 @@ export class RequestExternalSignerOtpUseCase {
       code: otpCode,
       warningMessage,
     });
+    const text = `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`;
 
     await this.emailService.send({
       to: externalEmail,
       subject: title,
-      text: `Tu código de firma es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+      text,
       html,
+    });
+
+    await this.logCodeNotification({
+      participantId: participant.id,
+      channel: 'email',
+      recipient: externalEmail,
+      subject: title,
+      htmlContent: html,
+      textContent: text,
+      otpCode,
     });
 
     return { redactedEmail };
   }
 
-  private async sendSmsCode(phoneNumber: string, otpCode: string): Promise<void> {
+  /**
+   * Registra el envío para trazabilidad, censurando el código real antes de guardarlo:
+   * el texto plano del código nunca toca la base de datos, solo llega a la bandeja/teléfono
+   * del firmante. Si falla, no interrumpe el proceso de firma (no crítico).
+   */
+  private async logCodeNotification(params: {
+    participantId: string;
+    channel: 'email' | 'sms';
+    recipient: string;
+    subject?: string;
+    htmlContent?: string;
+    textContent?: string;
+    otpCode: string;
+  }): Promise<void> {
+    if (!this.signatureCodeNotificationRepository) return;
+
+    try {
+      await this.signatureCodeNotificationRepository.create({
+        participantId: params.participantId,
+        channel: params.channel,
+        recipient: params.recipient,
+        subject: params.subject ?? null,
+        htmlContent: redactSecret(params.htmlContent ?? null, params.otpCode),
+        textContent: redactSecret(params.textContent ?? null, params.otpCode),
+        sentAt: new Date(),
+      });
+    } catch (err) {
+      console.warn('[RequestExternalSignerOtpUseCase] No se pudo registrar el log del código enviado (no crítico):', err);
+    }
+  }
+
+  private async sendSmsCode(phoneNumber: string, body: string): Promise<void> {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
@@ -229,7 +294,7 @@ export class RequestExternalSignerOtpUseCase {
       const twilioModule = await import('twilio');
       const client = twilioModule.default(accountSid, authToken);
       await client.messages.create({
-        body: `Tu código de firma electrónica es: ${otpCode}. Válido por ${OTP_EXPIRY_MINUTES} minutos.`,
+        body,
         from: fromNumber,
         to: phoneNumber,
       });
@@ -245,10 +310,21 @@ export class ValidateExternalSignerOtpUseCase {
     private readonly participantRepository: SignatureFlowParticipantRepository,
     private readonly cryptoService: SignatureCryptoService,
     private readonly processFlowUseCase: ProcessFlowParticipantActionUseCase,
+    private readonly flowRepository: SignatureFlowRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
+    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly userSignatureRepository?: UserSignatureRepository,
   ) {}
 
-  async execute(token: string, code: string, ipAddress: string, documentNumber?: string): Promise<void> {
+  async execute(
+    token: string,
+    code: string,
+    ipAddress: string,
+    documentNumber?: string,
+    timezone?: string,
+    signatureImage?: string,
+    saveSignatureForFuture?: boolean,
+  ): Promise<void> {
     const tokenRecord = await this.tokenRepository.findByToken(token);
     if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
       throw new ValidationError('El enlace de acceso no es válido o ha expirado.');
@@ -276,6 +352,16 @@ export class ValidateExternalSignerOtpUseCase {
       throw new ValidationError(`Código incorrecto. Te quedan ${remaining} intento(s).`);
     }
 
+    const flow = await this.flowRepository.findById(participant.flowId);
+    const requiresDrawing = flow?.requireSignatureDrawing ?? true;
+
+    if (requiresDrawing && !signatureImage) {
+      throw new ValidationError('Debes dibujar tu firma para completar el proceso.');
+    }
+    const signatureImageBuffer = requiresDrawing && signatureImage
+      ? decodeSignatureImage(signatureImage)
+      : null;
+
     const signedAt = new Date();
     const signatureTokenHash = this.cryptoService.generateTokenHash({
       documentId: participant.flowId,
@@ -288,9 +374,21 @@ export class ValidateExternalSignerOtpUseCase {
       ? (await this.colaboratorRepository.findById(participant.colaboratorId))?.numeroDocumento ?? null
       : documentNumber ?? null;
 
+    let signatureImageFileId: string | null = null;
+    if (this.fileRepository && signatureImageBuffer) {
+      const savedImage = await this.fileRepository.saveBuffer(signatureImageBuffer, 'signature.png', 'image/png');
+      signatureImageFileId = savedImage.id;
+
+      if (saveSignatureForFuture && participant.colaboratorId && this.userSignatureRepository) {
+        await this.userSignatureRepository.upsertForColaborator(participant.colaboratorId, savedImage.id);
+      }
+    }
+
     tokenRecord.signatureTokenHash = signatureTokenHash;
     tokenRecord.ipAddress = ipAddress;
     tokenRecord.documentNumber = resolvedDocumentNumber;
+    tokenRecord.timezone = timezone ?? null;
+    tokenRecord.signatureImageFileId = signatureImageFileId;
     tokenRecord.usedAt = signedAt;
     tokenRecord.otpHash = null;
     await this.tokenRepository.update(tokenRecord);
@@ -302,6 +400,29 @@ export class ValidateExternalSignerOtpUseCase {
       // Post-signing side effects (notifications, PDF stamping) are non-critical.
       console.error('[ValidateExternalSignerOtpUseCase] Post-signing flow processing failed (non-critical):', err);
     }
+  }
+}
+
+/** Busca la firma guardada del colaborador vinculado a un token de acceso externo, si tiene una. */
+export class GetExternalSignerSavedSignatureUseCase {
+  constructor(
+    private readonly tokenRepository: ExternalParticipantTokenRepository,
+    private readonly participantRepository: SignatureFlowParticipantRepository,
+    private readonly getSavedSignaturePreviewUseCase: GetSavedSignaturePreviewUseCase,
+  ) {}
+
+  async execute(token: string): Promise<SavedSignaturePreview> {
+    const tokenRecord = await this.tokenRepository.findByToken(token);
+    if (!tokenRecord || tokenRecord.isExpired || tokenRecord.isUsed) {
+      return { available: false };
+    }
+
+    const participant = await this.participantRepository.findById(tokenRecord.participantId);
+    if (!participant?.colaboratorId) {
+      return { available: false };
+    }
+
+    return this.getSavedSignaturePreviewUseCase.execute({ colaboratorId: participant.colaboratorId });
   }
 }
 

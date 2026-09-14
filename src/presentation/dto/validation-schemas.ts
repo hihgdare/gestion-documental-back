@@ -221,6 +221,12 @@ export const createDocumentSchema = Joi.object({
   description: Joi.string().max(1000).optional().allow('', null),
   documentUrl: Joi.string().optional().allow('', null),
   groupId: Joi.number().integer().positive().required(),
+  code: Joi.string().max(100).optional().allow('', null),
+  reviewDate: Joi.date().optional().allow(null).messages({
+    'date.base': 'reviewDate must be a valid date',
+  }),
+  responsibleColaboratorId: Joi.string().uuid().optional().allow('', null),
+  areaId: Joi.string().uuid().optional().allow('', null),
 }).unknown(true);
 
 export const updateDocumentSchema = Joi.object({
@@ -245,6 +251,12 @@ export const updateDocumentSchema = Joi.object({
   description: Joi.string().max(1000).optional().allow(null, ''),
   documentUrl: Joi.string().optional().allow(null, ''),
   groupId: Joi.number().integer().positive().optional(),
+  code: Joi.string().max(100).optional().allow('', null),
+  reviewDate: Joi.date().optional().allow(null).messages({
+    'date.base': 'reviewDate must be a valid date',
+  }),
+  responsibleColaboratorId: Joi.string().uuid().optional().allow('', null),
+  areaId: Joi.string().uuid().optional().allow('', null),
 }).min(1).unknown(true); // Permitir campos desconocidos
 
 export const getDocumentByIdSchema = Joi.object({
@@ -454,6 +466,7 @@ export const createDocumentTemplateSchema = Joi.object({
   documentDate: Joi.string().isoDate().required(),
   description: Joi.string().max(2000).optional().allow(''),
   groupId: Joi.number().integer().positive().optional(),
+  code: Joi.string().trim().min(1).max(20).optional(),
   fields: Joi.array().items(documentTemplateFieldSchema).optional().default([]),
 });
 
@@ -475,6 +488,12 @@ export const initiateSignatureSchema = Joi.object({
 export const validateSignatureCodeSchema = Joi.object({
   signatureId: Joi.string().uuid().required(),
   code: Joi.string().length(6).pattern(/^\d{6}$/).required(),
+  timezone: Joi.string().max(64).optional(),
+  // Opcional (y se permite vacío): el flujo puede tener requireSignatureDrawing=false,
+  // en cuyo caso el firmante solo valida con OTP y no dibuja firma. El caso de uso
+  // decide si igual es obligatorio según el flujo activo del documento.
+  signatureImage: Joi.string().max(500000).allow('').optional(),
+  saveSignatureForFuture: Joi.boolean().optional(),
 });
 
 export const cancelSignatureSchema = Joi.object({
@@ -496,6 +515,11 @@ export const createSignatureFlowSchema = Joi.object({
   orderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
   signerOrderType: Joi.string().valid(...Object.values(SignatureFlowOrderType)).optional(),
   participants: Joi.array().items(signatureFlowParticipantSchema).min(1).required(),
+  reminderEnabled: Joi.boolean().optional(),
+  reminderIntervalMinutes: Joi.number().integer().min(1440).optional(),
+  autoCloseEnabled: Joi.boolean().optional(),
+  autoCloseIntervalMinutes: Joi.number().integer().min(1440).optional(),
+  requireSignatureDrawing: Joi.boolean().optional(),
 });
 
 export const updateSignatureFlowSchema = Joi.object({
@@ -515,6 +539,22 @@ export const addSignatureFlowParticipantSchema = Joi.object({
 export const processSignatureFlowParticipantActionSchema = Joi.object({
   action: Joi.string().valid('approve', 'reject').required(),
   comment: Joi.string().max(1000).optional().allow('', null),
+});
+
+export const resendSignatureFlowNotificationSchema = Joi.object({
+  participantIds: Joi.array().items(Joi.string().uuid()).min(1).required(),
+});
+
+export const skipSignerSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
+export const closeSignatureFlowSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
+});
+
+export const reopenSignatureFlowSchema = Joi.object({
+  comment: Joi.string().trim().min(1).max(1000).required(),
 });
 
 // Landing settings schemas

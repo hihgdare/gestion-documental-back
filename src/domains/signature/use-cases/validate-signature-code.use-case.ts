@@ -1,21 +1,31 @@
 import { DocumentRepository } from '@domains/document/repositories/document.repository';
 import { DocumentHistoryRepository } from '@domains/document/repositories/document-history.repository';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
+import { Document } from '@domains/document/entities/document.entity';
+import { DocumentVersioningService } from '@domains/document/services/document-versioning.service';
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureRepository } from '../repositories/signature.repository';
 import { SignatureVerificationCodeRepository } from '../repositories/signature-verification-code.repository';
+import { UserSignatureRepository } from '../repositories/user-signature.repository';
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
-import { SignaturePdfStampService } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
+import { SignaturePdfStampService, StampTarget } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
-import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
+import { decodeSignatureImage } from '@shared/utils/image';
+import { ForbiddenError, NotFoundError, ValidationError } from '@shared/domain/errors';
 
 export interface ValidateSignatureCodeParams {
   signatureId: string;
+  userId: string;
   code: string;
   ipAddress: string;
+  timezone?: string;
+  /** Opcional cuando el flujo activo del documento tiene requireSignatureDrawing=false. */
+  signatureImage?: string;
+  saveSignatureForFuture?: boolean;
 }
 
 export class ValidateSignatureCodeUseCase {
@@ -30,14 +40,21 @@ export class ValidateSignatureCodeUseCase {
     private readonly processFlowParticipantActionUseCase?: ProcessFlowParticipantActionUseCase,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly userSignatureRepository?: UserSignatureRepository,
+    private readonly documentVersioningService?: DocumentVersioningService,
+    private readonly signatureFlowRepository?: SignatureFlowRepository,
   ) {}
 
   async execute(params: ValidateSignatureCodeParams): Promise<void> {
-    const { signatureId, code, ipAddress } = params;
+    const { signatureId, userId, code, ipAddress, timezone, signatureImage, saveSignatureForFuture } = params;
 
     const signature = await this.signatureRepository.findById(signatureId);
     if (!signature) {
       throw new NotFoundError('Proceso de firma no encontrado');
+    }
+
+    if (signature.userId !== userId) {
+      throw new ForbiddenError('No tienes permiso para completar este proceso de firma');
     }
 
     if (signature.status !== SignatureStatus.PENDING) {
@@ -89,6 +106,18 @@ export class ValidateSignatureCodeUseCase {
       throw new ValidationError(`Código incorrecto. Te quedan ${remaining} intento(s).`);
     }
 
+    const activeFlow = this.signatureFlowRepository
+      ? await this.signatureFlowRepository.findActiveByDocumentId(signature.documentId)
+      : null;
+    const requiresDrawing = activeFlow?.requireSignatureDrawing ?? true;
+
+    if (requiresDrawing && !signatureImage) {
+      throw new ValidationError('Debes dibujar tu firma para completar el proceso.');
+    }
+    const signatureImageBuffer = requiresDrawing && signatureImage
+      ? decodeSignatureImage(signatureImage)
+      : null;
+
     const signedAt = new Date();
     const tokenHash = this.cryptoService.generateTokenHash({
       documentId: signature.documentId,
@@ -100,9 +129,21 @@ export class ValidateSignatureCodeUseCase {
     verificationCode.usedAt = signedAt;
     await this.signatureCodeRepository.update(verificationCode);
 
+    let signatureImageFileId: string | null = null;
+    if (this.fileRepository && signatureImageBuffer) {
+      const savedImage = await this.fileRepository.saveBuffer(signatureImageBuffer, 'signature.png', 'image/png');
+      signatureImageFileId = savedImage.id;
+
+      if (saveSignatureForFuture && this.userSignatureRepository) {
+        await this.userSignatureRepository.upsertForUser(signature.userId, savedImage.id);
+      }
+    }
+
     signature.status = SignatureStatus.SIGNED;
     signature.tokenHash = tokenHash;
     signature.ipAddress = ipAddress;
+    signature.signerTimezone = timezone ?? null;
+    signature.signatureImageFileId = signatureImageFileId;
     signature.signedAt = signedAt;
     signature.updatedAt = signedAt;
     await this.signatureRepository.update(signature);
@@ -117,51 +158,158 @@ export class ValidateSignatureCodeUseCase {
       await this.documentRepository.save(document);
 
       if (!wasPartOfFlow) {
-        await this.tryStampPdf(document.documentUrl, signature.documentId, signature.userId, tokenHash, ipAddress, signedAt);
+        const stamped = await this.tryStampPdf(document, signature.userId, tokenHash, ipAddress, signedAt, signatureImageFileId, requiresDrawing);
+        if (!stamped) {
+          await this.recordSignedHistory(document, signature.userId);
+        }
       }
     }
   }
 
+  private async recordSignedHistory(document: Document, userId: string): Promise<void> {
+    await this.documentHistoryRepository.save({
+      documentId: document.id,
+      documentModelId: document.documentModelId,
+      name: document.name,
+      issuedDate: document.issuedDate ?? undefined,
+      expirationDate: document.expirationDate,
+      contractId: document.contractId,
+      description: document.description,
+      documentUrl: document.documentUrl,
+      status: document.status,
+      action: DocumentAction.SIGNATURE_SIGNED,
+      updatedBy: userId,
+      comment: 'Documento firmado electrónicamente.',
+    });
+  }
+
+  /** Devuelve true si el PDF se estampó y la nueva versión quedó registrada en el historial. */
   private async tryStampPdf(
-    documentUrl: string | undefined,
-    documentId: string,
+    document: Document,
     userId: string,
     tokenHash: string,
     ipAddress: string,
     signedAt: Date,
-  ): Promise<void> {
-    if (!this.pdfStampService || !documentUrl) return;
+    signatureImageFileId: string | null,
+    requiresDrawing: boolean = true,
+  ): Promise<boolean> {
+    if (!this.pdfStampService || !document.documentUrl) return false;
 
-    const pdfPath = await this.resolvePdfPath(documentUrl);
-    if (!pdfPath) return;
+    const stampTarget = await this.resolvePdfPath(document.documentUrl);
+    if (!stampTarget) return false;
 
     try {
       const user = await this.userRepository.findById(userId);
-      if (!user) return;
+      if (!user) return false;
 
       const colaborator = await this.colaboratorRepository.findByUserId(userId);
       const signerDocumentNumber = colaborator?.numeroDocumento ?? 'N/A';
 
-      const verifyUrl = this.buildVerifyUrl(documentId, tokenHash);
+      const verifyUrl = this.buildVerifyUrl(document.id, tokenHash);
 
-      await this.pdfStampService.stampPdf(pdfPath, {
+      const { bytes: signatureImageBytes, reason: missingSignatureReason } = requiresDrawing
+        ? await this.loadSignatureImageBytes(signatureImageFileId)
+        : {};
+
+      const { bytes: stampedBytes, signatureWarning } = await this.pdfStampService.stampPdf(stampTarget, {
         signerName: `${user.firstName} ${user.lastName}`,
         signerDocumentNumber,
         signerEmail: String(user.email),
         signedAt,
+        signatureImageBytes,
+        signatureRequired: requiresDrawing,
         ipAddress,
-        documentId,
+        documentId: document.id,
         tokenHash,
         verifyUrl,
       });
+
+      const signatureIssue = missingSignatureReason ?? signatureWarning;
+      await this.persistStampedDocument(document, stampedBytes, userId, signatureIssue, signatureImageFileId ?? undefined);
+      return true;
     } catch (err) {
       console.warn('[ValidateSignatureCodeUseCase] PDF stamping failed (non-critical):', err);
+      return false;
     }
   }
 
-  private async resolvePdfPath(documentUrl: string): Promise<string | null> {
+  /**
+   * Guarda el PDF estampado como un archivo nuevo (nunca sobrescribe el original) y
+   * archiva la versión previa del documento, para poder compararlas o recuperar el
+   * original ante cualquier error — mismo patrón que ya usa UpdateDocumentUseCase al
+   * reemplazar el archivo de un documento.
+   */
+  private async persistStampedDocument(
+    document: Document,
+    stampedBytes: Buffer,
+    userId: string,
+    signatureIssue?: string,
+    signatureImageFileId?: string,
+  ): Promise<void> {
+    if (!this.fileRepository) return;
+
+    const previousDocumentUrl = document.documentUrl;
+    if (!previousDocumentUrl) return;
+
+    const originalFile = await this.fileRepository.findById(previousDocumentUrl).catch(() => null);
+    const fileName = originalFile?.originalName ?? `${document.name}.pdf`;
+
+    const newFile = await this.fileRepository.saveBuffer(stampedBytes, fileName, 'application/pdf');
+
+    const archived = this.documentVersioningService
+      ? await this.documentVersioningService.archiveCurrentFileVersion(
+        document,
+        'Versión reemplazada automáticamente al estampar la firma.',
+      )
+      : null;
+
+    document.updateDocumentUrl(newFile.id);
+    if (archived) {
+      document.previousVersionId = archived.id;
+    }
+    await this.documentRepository.update(document);
+
+    const comment = signatureIssue
+      ? `Documento firmado electrónicamente. Aviso: no se pudo incluir el dibujo de la firma (${signatureIssue}).`
+      : 'Documento firmado electrónicamente.';
+
+    if (archived && this.documentVersioningService) {
+      await this.documentVersioningService.recordFileReplacedHistory({
+        liveDocument: document,
+        archivedDocument: archived,
+        previousDocumentUrl,
+        extraChanges: signatureImageFileId
+          ? [{
+            field: `signatureImage:${signatureImageFileId}`,
+            label: 'Firma dibujada',
+            afterFileId: signatureImageFileId,
+          }]
+          : undefined,
+        action: DocumentAction.SIGNATURE_SIGNED,
+        updatedBy: userId,
+        comment,
+      });
+    }
+  }
+
+  private async loadSignatureImageBytes(fileId: string | null): Promise<{ bytes?: Buffer; reason?: string }> {
+    if (!fileId) return { reason: 'la firma dibujada nunca quedó asociada a un archivo guardado' };
+    if (!this.fileRepository) return { reason: 'el repositorio de archivos no está disponible' };
+    try {
+      const file = await this.fileRepository.findById(fileId);
+      if (!file) return { reason: `no se encontró el archivo guardado (id ${fileId})` };
+      const bytes = await this.fileRepository.getContent(file);
+      return { bytes };
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.warn(`[ValidateSignatureCodeUseCase] loadSignatureImageBytes: fallo leyendo File ${fileId} (no crítico):`, err);
+      return { reason: `no se pudo leer el archivo guardado (id ${fileId}): ${reason}` };
+    }
+  }
+
+  private async resolvePdfPath(documentUrl: string): Promise<StampTarget | null> {
     if (documentUrl.toLowerCase().endsWith('.pdf')) {
-      return documentUrl;
+      return { storage: 'local', path: documentUrl };
     }
 
     if (!this.fileRepository) return null;
@@ -176,12 +324,7 @@ export class ValidateSignatureCodeUseCase {
 
     if (!isPdf) return null;
 
-    if (file.storage !== 'local') {
-      console.warn('[ValidateSignatureCodeUseCase] PDF stamping skipped: only local storage is currently supported.');
-      return null;
-    }
-
-    return file.path;
+    return { storage: file.storage, path: file.path };
   }
 
   private buildVerifyUrl(documentId: string, tokenHash: string): string {

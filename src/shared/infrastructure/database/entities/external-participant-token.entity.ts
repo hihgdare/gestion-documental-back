@@ -38,6 +38,9 @@ export class ExternalParticipantTokenEntity {
   @Column({ name: 'otp_attempts', type: 'int', default: 0 })
   otpAttempts!: number;
 
+  @Column({ name: 'otp_method', type: 'varchar', length: 10, nullable: true })
+  otpMethod?: string;
+
   @Column({ name: 'used_at', type: 'timestamp', nullable: true })
   usedAt?: Date;
 
@@ -49,6 +52,12 @@ export class ExternalParticipantTokenEntity {
 
   @Column({ name: 'document_number', type: 'varchar', length: 50, nullable: true })
   documentNumber?: string;
+
+  @Column({ name: 'timezone', type: 'varchar', length: 64, nullable: true })
+  timezone?: string;
+
+  @Column({ name: 'signature_image_file_id', type: 'varchar', length: 36, nullable: true })
+  signatureImageFileId?: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
