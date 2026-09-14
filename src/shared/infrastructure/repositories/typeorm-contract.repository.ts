@@ -223,6 +223,18 @@ export class TypeOrmContractRepository implements ContractRepository {
     return contractEntities.map(entity => this.toDomain(entity));
   }
 
+  async countActiveByGroupId(groupId: number): Promise<number> {
+    const now = new Date();
+    return this.repository
+      .createQueryBuilder('contract')
+      .where('contract.groupId = :groupId', { groupId })
+      .andWhere('contract.status IN (:...statuses)', { statuses: [ContractStatus.DRAFT, ContractStatus.ACTIVE] })
+      .andWhere('contract.startDate <= :now', { now })
+      .andWhere('contract.endDate >= :now', { now })
+      .andWhere('contract.deleted_at IS NULL')
+      .getCount();
+  }
+
   // Subcontract management methods
   async addSubcontract(contractId: string, subcontractId: string): Promise<void> {
     // Validate that contract and subcontract exist

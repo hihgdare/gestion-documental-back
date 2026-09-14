@@ -1,6 +1,9 @@
 import { UserRepository } from '@domains/user/repositories/user.repository';
-import { ValidationError, NotFoundError, UnauthorizedError } from '@shared/domain/errors';
+import { ValidationError, NotFoundError, UnauthorizedError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { UserStatus } from '@domains/user/value-objects/user-status';
+import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -14,6 +17,9 @@ export class SetPasswordUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtSecret: string,
+    private readonly groupRepository: GroupRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   async execute(token: string, newPassword: string): Promise<void> {
@@ -42,6 +48,23 @@ export class SetPasswordUseCase {
     // email was sent, invalidating this link.
     if (!user.passwordNonce || user.passwordNonce !== payload.nonce) {
       throw new UnauthorizedError('This activation link has already been used or has been superseded');
+    }
+
+    // Check plan quota before activating a previously inactive/suspended user
+    if (user.status !== UserStatus.ACTIVE) {
+      const group = await this.groupRepository.findByUserId(user.id);
+      if (group) {
+        const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(group.id!);
+        if (activeGroupPlan) {
+          const plan = await this.planRepository.findById(activeGroupPlan.planId);
+          if (plan && plan.maxActiveUsers !== null) {
+            const currentCount = await this.userRepository.countActiveByGroupId(group.id!);
+            if (currentCount >= plan.maxActiveUsers) {
+              throw new PlanQuotaExceededError('usuarios', plan.maxActiveUsers, currentCount);
+            }
+          }
+        }
+      }
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);

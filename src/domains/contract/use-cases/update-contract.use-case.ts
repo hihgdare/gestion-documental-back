@@ -1,13 +1,35 @@
 import { ContractRepository } from '../repositories/contract.repository';
 import { Contract, UpdateContractProps } from '../entities/contract.entity';
-import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { only } from '@shared/utils/objects';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+
+async function assertContractQuotaNotExceeded(
+  contract: Contract,
+  contractRepository: ContractRepository,
+  groupPlanRepository: GroupPlanRepository,
+  planRepository: PlanRepository,
+): Promise<void> {
+  const activeGroupPlan = await groupPlanRepository.findActiveByGroupId(contract.groupId);
+  if (!activeGroupPlan) return;
+
+  const plan = await planRepository.findById(activeGroupPlan.planId);
+  if (!plan || plan.maxActiveContracts === null) return;
+
+  const currentCount = await contractRepository.countActiveByGroupId(contract.groupId);
+  if (currentCount >= plan.maxActiveContracts) {
+    throw new PlanQuotaExceededError('contratos', plan.maxActiveContracts, currentCount);
+  }
+}
 
 export class UpdateContractUseCase {
   constructor(
     private readonly contractRepository: ContractRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: UpdateContractProps): Promise<Contract> {
@@ -25,6 +47,8 @@ export class UpdateContractUseCase {
     if (!contract.isEditable() && !isUserAdmin) {
       throw new Error('Contract is not editable. Only contracts with start date in the future can be edited.');
     }
+
+    const wasCounted = contract.countsForQuota();
 
     if (request.rutSociedad) {
       contract.updateRutSociedad(request.rutSociedad);
@@ -106,6 +130,10 @@ export class UpdateContractUseCase {
       contract.extendContract(new Date(request.endDate));
     }
 
+    if (!wasCounted && contract.countsForQuota()) {
+      await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
+    }
+
     const updateFields = only(contract, [
       'id',
       'rutSociedad',
@@ -134,7 +162,11 @@ export class UpdateContractUseCase {
 }
 
 export class ActivateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) { }
+  constructor(
+    private readonly contractRepository: ContractRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
+  ) { }
 
   public async execute(id: string): Promise<Contract> {
     const contract = await this.contractRepository.findById(id);
@@ -142,7 +174,13 @@ export class ActivateContractUseCase {
       throw new NotFoundError('Contract', id);
     }
 
+    const wasCounted = contract.countsForQuota();
     contract.activate();
+
+    if (!wasCounted && contract.countsForQuota()) {
+      await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
+    }
+
     return await this.contractRepository.update(contract);
   }
 }

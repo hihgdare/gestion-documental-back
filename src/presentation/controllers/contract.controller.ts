@@ -21,6 +21,7 @@ import {
   TerminateContractUseCase,
   DeleteContractUseCase,
 } from '@domains/contract/use-cases/update-contract.use-case';
+import { GetContractQuotaUseCase } from '@domains/contract/use-cases/get-contract-quota.use-case';
 import { CreateContractDto } from '@presentation/dto/contract/create-contract.dto';
 import { UpdateContractDto } from '@presentation/dto/contract/update-contract.dto';
 import { ContractResponseDto } from '@presentation/dto/contract/contract-response.dto';
@@ -80,8 +81,14 @@ export class ContractController {
     private readonly getContractColaboratorsUseCase: GetContractColaboratorsUseCase,
     private readonly getParentContractsUseCase: GetParentContractsUseCase,
     private readonly getContractDocumentStructureUseCase: GetContractDocumentStructureUseCase,
+    private readonly getContractQuotaUseCase: GetContractQuotaUseCase,
   ) { }
 
+  public getContractQuota = asyncHandler(async (req: Request, res: Response) => {
+    const { groupId } = req.auth;
+    const quota = await this.getContractQuotaUseCase.execute(groupId!);
+    res.status(200).json({ success: true, data: quota });
+  });
 
   private toResponseDto(contract: Contract): ContractResponseDto {
     const json = contract.toJSON();

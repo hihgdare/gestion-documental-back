@@ -68,6 +68,7 @@ import { GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-docum
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
+import { GetContractQuotaUseCase } from '@domains/contract/use-cases/get-contract-quota.use-case';
 import {
   GetContractByIdUseCase,
   GetAllContractsUseCase,
@@ -477,6 +478,7 @@ export class DependencyContainer {
   private suspendContractUseCase!: SuspendContractUseCase;
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
+  private getContractQuotaUseCase!: GetContractQuotaUseCase;
   private addSubcontractUseCase!: AddSubcontractUseCase;
   private removeSubcontractUseCase!: RemoveSubcontractUseCase;
   private getSubcontractsUseCase!: GetSubcontractsUseCase;
@@ -729,7 +731,13 @@ export class DependencyContainer {
     if (!jwtSecret) {
       throw new ServerError('JWT_SECRET is not configured');
     }
-    this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository, jwtSecret);
+    this.setPasswordUseCase = new SetPasswordUseCase(
+      this.userRepository,
+      jwtSecret,
+      this.groupRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
     this.sendActivationEmailUseCase = new SendActivationEmailUseCase(
       this.userRepository,
       this.emailService,
@@ -777,6 +785,8 @@ export class DependencyContainer {
       this.groupRepository,
       this.documentModelRepository,
       this.familyRepository,
+      this.groupPlanRepository,
+      this.planRepository,
       this.documentFieldValueRepository,
       this.colaboratorRepository,
       this.areaRepository,
@@ -819,7 +829,7 @@ export class DependencyContainer {
 
 
     // Initialize Contract use cases
-    this.createContractUseCase = new CreateContractUseCase(this.contractRepository, this.groupRepository);
+    this.createContractUseCase = new CreateContractUseCase(this.contractRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
     this.getContractByIdUseCase = new GetContractByIdUseCase(this.contractRepository);
     this.getAllContractsUseCase = new GetAllContractsUseCase(this.contractRepository);
     this.getContractsByRutSociedadUseCase = new GetContractsByRutSociedadUseCase(this.contractRepository);
@@ -831,11 +841,12 @@ export class DependencyContainer {
     this.getActiveContractsUseCase = new GetActiveContractsUseCase(this.contractRepository);
     this.getExpiredContractsUseCase = new GetExpiredContractsUseCase(this.contractRepository);
     this.getContractsEndingBeforeUseCase = new GetContractsEndingBeforeUseCase(this.contractRepository);
-    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository, this.groupRepository);
-    this.activateContractUseCase = new ActivateContractUseCase(this.contractRepository);
+    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
+    this.activateContractUseCase = new ActivateContractUseCase(this.contractRepository, this.groupPlanRepository, this.planRepository);
     this.suspendContractUseCase = new SuspendContractUseCase(this.contractRepository);
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
+    this.getContractQuotaUseCase = new GetContractQuotaUseCase(this.contractRepository, this.groupPlanRepository, this.planRepository);
     this.addSubcontractUseCase = new AddSubcontractUseCase(this.contractRepository);
     this.removeSubcontractUseCase = new RemoveSubcontractUseCase(this.contractRepository);
     this.getSubcontractsUseCase = new GetSubcontractsUseCase(this.contractRepository);
@@ -961,6 +972,7 @@ export class DependencyContainer {
       this.getContractColaboratorsUseCase,
       this.getParentContractsUseCase,
       this.getContractDocumentStructureUseCase,
+      this.getContractQuotaUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(

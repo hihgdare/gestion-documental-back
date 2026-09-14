@@ -36,6 +36,9 @@ export const createContractRoutes = (contractController: ContractController): Ro
   // GET /api/contracts/ending-before - Get contracts ending before date (query: ?date=2024-12-31)
   router.get('/ending-before', authorize('contract:read'), contractController.getContractsEndingBefore);
 
+  // GET /api/contracts/quota - Get active contract quota for current group
+  router.get('/quota', authorize('contract:read'), contractController.getContractQuota);
+
   // GET /api/contracts/rut-sociedad/:rutSociedad - Get contracts by RUT sociedad
   router.get('/rut-sociedad/:rutSociedad', authorize('contract:read'), contractController.getContractsByRutSociedad);
 
