@@ -827,6 +827,8 @@ export class DependencyContainer {
       this.colaboratorRepository,
       this.documentModelRepository,
       this.familyRepository,
+      this.groupPlanRepository,
+      this.planRepository,
     );
     this.getDocumentQuotaUseCase = new GetDocumentQuotaUseCase(this.documentRepository, this.groupPlanRepository, this.planRepository);
     this.downloadDocumentsZipUseCase = new DownloadDocumentsZipUseCase(this.documentRepository, this.fileRepository);

@@ -7,6 +7,8 @@ import { ContractRepository } from '@domains/contract/repositories/contract.repo
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { ValidationError, NotFoundError } from '@shared/domain/errors';
 
 export interface AssignDocumentsToGroupRequest {
@@ -32,7 +34,21 @@ export class AssignDocumentsToGroupUseCase {
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly familyRepository: IFamilyRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
+
+  private async getDocumentLimit(groupId: number, limitByGroup: Map<number, number | null>): Promise<number | null> {
+    if (limitByGroup.has(groupId)) {
+      return limitByGroup.get(groupId)!;
+    }
+
+    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(groupId);
+    const plan = activeGroupPlan ? await this.planRepository.findById(activeGroupPlan.planId) : null;
+    const limit = plan?.maxDocuments ?? null;
+    limitByGroup.set(groupId, limit);
+    return limit;
+  }
 
   public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
     const documentModel = await this.documentModelRepository.findById(request.documentModelId);
@@ -57,6 +73,7 @@ export class AssignDocumentsToGroupUseCase {
 
     const created: Document[] = [];
     const skipped: string[] = [];
+    const limitByGroup = new Map<number, number | null>();
 
     for (const colaboratorId of request.colaboratorIds) {
       const colaborator = await this.colaboratorRepository.findById(colaboratorId);
@@ -76,6 +93,15 @@ export class AssignDocumentsToGroupUseCase {
       if (exists) {
         skipped.push(colaboratorId);
         continue;
+      }
+
+      const documentLimit = await this.getDocumentLimit(colaborator.groupId, limitByGroup);
+      if (documentLimit !== null) {
+        const currentCount = await this.documentRepository.countByGroupId(colaborator.groupId);
+        if (currentCount >= documentLimit) {
+          skipped.push(colaboratorId);
+          continue;
+        }
       }
 
       const props: DocumentProps = {
