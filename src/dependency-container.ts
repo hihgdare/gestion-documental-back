@@ -790,6 +790,7 @@ export class DependencyContainer {
       this.documentFieldValueRepository,
       this.colaboratorRepository,
       this.areaRepository,
+      this.fileRepository,
     );
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
@@ -803,10 +804,13 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.groupRepository,
       this.documentModelRepository,
+      this.groupPlanRepository,
+      this.planRepository,
       this.documentFieldValueRepository,
       this.colaboratorRepository,
       this.contractRepository,
       this.areaRepository,
+      this.fileRepository,
     );
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);

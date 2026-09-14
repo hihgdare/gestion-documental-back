@@ -24,4 +24,5 @@ export interface DocumentRepository {
   existsByCode(code: string, groupId: number, excludeId?: string): Promise<boolean>;
   findByTypeAndSubtypeId(typeId: string, subtypeId: string): Promise<Document[]>;
   countByGroupId(groupId: number): Promise<number>;
+  getStorageUsedByGroupId(groupId: number): Promise<number>;
 }

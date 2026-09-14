@@ -81,9 +81,10 @@ export class PlanQuotaExceededError extends DomainError {
     readonly resource: string,
     readonly limit: number,
     readonly current: number,
+    message?: string,
   ) {
     super(
-      `Has alcanzado el límite de ${resource} activos de tu plan (${current}/${limit})`,
+      message ?? `Has alcanzado el límite de ${resource} activos de tu plan (${current}/${limit})`,
       409,
       'PLAN_QUOTA_EXCEEDED',
     );

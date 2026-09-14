@@ -12,6 +12,8 @@ import { ColaboratorRepository } from '@domains/colaborators/repositories/colabo
 import { AreaRepository } from '@domains/area/repositories/area.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
 
 export interface CreateDocumentRequest {
   documentModelId: string;
@@ -45,6 +47,7 @@ export class CreateDocumentUseCase {
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly areaRepository?: AreaRepository,
+    private readonly fileRepository?: TypeOrmFileRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
@@ -97,6 +100,19 @@ export class CreateDocumentUseCase {
     if (request.documentUrl && request.documentUrl.trim().length > 0) {
       if (documentModel.requiredExpirationDate && !request.expirationDate) {
         throw new ValidationError('La fecha de expiración es requerida para este documento');
+      }
+
+      if (this.fileRepository) {
+        const file = await this.fileRepository.findById(request.documentUrl);
+        if (file?.size) {
+          await assertStorageQuotaNotExceeded(
+            request.groupId,
+            file.size,
+            this.documentRepository,
+            this.groupPlanRepository,
+            this.planRepository,
+          );
+        }
       }
     }
 

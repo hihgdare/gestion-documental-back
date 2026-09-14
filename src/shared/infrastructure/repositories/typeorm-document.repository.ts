@@ -401,6 +401,22 @@ export class TypeOrmDocumentRepository implements DocumentRepository {
     return this.repository.count({ where: { groupId } });
   }
 
+  async getStorageUsedByGroupId(groupId: number): Promise<number> {
+    const result = await this.repository.manager.query(
+      `SELECT COALESCE(SUM(f.size), 0) AS total
+       FROM files f
+       WHERE f.id IN (
+         SELECT d.document_url FROM documents d WHERE d.group_id = ? AND d.document_url IS NOT NULL
+         UNION
+         SELECT dh.document_url FROM documents_history dh
+         INNER JOIN documents d2 ON d2.id = dh.document_id
+         WHERE d2.group_id = ? AND dh.document_url IS NOT NULL
+       )`,
+      [groupId, groupId],
+    );
+    return Number(result[0]?.total ?? 0);
+  }
+
   private toEntity(document: Document): Partial<DocumentEntity> {
     return {
       id: document.id,
