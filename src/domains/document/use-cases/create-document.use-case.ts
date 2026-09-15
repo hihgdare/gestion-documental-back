@@ -14,6 +14,7 @@ import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repos
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export interface CreateDocumentRequest {
   documentModelId: string;
@@ -51,6 +52,10 @@ export class CreateDocumentUseCase {
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
+    return withGroupLock(request.groupId, () => this.executeLocked(request));
+  }
+
+  private async executeLocked(request: CreateDocumentRequest): Promise<Document> {
     // Validate group exists
     const group = await this.groupRepository.findById(request.groupId);
     if (!group) {

@@ -5,6 +5,7 @@ import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export interface UpdateColaboratorRequest {
   id: string;
@@ -161,21 +162,21 @@ export class UpdateColaboratorUseCase {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
-    // Check plan quota before activating
-    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(colaborator.groupId);
-    if (activeGroupPlan) {
-      const plan = await this.planRepository.findById(activeGroupPlan.planId);
-      if (plan && plan.maxActiveColaborators !== null) {
-        const currentCount = await this.colaboratorRepository.countActiveByGroupId(colaborator.groupId);
-        if (currentCount >= plan.maxActiveColaborators) {
-          throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+    return withGroupLock(colaborator.groupId, async () => {
+      const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(colaborator.groupId);
+      if (activeGroupPlan) {
+        const plan = await this.planRepository.findById(activeGroupPlan.planId);
+        if (plan && plan.maxActiveColaborators !== null) {
+          const currentCount = await this.colaboratorRepository.countActiveByGroupId(colaborator.groupId);
+          if (currentCount >= plan.maxActiveColaborators) {
+            throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+          }
         }
       }
-    }
 
-    colaborator.activate();
-
-    return await this.colaboratorRepository.update(colaborator);
+      colaborator.activate();
+      return this.colaboratorRepository.update(colaborator);
+    });
   }
 
   public async suspend(id: string): Promise<Colaborator> {

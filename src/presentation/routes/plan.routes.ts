@@ -65,6 +65,12 @@ export const createPlanRoutes = (controller: PlanController) => {
     controller.assignPlanToGroup,
   );
 
+  router.put('/group-plans',
+    authorize('group:assign:plan'),
+    validateRequest(assignPlanToGroupSchema, true),
+    controller.replaceGroupPlan,
+  );
+
   router.get('/group-plans/:id',
     authorize(['group:assign:plan', 'plan:read']),
     controller.getGroupPlan,

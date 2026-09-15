@@ -4,6 +4,7 @@ import { UserStatus } from '@domains/user/value-objects/user-status';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -50,27 +51,9 @@ export class SetPasswordUseCase {
       throw new UnauthorizedError('This activation link has already been used or has been superseded');
     }
 
-    // Check plan quota before activating a previously inactive/suspended user
-    if (user.status !== UserStatus.ACTIVE) {
-      const group = await this.groupRepository.findByUserId(user.id);
-      if (group) {
-        const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(group.id!);
-        if (activeGroupPlan) {
-          const plan = await this.planRepository.findById(activeGroupPlan.planId);
-          if (plan && plan.maxActiveUsers !== null) {
-            const currentCount = await this.userRepository.countActiveByGroupId(group.id!);
-            if (currentCount >= plan.maxActiveUsers) {
-              throw new PlanQuotaExceededError('usuarios', plan.maxActiveUsers, currentCount);
-            }
-          }
-        }
-      }
-    }
-
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    // Rotate nonce to null — invalidates the token for any subsequent attempt.
-    await this.userRepository.update({
+    const persist = () => this.userRepository.update({
       id: user.id,
       email: user.email.toString(),
       firstName: user.firstName,
@@ -84,5 +67,29 @@ export class SetPasswordUseCase {
       updatedAt: new Date(),
       deletedAt: user.deletedAt,
     });
+
+    // Check plan quota before activating a previously inactive/suspended user
+    if (user.status !== UserStatus.ACTIVE) {
+      const group = await this.groupRepository.findByUserId(user.id);
+      if (group) {
+        await withGroupLock(group.id!, async () => {
+          const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(group.id!);
+          if (activeGroupPlan) {
+            const plan = await this.planRepository.findById(activeGroupPlan.planId);
+            if (plan && plan.maxActiveUsers !== null) {
+              const currentCount = await this.userRepository.countActiveByGroupId(group.id!);
+              if (currentCount >= plan.maxActiveUsers) {
+                throw new PlanQuotaExceededError('usuarios', plan.maxActiveUsers, currentCount);
+              }
+            }
+          }
+
+          await persist();
+        });
+        return;
+      }
+    }
+
+    await persist();
   }
 }

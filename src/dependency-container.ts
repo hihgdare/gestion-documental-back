@@ -311,6 +311,7 @@ import { CreatePlanUseCase } from '@domains/plan/use-cases/create-plan.use-case'
 import { GetPlanUseCase, ListPlansUseCase } from '@domains/plan/use-cases/get-plan.use-case';
 import { UpdatePlanUseCase, DeletePlanUseCase } from '@domains/plan/use-cases/update-plan.use-case';
 import { AssignPlanToGroupUseCase } from '@domains/plan/use-cases/assign-plan-to-group.use-case';
+import { ReplaceGroupPlanUseCase } from '@domains/plan/use-cases/replace-group-plan.use-case';
 import { GetGroupPlanUseCase, ListGroupPlansByGroupUseCase, GetActiveGroupPlanUseCase } from '@domains/plan/use-cases/get-group-plan.use-case';
 import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
 import { AssignFeaturesToPlanUseCase } from '@domains/plan/use-cases/assign-features-to-plan.use-case';
@@ -396,6 +397,7 @@ export class DependencyContainer {
   private updatePlanUseCase!: UpdatePlanUseCase;
   private deletePlanUseCase!: DeletePlanUseCase;
   private assignPlanToGroupUseCase!: AssignPlanToGroupUseCase;
+  private replaceGroupPlanUseCase!: ReplaceGroupPlanUseCase;
   private getGroupPlanUseCase!: GetGroupPlanUseCase;
   private listGroupPlansByGroupUseCase!: ListGroupPlansByGroupUseCase;
   private getActiveGroupPlanUseCase!: GetActiveGroupPlanUseCase;
@@ -1275,6 +1277,7 @@ export class DependencyContainer {
     this.updatePlanUseCase = new UpdatePlanUseCase(this.planRepository);
     this.deletePlanUseCase = new DeletePlanUseCase(this.planRepository);
     this.assignPlanToGroupUseCase = new AssignPlanToGroupUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
+    this.replaceGroupPlanUseCase = new ReplaceGroupPlanUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
     this.getGroupPlanUseCase = new GetGroupPlanUseCase(this.groupPlanRepository);
     this.listGroupPlansByGroupUseCase = new ListGroupPlansByGroupUseCase(this.groupPlanRepository);
     this.getActiveGroupPlanUseCase = new GetActiveGroupPlanUseCase(this.groupPlanRepository);
@@ -1302,6 +1305,7 @@ export class DependencyContainer {
       this.updatePlanUseCase,
       this.deletePlanUseCase,
       this.assignPlanToGroupUseCase,
+      this.replaceGroupPlanUseCase,
       this.getGroupPlanUseCase,
       this.listGroupPlansByGroupUseCase,
       this.getActiveGroupPlanUseCase,

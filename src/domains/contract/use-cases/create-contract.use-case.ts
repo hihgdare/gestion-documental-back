@@ -4,6 +4,7 @@ import { ConflictError, ValidationError, PlanQuotaExceededError } from '@shared/
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export class CreateContractUseCase {
   constructor(
@@ -28,20 +29,21 @@ export class CreateContractUseCase {
 
     const contract = new Contract(request);
 
-    // Check plan quota for active contracts
-    if (contract.countsForQuota()) {
-      const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(request.groupId);
-      if (activeGroupPlan) {
-        const plan = await this.planRepository.findById(activeGroupPlan.planId);
-        if (plan && plan.maxActiveContracts !== null) {
-          const currentCount = await this.contractRepository.countActiveByGroupId(request.groupId);
-          if (currentCount >= plan.maxActiveContracts) {
-            throw new PlanQuotaExceededError('contratos', plan.maxActiveContracts, currentCount);
+    return withGroupLock(request.groupId, async () => {
+      if (contract.countsForQuota()) {
+        const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(request.groupId);
+        if (activeGroupPlan) {
+          const plan = await this.planRepository.findById(activeGroupPlan.planId);
+          if (plan && plan.maxActiveContracts !== null) {
+            const currentCount = await this.contractRepository.countActiveByGroupId(request.groupId);
+            if (currentCount >= plan.maxActiveContracts) {
+              throw new PlanQuotaExceededError('contratos', plan.maxActiveContracts, currentCount);
+            }
           }
         }
       }
-    }
 
-    return await this.contractRepository.save(contract);
+      return this.contractRepository.save(contract);
+    });
   }
 }

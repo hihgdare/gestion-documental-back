@@ -5,6 +5,7 @@ import { only } from '@shared/utils/objects';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 async function assertContractQuotaNotExceeded(
   contract: Contract,
@@ -38,6 +39,11 @@ export class UpdateContractUseCase {
       throw new NotFoundError('Contract', request.id);
     }
 
+    const lockGroupId = request.groupId ?? contract.groupId;
+    return withGroupLock(lockGroupId, () => this.executeLocked(contract, request));
+  }
+
+  private async executeLocked(contract: Contract, request: UpdateContractProps): Promise<Contract> {
     // Verificar si el usuario es administrador
     const isUserAdmin = request.userRoles?.some(
       role => role.name?.toLowerCase() === 'admin' || role.name?.toLowerCase() === 'administrador',
@@ -174,14 +180,16 @@ export class ActivateContractUseCase {
       throw new NotFoundError('Contract', id);
     }
 
-    const wasCounted = contract.countsForQuota();
-    contract.activate();
+    return withGroupLock(contract.groupId, async () => {
+      const wasCounted = contract.countsForQuota();
+      contract.activate();
 
-    if (!wasCounted && contract.countsForQuota()) {
-      await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
-    }
+      if (!wasCounted && contract.countsForQuota()) {
+        await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
+      }
 
-    return await this.contractRepository.update(contract);
+      return this.contractRepository.update(contract);
+    });
   }
 }
 

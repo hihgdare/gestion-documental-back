@@ -5,6 +5,7 @@ import { Bucket } from '@shared/utils/Bucket';
 import FileUtils from '@shared/utils/FileUtils';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { NotFoundError, ServerError, ValidationError } from '@shared/domain/errors';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@shared/utils/storage';
 
 export class FileController {
   constructor(private readonly fileRepo: TypeOrmFileRepository) {
@@ -27,7 +28,12 @@ export class FileController {
       throw new ValidationError('file required', { fields: ['filename', 'contentBase64'] });
     }
 
-    const savedFile = await this.fileRepo.saveBuffer(Buffer.from(contentBase64, 'base64'), filename, mimeType, size);
+    const buffer = Buffer.from(contentBase64, 'base64');
+    if (buffer.length > MAX_FILE_SIZE_BYTES) {
+      throw new ValidationError(`El archivo supera el tamaño máximo permitido de ${MAX_FILE_SIZE_MB} MB`, 'contentBase64');
+    }
+
+    const savedFile = await this.fileRepo.saveBuffer(buffer, filename, mimeType, size);
 
     res.status(201).json({ success: true, data: savedFile });
   }

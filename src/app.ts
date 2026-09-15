@@ -107,8 +107,8 @@ export class App {
     this.app.use('/api', limiter);
 
     // Body parsing middleware
-    this.app.use(express.json({ limit: '10mb' }));
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    this.app.use(express.json({ limit: '15mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
     // Compression middleware
     this.app.use(compression());

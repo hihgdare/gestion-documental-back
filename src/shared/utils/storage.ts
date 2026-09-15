@@ -1,1 +1,3 @@
 export const BYTES_PER_GB = 1_000_000_000;
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILE_SIZE_MB = MAX_FILE_SIZE_BYTES / (1024 * 1024);

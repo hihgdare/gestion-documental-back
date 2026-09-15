@@ -9,6 +9,7 @@ import {
   GetActiveGroupPlanUseCase,
 } from '@domains/plan/use-cases/get-group-plan.use-case';
 import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
+import { ReplaceGroupPlanUseCase } from '@domains/plan/use-cases/replace-group-plan.use-case';
 import { AssignFeaturesToPlanUseCase } from '@domains/plan/use-cases/assign-features-to-plan.use-case';
 import { GetGroupFeaturesUseCase } from '@domains/plan/use-cases/get-group-features.use-case';
 import {
@@ -31,6 +32,7 @@ export class PlanController {
     private readonly updatePlanUseCase: UpdatePlanUseCase,
     private readonly deletePlanUseCase: DeletePlanUseCase,
     private readonly assignPlanToGroupUseCase: AssignPlanToGroupUseCase,
+    private readonly replaceGroupPlanUseCase: ReplaceGroupPlanUseCase,
     private readonly getGroupPlanUseCase: GetGroupPlanUseCase,
     private readonly listGroupPlansByGroupUseCase: ListGroupPlansByGroupUseCase,
     private readonly getActiveGroupPlanUseCase: GetActiveGroupPlanUseCase,
@@ -120,6 +122,16 @@ export class PlanController {
       endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
     });
     res.status(201).json({ success: true, data: groupPlan.toJSON() });
+  };
+
+  public replaceGroupPlan = async (req: Request, res: Response) => {
+    const dto = req.body as AssignPlanToGroupDto;
+    const groupPlan = await this.replaceGroupPlanUseCase.execute({
+      ...dto,
+      startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+      endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
+    });
+    res.status(200).json({ success: true, data: groupPlan.toJSON() });
   };
 
   public getGroupPlan = async (req: Request, res: Response) => {

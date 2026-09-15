@@ -14,6 +14,7 @@ import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repos
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -61,6 +62,15 @@ export class UpdateDocumentUseCase {
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
+    const existing = await this.documentRepository.findById(id);
+    if (!existing) {
+      throw new NotFoundError('Documento', id);
+    }
+
+    return withGroupLock(existing.groupId, () => this.executeLocked(id, request));
+  }
+
+  private async executeLocked(id: string, request: UpdateDocumentRequest): Promise<Document> {
     const document = await this.documentRepository.findById(id);
     if (!document) {
       throw new NotFoundError('Documento', id);

@@ -5,6 +5,7 @@ import { ConflictError, ValidationError, PlanQuotaExceededError } from '@shared/
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export interface CreateColaboratorRequest {
   tipoDocumento: DocumentType;
@@ -65,25 +66,26 @@ export class CreateColaboratorUseCase {
       throw new ValidationError('Group not found', 'groupId');
     }
 
-    // Check plan quota for active colaborators
-    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(request.groupId);
-    if (activeGroupPlan) {
-      const plan = await this.planRepository.findById(activeGroupPlan.planId);
-      if (plan && plan.maxActiveColaborators !== null) {
-        const currentCount = await this.colaboratorRepository.countActiveByGroupId(request.groupId);
-        if (currentCount >= plan.maxActiveColaborators) {
-          throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+    const savedColaborator = await withGroupLock(request.groupId, async () => {
+      const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(request.groupId);
+      if (activeGroupPlan) {
+        const plan = await this.planRepository.findById(activeGroupPlan.planId);
+        if (plan && plan.maxActiveColaborators !== null) {
+          const currentCount = await this.colaboratorRepository.countActiveByGroupId(request.groupId);
+          if (currentCount >= plan.maxActiveColaborators) {
+            throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+          }
         }
       }
-    }
 
-    const colaboratorProps: ColaboratorProps = {
-      ...request,
-      fechaNacimiento: new Date(request.fechaNacimiento),
-    };
+      const colaboratorProps: ColaboratorProps = {
+        ...request,
+        fechaNacimiento: new Date(request.fechaNacimiento),
+      };
 
-    const colaborator = Colaborator.create(colaboratorProps);
-    const savedColaborator = await this.colaboratorRepository.save(colaborator);
+      const colaborator = Colaborator.create(colaboratorProps);
+      return this.colaboratorRepository.save(colaborator);
+    });
 
     // Assign contracts
     if (request.contractIds && request.contractIds.length > 0) {

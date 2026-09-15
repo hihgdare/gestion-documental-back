@@ -10,6 +10,7 @@ import { IFamilyRepository } from '@domains/family/repositories/family.repositor
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { ValidationError, NotFoundError } from '@shared/domain/errors';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export interface AssignDocumentsToGroupRequest {
   documentModelId: string;
@@ -95,35 +96,41 @@ export class AssignDocumentsToGroupUseCase {
         continue;
       }
 
-      const documentLimit = await this.getDocumentLimit(colaborator.groupId, limitByGroup);
-      if (documentLimit !== null) {
-        const currentCount = await this.documentRepository.countByGroupId(colaborator.groupId);
-        if (currentCount >= documentLimit) {
-          skipped.push(colaboratorId);
-          continue;
+      const saved = await withGroupLock(colaborator.groupId, async () => {
+        const documentLimit = await this.getDocumentLimit(colaborator.groupId, limitByGroup);
+        if (documentLimit !== null) {
+          const currentCount = await this.documentRepository.countByGroupId(colaborator.groupId);
+          if (currentCount >= documentLimit) {
+            return null;
+          }
         }
+
+        const props: DocumentProps = {
+          documentModelId: request.documentModelId,
+          colaboratorIds: [colaboratorId],
+          name: docName,
+          issuedDate: request.issuedDate,
+          expirationDate: request.expirationDate,
+          contractId: contractId,
+          createdBy: request.createdBy,
+          groupId: colaborator.groupId,
+          reviewDate: Document.calculateDefaultReviewDate(new Date(), request.expirationDate),
+
+          // Read-only properties populated for completeness if needed immediately
+          documentTypeId: documentModel.documentTypeId,
+          documentSubtypeId: documentModel.documentSubtypeId,
+          requiredForContract: documentModel.requiredForContract,
+          requiredForColaborator: documentModel.requiredForColaborator,
+          requiredExpirationDate: documentModel.requiredExpirationDate,
+        };
+        const doc = Document.create(props);
+        return this.documentRepository.save(doc);
+      });
+
+      if (!saved) {
+        skipped.push(colaboratorId);
+        continue;
       }
-
-      const props: DocumentProps = {
-        documentModelId: request.documentModelId,
-        colaboratorIds: [colaboratorId],
-        name: docName,
-        issuedDate: request.issuedDate,
-        expirationDate: request.expirationDate,
-        contractId: contractId,
-        createdBy: request.createdBy,
-        groupId: colaborator.groupId,
-        reviewDate: Document.calculateDefaultReviewDate(new Date(), request.expirationDate),
-
-        // Read-only properties populated for completeness if needed immediately
-        documentTypeId: documentModel.documentTypeId,
-        documentSubtypeId: documentModel.documentSubtypeId,
-        requiredForContract: documentModel.requiredForContract,
-        requiredForColaborator: documentModel.requiredForColaborator,
-        requiredExpirationDate: documentModel.requiredExpirationDate,
-      };
-      const doc = Document.create(props);
-      const saved = await this.documentRepository.save(doc);
       created.push(saved);
 
       if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {

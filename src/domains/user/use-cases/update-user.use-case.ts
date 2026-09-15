@@ -6,6 +6,7 @@ import { RoleRepository } from '@domains/role/repositories/role.repository';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 export class UpdateUserUseCase {
   constructor(
@@ -37,16 +38,20 @@ export class UpdateUserUseCase {
     if (props.status === UserStatus.ACTIVE && user.status !== UserStatus.ACTIVE) {
       const group = await this.groupRepository.findByUserId(user.id);
       if (group) {
-        const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(group.id!);
-        if (activeGroupPlan) {
-          const plan = await this.planRepository.findById(activeGroupPlan.planId);
-          if (plan && plan.maxActiveUsers !== null) {
-            const currentCount = await this.userRepository.countActiveByGroupId(group.id!);
-            if (currentCount >= plan.maxActiveUsers) {
-              throw new PlanQuotaExceededError('usuarios', plan.maxActiveUsers, currentCount);
+        return withGroupLock(group.id!, async () => {
+          const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(group.id!);
+          if (activeGroupPlan) {
+            const plan = await this.planRepository.findById(activeGroupPlan.planId);
+            if (plan && plan.maxActiveUsers !== null) {
+              const currentCount = await this.userRepository.countActiveByGroupId(group.id!);
+              if (currentCount >= plan.maxActiveUsers) {
+                throw new PlanQuotaExceededError('usuarios', plan.maxActiveUsers, currentCount);
+              }
             }
           }
-        }
+
+          return this.userRepository.update(props);
+        });
       }
     }
 

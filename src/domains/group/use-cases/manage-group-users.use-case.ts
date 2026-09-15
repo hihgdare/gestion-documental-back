@@ -4,6 +4,7 @@ import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repos
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import { NotFoundError, PlanQuotaExceededError } from '@shared/domain/errors';
+import { withGroupLock } from '@shared/infrastructure/database/group-lock';
 
 async function assertUserQuotaNotExceeded(
   groupId: number,
@@ -41,15 +42,17 @@ export class AddUserToGroupUseCase {
     const user = await this.userRepository.findById(userId);
     if (!user) throw new NotFoundError('User', userId);
 
-    await assertUserQuotaNotExceeded(
-      groupId,
-      user.status === UserStatus.ACTIVE,
-      this.userRepository,
-      this.groupPlanRepository,
-      this.planRepository,
-    );
+    await withGroupLock(groupId, async () => {
+      await assertUserQuotaNotExceeded(
+        groupId,
+        user.status === UserStatus.ACTIVE,
+        this.userRepository,
+        this.groupPlanRepository,
+        this.planRepository,
+      );
 
-    await this.groupRepository.addUserToGroup(groupId, userId, permission);
+      await this.groupRepository.addUserToGroup(groupId, userId, permission);
+    });
   }
 }
 
@@ -85,15 +88,17 @@ export class AssignGroupToUserUseCase {
     const group = await this.groupRepository.findById(groupId);
     if (!group) throw new NotFoundError('Group', groupId.toString());
 
-    await assertUserQuotaNotExceeded(
-      groupId,
-      user.status === UserStatus.ACTIVE,
-      this.userRepository,
-      this.groupPlanRepository,
-      this.planRepository,
-    );
+    await withGroupLock(groupId, async () => {
+      await assertUserQuotaNotExceeded(
+        groupId,
+        user.status === UserStatus.ACTIVE,
+        this.userRepository,
+        this.groupPlanRepository,
+        this.planRepository,
+      );
 
-    // Reuse the same logic as AddUserToGroupUseCase
-    await this.groupRepository.addUserToGroup(groupId, userId, permission);
+      // Reuse the same logic as AddUserToGroupUseCase
+      await this.groupRepository.addUserToGroup(groupId, userId, permission);
+    });
   }
 }
