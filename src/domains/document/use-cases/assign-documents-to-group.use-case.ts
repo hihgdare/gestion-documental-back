@@ -22,9 +22,16 @@ export interface AssignDocumentsToGroupRequest {
   comment?: string;
 }
 
+export type SkippedReason = 'not_found' | 'duplicate' | 'quota_exceeded';
+
+export interface SkippedColaborator {
+  colaboratorId: string;
+  reason: SkippedReason;
+}
+
 export interface AssignDocumentsToGroupResult {
   created: Document[];
-  skipped: string[];
+  skipped: SkippedColaborator[];
 }
 
 export class AssignDocumentsToGroupUseCase {
@@ -73,13 +80,13 @@ export class AssignDocumentsToGroupUseCase {
     }
 
     const created: Document[] = [];
-    const skipped: string[] = [];
+    const skipped: SkippedColaborator[] = [];
     const limitByGroup = new Map<number, number | null>();
 
     for (const colaboratorId of request.colaboratorIds) {
       const colaborator = await this.colaboratorRepository.findById(colaboratorId);
       if (!colaborator) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'not_found' });
         continue;
       }
 
@@ -92,7 +99,7 @@ export class AssignDocumentsToGroupUseCase {
         docName,
       );
       if (exists) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'duplicate' });
         continue;
       }
 
@@ -128,7 +135,7 @@ export class AssignDocumentsToGroupUseCase {
       });
 
       if (!saved) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'quota_exceeded' });
         continue;
       }
       created.push(saved);
