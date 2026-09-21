@@ -29,6 +29,8 @@ export const createPlanRoutes = (controller: PlanController) => {
     controller.listPlans,
   );
 
+  router.get('/my-features', controller.getMyFeatures);
+
   router.get('/:id',
     authorize(['plan:read', 'group:assign:plan']),
     controller.getPlan,

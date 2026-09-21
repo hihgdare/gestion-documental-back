@@ -1756,6 +1756,10 @@ export class DependencyContainer {
     return this.addUserToGroupUseCase;
   }
 
+  public getGetGroupFeaturesUseCase(): GetGroupFeaturesUseCase {
+    return this.getGroupFeaturesUseCase;
+  }
+
   public getCreateGroupUseCase(): CreateGroupUseCase {
     return this.createGroupUseCase;
   }

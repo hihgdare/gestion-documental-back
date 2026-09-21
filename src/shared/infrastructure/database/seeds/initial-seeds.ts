@@ -10,6 +10,7 @@ import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-p
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
 import { SyncFeaturesUseCase, FeatureSeedDefinition } from '@domains/feature/use-cases/sync-features.use-case';
+import { FeatureKey } from '@domains/feature/value-objects/feature-keys';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 
 const crudActions = ['create', 'read', 'update', 'delete'];
@@ -69,7 +70,17 @@ const otherPermissions = [
 // Catálogo de funcionalidades adicionales de los planes, agrupadas por categoría.
 // Se sincroniza en cada arranque (upsert por key), igual que los permisos.
 // Agregar nuevas categorías/funcionalidades acá no requiere ningún paso manual.
-const featureCategories: FeatureSeedDefinition[] = [];
+const featureCategories: FeatureSeedDefinition[] = [
+  {
+    key: 'firma-electronica',
+    name: 'Firma Electrónica',
+    features: [
+      { key: FeatureKey.FIRMA_SIMPLE, name: 'Firma electrónica simple' },
+      { key: FeatureKey.FIRMA_TRAZABILIDAD, name: 'Trazabilidad de firma' },
+      { key: FeatureKey.FIRMA_REPORTES, name: 'Reportes de firma' },
+    ],
+  },
+];
 
 export async function runInitialSeedsIfEmpty(): Promise<void> {
   const email = process.env.SEEDER_ADMIN_EMAIL;

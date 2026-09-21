@@ -227,8 +227,9 @@ export class App {
     this.app.use('/api/document-templates', createDocumentTemplateRoutes(documentTemplateController));
     this.app.use('/api/plans', createPlanRoutes(planController));
 
-    this.app.use('/api/signatures', createSignatureRoutes(signatureController));
-    this.app.use('/api/signature-flows', createSignatureFlowRoutes(signatureFlowController));
+    const getGroupFeaturesUseCase = this.dependencyContainer.getGetGroupFeaturesUseCase();
+    this.app.use('/api/signatures', createSignatureRoutes(signatureController, getGroupFeaturesUseCase));
+    this.app.use('/api/signature-flows', createSignatureFlowRoutes(signatureFlowController, getGroupFeaturesUseCase));
 
     const externalParticipantController = this.dependencyContainer.getExternalParticipantController();
     this.app.use('/api/external-access', createExternalParticipantRoutes(externalParticipantController));

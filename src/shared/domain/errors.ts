@@ -95,6 +95,20 @@ export class PlanQuotaExceededError extends DomainError {
   }
 }
 
+export class FeatureNotAvailableError extends DomainError {
+  constructor(readonly featureKey: string) {
+    super(
+      'Tu plan actual no incluye esta funcionalidad. Contacta al administrador para habilitarla.',
+      403,
+      'FEATURE_NOT_AVAILABLE',
+    );
+  }
+
+  response(res: Response, data?: Record<string, unknown>) {
+    return super.response(res, { featureKey: this.featureKey, ...data });
+  }
+}
+
 export class ServerError extends DomainError {
   constructor(message?: string) {
     message = message ? `Server error: ${message}` : 'Internal server error';

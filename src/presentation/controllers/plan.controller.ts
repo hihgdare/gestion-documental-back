@@ -59,6 +59,16 @@ export class PlanController {
     res.status(200).json({ success: true, data: plan.toJSON() });
   };
 
+  public getMyFeatures = async (req: Request, res: Response) => {
+    const groupId = req.auth?.groupId;
+    if (!groupId) {
+      res.status(200).json({ success: true, data: [] });
+      return;
+    }
+    const { effectiveFeatures } = await this.getGroupFeaturesUseCase.execute(groupId);
+    res.status(200).json({ success: true, data: effectiveFeatures.map((feature) => feature.key) });
+  };
+
   public getGroupFeatures = async (req: Request, res: Response) => {
     const groupId = parseInt(req.params.groupId, 10);
     const result = await this.getGroupFeaturesUseCase.execute(groupId);
