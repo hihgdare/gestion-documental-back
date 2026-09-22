@@ -76,6 +76,20 @@ export async function initializeDatabase(DataSource?: DataSource): Promise<void>
   }
 }
 
+const IN_MEMORY_DB_TYPES = new Set(['sqljs', 'sql.js']);
+
+function assertSafeToWipe(dataSource: DataSource): void {
+  const { type, database } = dataSource.options as { type: string; database?: unknown };
+  if (IN_MEMORY_DB_TYPES.has(type)) return;
+
+  const name = String(database ?? '');
+  if (name === ':memory:' || /test/i.test(name)) return;
+
+  throw new Error(
+    `Se evitó borrar la base de datos "${name}" (${type}): solo se pueden limpiar bases en memoria o cuyo nombre contenga "test". Revisa TEST_DB_TYPE y TEST_DB_DATABASE.`,
+  );
+}
+
 export async function clearDatabase(DataSource?: DataSource): Promise<void> {
   if (process.env.NODE_ENV === 'production') return;
   const synchronize = process.env.DB_SYNCHRONIZE !== 'false';
@@ -83,6 +97,7 @@ export async function clearDatabase(DataSource?: DataSource): Promise<void> {
     DataSource = AppDataSource;
   }
   if (DataSource.isInitialized) {
+    assertSafeToWipe(DataSource);
     await DataSource.dropDatabase();
     if (synchronize) {
       await DataSource.synchronize();

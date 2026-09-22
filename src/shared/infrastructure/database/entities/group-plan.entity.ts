@@ -67,7 +67,7 @@ export class GroupPlanEntity {
       planId: entity.planId,
       startsAt: entity.startsAt,
       endsAt: entity.endsAt,
-      isActive: entity.isActive,
+      isActive: !!entity.isActive,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     });
