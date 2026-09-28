@@ -28,13 +28,13 @@ export class UpdatePlanUseCase {
   async execute(input: UpdatePlanInput): Promise<Plan> {
     const plan = await this.planRepository.findById(input.id);
     if (!plan) {
-      throw new NotFoundError('Plan not found');
+      throw new NotFoundError('Plan', undefined, 'El plan no existe');
     }
 
     if (input.name !== undefined && input.name !== plan.name) {
       const exists = await this.planRepository.existsByName(input.name, input.id);
       if (exists) {
-        throw new ValidationError(`Plan with name "${input.name}" already exists`, 'name');
+        throw new ValidationError(`Ya existe un plan con el nombre "${input.name}"`, 'name');
       }
       plan.name = input.name;
     }
@@ -65,7 +65,7 @@ export class DeletePlanUseCase {
   async execute(id: string): Promise<void> {
     const plan = await this.planRepository.findById(id);
     if (!plan) {
-      throw new NotFoundError('Plan not found');
+      throw new NotFoundError('Plan', undefined, 'El plan no existe');
     }
 
     if (await this.groupPlanRepository.existsByPlanId(id)) {

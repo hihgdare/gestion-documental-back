@@ -8,7 +8,7 @@ export class GetPlanUseCase {
   async execute(id: string): Promise<Plan> {
     const plan = await this.planRepository.findById(id);
     if (!plan) {
-      throw new NotFoundError('Plan not found');
+      throw new NotFoundError('Plan', undefined, 'El plan no existe');
     }
     return plan;
   }

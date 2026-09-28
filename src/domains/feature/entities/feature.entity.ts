@@ -38,13 +38,13 @@ export class Feature {
 
   private static validate(props: FeatureProps): void {
     if (!props.categoryId?.trim()) {
-      throw new ValidationError('Feature category is required', 'categoryId');
+      throw new ValidationError('La categoría de la funcionalidad es obligatoria', 'categoryId');
     }
     if (!props.key?.trim()) {
-      throw new ValidationError('Feature key is required', 'key');
+      throw new ValidationError('La clave de la funcionalidad es obligatoria', 'key');
     }
     if (!props.name?.trim()) {
-      throw new ValidationError('Feature name is required', 'name');
+      throw new ValidationError('El nombre de la funcionalidad es obligatorio', 'name');
     }
   }
 

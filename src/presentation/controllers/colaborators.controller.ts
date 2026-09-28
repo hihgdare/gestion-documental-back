@@ -146,16 +146,6 @@ export class ColaboratorController {
     });
   });
 
-  public suspendColaborator = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const colaborator = await this.updateColaboratorUseCase.suspend(id);
-    res.status(200).json({
-      success: true,
-      data: toColaboratorResponseDto(colaborator),
-      message: 'Colaborator suspended successfully',
-    });
-  });
-
   public deactivateColaborator = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const colaborator = await this.updateColaboratorUseCase.deactivate(id);

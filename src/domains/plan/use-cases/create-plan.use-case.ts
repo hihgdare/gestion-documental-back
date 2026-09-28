@@ -27,7 +27,7 @@ export class CreatePlanUseCase {
     const { featureIds, ...planProps } = input;
     const exists = await this.planRepository.existsByName(planProps.name);
     if (exists) {
-      throw new ValidationError(`Plan with name "${planProps.name}" already exists`, 'name');
+      throw new ValidationError(`Ya existe un plan con el nombre "${planProps.name}"`, 'name');
     }
 
     const resolvedFeatureIds = featureIds ? await resolveFeatureIds(this.featureRepository, featureIds) : undefined;

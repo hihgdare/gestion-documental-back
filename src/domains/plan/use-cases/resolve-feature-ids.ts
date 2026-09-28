@@ -6,7 +6,7 @@ export async function resolveFeatureIds(featureRepository: FeatureRepository, fe
   if (uniqueIds.length > 0) {
     const features = await featureRepository.findIn(uniqueIds);
     if (features.length !== uniqueIds.length) {
-      throw new ValidationError('One or more features not found', 'featureIds');
+      throw new ValidationError('Una o más funcionalidades seleccionadas no existen', 'featureIds');
     }
   }
   return uniqueIds;

@@ -66,28 +66,28 @@ export class Plan {
 
   private static validate(props: PlanProps): void {
     if (!props.name?.trim()) {
-      throw new ValidationError('Plan name is required', 'name');
+      throw new ValidationError('El nombre del plan es obligatorio', 'name');
     }
     if (props.name.length > 100) {
-      throw new ValidationError('Plan name is too long', 'name');
+      throw new ValidationError('El nombre del plan no puede superar los 100 caracteres', 'name');
     }
     if (props.maxActiveColaborators !== undefined && props.maxActiveColaborators !== null && props.maxActiveColaborators < 0) {
-      throw new ValidationError('maxActiveColaborators must be non-negative', 'maxActiveColaborators');
+      throw new ValidationError('El límite de colaboradores no puede ser negativo', 'maxActiveColaborators');
     }
     if (props.maxActiveContracts !== undefined && props.maxActiveContracts !== null && props.maxActiveContracts < 0) {
-      throw new ValidationError('maxActiveContracts must be non-negative', 'maxActiveContracts');
+      throw new ValidationError('El límite de contratos no puede ser negativo', 'maxActiveContracts');
     }
     if (props.maxDocuments !== undefined && props.maxDocuments !== null && props.maxDocuments < 0) {
-      throw new ValidationError('maxDocuments must be non-negative', 'maxDocuments');
+      throw new ValidationError('El límite de documentos no puede ser negativo', 'maxDocuments');
     }
     if (props.maxStorageGb !== undefined && props.maxStorageGb !== null && props.maxStorageGb < 0) {
-      throw new ValidationError('maxStorageGb must be non-negative', 'maxStorageGb');
+      throw new ValidationError('El límite de almacenamiento no puede ser negativo', 'maxStorageGb');
     }
     if (props.maxActiveUsers !== undefined && props.maxActiveUsers !== null && props.maxActiveUsers < 0) {
-      throw new ValidationError('maxActiveUsers must be non-negative', 'maxActiveUsers');
+      throw new ValidationError('El límite de usuarios no puede ser negativo', 'maxActiveUsers');
     }
     if (props.badge !== undefined && props.badge !== null && !isValidPlanBadge(props.badge)) {
-      throw new ValidationError('Invalid plan badge', 'badge');
+      throw new ValidationError('La etiqueta del plan no es válida', 'badge');
     }
   }
 

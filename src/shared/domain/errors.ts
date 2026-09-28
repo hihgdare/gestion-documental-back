@@ -39,9 +39,8 @@ export class ValidationError extends DomainError {
 }
 
 export class NotFoundError extends DomainError {
-  constructor(resource: string, id?: string) {
-    const message = `${resource}${id ? ` with id ${id}` : ''} not found`;
-    super(message, 404, 'NOT_FOUND');
+  constructor(resource: string, id?: string, message?: string) {
+    super(message ?? `${resource}${id ? ` with id ${id}` : ''} not found`, 404, 'NOT_FOUND');
   }
 }
 

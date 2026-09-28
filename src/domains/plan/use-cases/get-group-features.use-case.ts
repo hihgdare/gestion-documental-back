@@ -15,7 +15,11 @@ export interface GroupFeaturesResult {
   effectiveFeatures: GroupFeatureView[];
 }
 
+const FEATURE_KEYS_CACHE_TTL_MS = 30_000;
+
 export class GetGroupFeaturesUseCase {
+  private readonly featureKeysCache = new Map<number, { keys: Set<string>; expiresAt: number }>();
+
   constructor(
     private readonly groupPlanRepository: GroupPlanRepository,
     private readonly planRepository: PlanRepository,
@@ -58,6 +62,21 @@ export class GetGroupFeaturesUseCase {
       overrides: overrides.map((o) => ({ featureId: o.featureId, granted: o.granted })),
       effectiveFeatures: [...effectiveMap.values()],
     };
+  }
+
+  async hasFeature(groupId: number, featureKey: string): Promise<boolean> {
+    const cached = this.featureKeysCache.get(groupId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.keys.has(featureKey);
+    }
+
+    const keys = new Set(await this.getAvailableFeatureKeys(groupId));
+    this.featureKeysCache.set(groupId, { keys, expiresAt: Date.now() + FEATURE_KEYS_CACHE_TTL_MS });
+    return keys.has(featureKey);
+  }
+
+  invalidateCache(): void {
+    this.featureKeysCache.clear();
   }
 
   async getAvailableFeatureKeys(groupId?: number): Promise<string[]> {

@@ -112,12 +112,6 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
     colaboratorController.activateColaborator,
   );
 
-  // PATCH /api/colaborators/:id/suspend - Suspend colaborator
-  router.patch('/:id/suspend',
-    authorize('colaborator:update'),
-    colaboratorController.suspendColaborator,
-  );
-
   // PATCH /api/colaborators/:id/deactivate - Deactivate colaborator
   router.patch('/:id/deactivate',
     authorize('colaborator:update'),

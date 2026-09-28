@@ -47,10 +47,10 @@ export class GroupPlan {
 
   private static validate(props: GroupPlanProps): void {
     if (!props.groupId) {
-      throw new ValidationError('Group ID is required', 'groupId');
+      throw new ValidationError('El grupo es obligatorio', 'groupId');
     }
     if (!props.planId) {
-      throw new ValidationError('Plan ID is required', 'planId');
+      throw new ValidationError('El plan es obligatorio', 'planId');
     }
   }
 

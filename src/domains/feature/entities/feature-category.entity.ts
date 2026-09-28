@@ -35,10 +35,10 @@ export class FeatureCategory {
 
   private static validate(props: FeatureCategoryProps): void {
     if (!props.key?.trim()) {
-      throw new ValidationError('Feature category key is required', 'key');
+      throw new ValidationError('La clave de la categoría es obligatoria', 'key');
     }
     if (!props.name?.trim()) {
-      throw new ValidationError('Feature category name is required', 'name');
+      throw new ValidationError('El nombre de la categoría es obligatorio', 'name');
     }
   }
 

@@ -14,12 +14,12 @@ export class SetGroupFeatureOverrideUseCase {
   async execute(groupId: number, featureId: string, granted: boolean): Promise<GroupFeatureOverride> {
     const group = await this.groupRepository.findById(groupId);
     if (!group) {
-      throw new NotFoundError('Group', groupId.toString());
+      throw new NotFoundError('Group', groupId.toString(), 'El grupo no existe');
     }
 
     const feature = await this.featureRepository.findIn([featureId]);
     if (feature.length === 0) {
-      throw new NotFoundError('Feature', featureId);
+      throw new NotFoundError('Feature', featureId, 'La funcionalidad no existe');
     }
 
     return this.groupFeatureOverrideRepository.upsert(groupId, featureId, granted);

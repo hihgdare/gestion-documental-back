@@ -16,7 +16,7 @@ export class UpdateGroupPlanUseCase {
   async execute(input: UpdateGroupPlanInput): Promise<GroupPlan> {
     const groupPlan = await this.groupPlanRepository.findById(input.id);
     if (!groupPlan) {
-      throw new NotFoundError('GroupPlan not found');
+      throw new NotFoundError('GroupPlan', undefined, 'La asignación de plan no existe');
     }
 
     return withGroupLock(groupPlan.groupId, async () => {
@@ -40,7 +40,7 @@ export class DeleteGroupPlanUseCase {
   async execute(id: string): Promise<void> {
     const groupPlan = await this.groupPlanRepository.findById(id);
     if (!groupPlan) {
-      throw new NotFoundError('GroupPlan not found');
+      throw new NotFoundError('GroupPlan', undefined, 'La asignación de plan no existe');
     }
     await this.groupPlanRepository.delete(id);
   }

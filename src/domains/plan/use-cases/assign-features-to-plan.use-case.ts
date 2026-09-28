@@ -13,7 +13,7 @@ export class AssignFeaturesToPlanUseCase {
   async execute(planId: string, featureIds: string[]): Promise<Plan> {
     const plan = await this.planRepository.findById(planId);
     if (!plan) {
-      throw new NotFoundError('Plan not found');
+      throw new NotFoundError('Plan', undefined, 'El plan no existe');
     }
 
     const uniqueIds = await resolveFeatureIds(this.featureRepository, featureIds);

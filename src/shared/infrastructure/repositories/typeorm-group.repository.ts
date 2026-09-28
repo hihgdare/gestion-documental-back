@@ -99,6 +99,16 @@ export class TypeOrmGroupRepository implements GroupRepository {
     await this.repository.delete(id);
   }
 
+  async isUserInGroup(groupId: number, userId: string): Promise<boolean> {
+    const count = await this.repository
+      .createQueryBuilder('group')
+      .innerJoin('group.users', 'user')
+      .where('group.id = :groupId', { groupId })
+      .andWhere('user.id = :userId', { userId })
+      .getCount();
+    return count > 0;
+  }
+
   async addUserToGroup(groupId: number, userId: string, permission?: string): Promise<void> {
     const group = await this.repository.findOne({
       where: { id: groupId },

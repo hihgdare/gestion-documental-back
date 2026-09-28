@@ -38,13 +38,13 @@ export class GroupFeatureOverride {
 
   private static validate(props: GroupFeatureOverrideProps): void {
     if (!props.groupId) {
-      throw new ValidationError('Group ID is required', 'groupId');
+      throw new ValidationError('El grupo es obligatorio', 'groupId');
     }
     if (!props.featureId?.trim()) {
-      throw new ValidationError('Feature ID is required', 'featureId');
+      throw new ValidationError('La funcionalidad es obligatoria', 'featureId');
     }
     if (typeof props.granted !== 'boolean') {
-      throw new ValidationError('Granted flag is required', 'granted');
+      throw new ValidationError('Debe indicarse si la funcionalidad se otorga o se quita', 'granted');
     }
   }
 

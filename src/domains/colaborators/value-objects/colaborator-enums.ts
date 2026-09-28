@@ -1,7 +1,6 @@
 export enum ColaboratorStatus {
   ACTIVE = 'activo',
   INACTIVE = 'inactivo',
-  SUSPENDED = 'suspendido',
   TERMINATED = 'terminado'
 }
 

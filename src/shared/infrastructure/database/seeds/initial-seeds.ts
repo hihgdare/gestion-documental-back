@@ -69,7 +69,7 @@ const otherPermissions = [
 
 // Catálogo de funcionalidades adicionales de los planes, agrupadas por categoría.
 // Se sincroniza en cada arranque (upsert por key), igual que los permisos.
-// Agregar nuevas categorías/funcionalidades acá no requiere ningún paso manual.
+// Agregar nuevas categorías/funcionalidades aquí no requiere ningún paso manual.
 const featureCategories: FeatureSeedDefinition[] = [
   {
     key: 'firma-electronica',

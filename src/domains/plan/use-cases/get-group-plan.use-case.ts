@@ -8,7 +8,7 @@ export class GetGroupPlanUseCase {
   async execute(id: string): Promise<GroupPlan> {
     const groupPlan = await this.groupPlanRepository.findById(id);
     if (!groupPlan) {
-      throw new NotFoundError('GroupPlan not found');
+      throw new NotFoundError('GroupPlan', undefined, 'La asignación de plan no existe');
     }
     return groupPlan;
   }

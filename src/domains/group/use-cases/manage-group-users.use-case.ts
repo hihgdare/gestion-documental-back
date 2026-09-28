@@ -43,13 +43,16 @@ export class AddUserToGroupUseCase {
     if (!user) throw new NotFoundError('User', userId);
 
     await withGroupLock(groupId, async () => {
-      await assertUserQuotaNotExceeded(
-        groupId,
-        user.status === UserStatus.ACTIVE,
-        this.userRepository,
-        this.groupPlanRepository,
-        this.planRepository,
-      );
+      const alreadyMember = await this.groupRepository.isUserInGroup(groupId, userId);
+      if (!alreadyMember) {
+        await assertUserQuotaNotExceeded(
+          groupId,
+          user.status === UserStatus.ACTIVE,
+          this.userRepository,
+          this.groupPlanRepository,
+          this.planRepository,
+        );
+      }
 
       await this.groupRepository.addUserToGroup(groupId, userId, permission);
     });
@@ -89,13 +92,16 @@ export class AssignGroupToUserUseCase {
     if (!group) throw new NotFoundError('Group', groupId.toString());
 
     await withGroupLock(groupId, async () => {
-      await assertUserQuotaNotExceeded(
-        groupId,
-        user.status === UserStatus.ACTIVE,
-        this.userRepository,
-        this.groupPlanRepository,
-        this.planRepository,
-      );
+      const alreadyMember = await this.groupRepository.isUserInGroup(groupId, userId);
+      if (!alreadyMember) {
+        await assertUserQuotaNotExceeded(
+          groupId,
+          user.status === UserStatus.ACTIVE,
+          this.userRepository,
+          this.groupPlanRepository,
+          this.planRepository,
+        );
+      }
 
       // Reuse the same logic as AddUserToGroupUseCase
       await this.groupRepository.addUserToGroup(groupId, userId, permission);

@@ -124,6 +124,24 @@ describe('GetGroupFeaturesUseCase', () => {
     expect(keys.sort()).toEqual(keysOf(catalog));
   });
 
+  it('hasFeature cachea las funcionalidades del grupo hasta invalidar la caché', async () => {
+    const groupPlanRepo = makeGroupPlanRepo({ findActiveByGroupId: mock(() => Promise.resolve(activeGroupPlan)) });
+    const useCase = new GetGroupFeaturesUseCase(
+      groupPlanRepo,
+      makePlanRepo({ findById: mock(() => Promise.resolve(planWithFirma)) }),
+      makeOverrideRepo(),
+      makeFeatureRepo(),
+    );
+
+    expect(await useCase.hasFeature(1, 'firma-electronica:simple')).toBe(true);
+    expect(await useCase.hasFeature(1, 'firma-electronica:reportes')).toBe(false);
+    expect(groupPlanRepo.findActiveByGroupId).toHaveBeenCalledTimes(1);
+
+    useCase.invalidateCache();
+    await useCase.hasFeature(1, 'firma-electronica:simple');
+    expect(groupPlanRepo.findActiveByGroupId).toHaveBeenCalledTimes(2);
+  });
+
   it('getAvailableFeatureKeys devuelve las funcionalidades efectivas del grupo', async () => {
     const keys = await makeUseCase({ withPlan: true }).getAvailableFeatureKeys(1);
     expect(keys).toEqual(['firma-electronica:simple']);

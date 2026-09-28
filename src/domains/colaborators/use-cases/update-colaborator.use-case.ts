@@ -184,24 +184,16 @@ export class UpdateColaboratorUseCase {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
+    if (colaborator.isActive()) {
+      return colaborator;
+    }
+
     return withGroupLock(colaborator.groupId, async () => {
       await this.assertColaboratorQuotaNotExceeded(colaborator.groupId);
 
       colaborator.activate();
       return this.colaboratorRepository.update(colaborator);
     });
-  }
-
-  public async suspend(id: string): Promise<Colaborator> {
-    const colaborator = await this.colaboratorRepository.findById(id);
-
-    if (!colaborator) {
-      throw new NotFoundError(`Colaborator with id ${id} not found`);
-    }
-
-    colaborator.suspend();
-
-    return await this.colaboratorRepository.update(colaborator);
   }
 
   public async deactivate(id: string): Promise<Colaborator> {

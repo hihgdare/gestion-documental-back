@@ -18,12 +18,13 @@ import {
 } from '@domains/plan/use-cases/set-group-feature-override.use-case';
 import { ListFeatureCatalogUseCase } from '@domains/feature/use-cases/list-feature-catalog.use-case';
 import { isRbacEnabled } from '@shared/utils/requests';
-import { CreatePlanDto } from '../dto/plan/create-plan.dto';
-import { UpdatePlanDto } from '../dto/plan/update-plan.dto';
-import { AssignPlanToGroupDto } from '../dto/plan/assign-plan-to-group.dto';
-import { UpdateGroupPlanDto } from '../dto/plan/update-group-plan.dto';
-import { AssignFeaturesToPlanDto } from '../dto/plan/assign-features-to-plan.dto';
-import { SetGroupFeatureOverrideDto } from '../dto/plan/set-group-feature-override.dto';
+import { asyncHandler } from '@shared/middleware/validation';
+import { CreatePlanDto } from '@presentation/dto/plan/create-plan.dto';
+import { UpdatePlanDto } from '@presentation/dto/plan/update-plan.dto';
+import { AssignPlanToGroupDto } from '@presentation/dto/plan/assign-plan-to-group.dto';
+import { UpdateGroupPlanDto } from '@presentation/dto/plan/update-group-plan.dto';
+import { AssignFeaturesToPlanDto } from '@presentation/dto/plan/assign-features-to-plan.dto';
+import { SetGroupFeatureOverrideDto } from '@presentation/dto/plan/set-group-feature-override.dto';
 
 export class PlanController {
   constructor(
@@ -48,118 +49,124 @@ export class PlanController {
 
   // Feature catalog & assignment
 
-  public listFeatureCatalog = async (_req: Request, res: Response) => {
+  public listFeatureCatalog = asyncHandler(async (_req: Request, res: Response) => {
     const catalog = await this.listFeatureCatalogUseCase.execute();
     res.status(200).json({ success: true, data: catalog });
-  };
+  });
 
-  public assignFeaturesToPlan = async (req: Request, res: Response) => {
+  public assignFeaturesToPlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { featureIds } = req.body as AssignFeaturesToPlanDto;
     const plan = await this.assignFeaturesToPlanUseCase.execute(id, featureIds);
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, data: plan.toJSON() });
-  };
+  });
 
-  public getMyFeatures = async (req: Request, res: Response) => {
+  public getMyFeatures = asyncHandler(async (req: Request, res: Response) => {
     const groupId = isRbacEnabled(req) ? req.auth?.groupId : undefined;
     const featureKeys = await this.getGroupFeaturesUseCase.getAvailableFeatureKeys(groupId);
     res.status(200).json({ success: true, data: featureKeys });
-  };
+  });
 
-  public getGroupFeatures = async (req: Request, res: Response) => {
+  public getGroupFeatures = asyncHandler(async (req: Request, res: Response) => {
     const groupId = parseInt(req.params.groupId, 10);
     const result = await this.getGroupFeaturesUseCase.execute(groupId);
     res.status(200).json({ success: true, data: result });
-  };
+  });
 
-  public setGroupFeatureOverride = async (req: Request, res: Response) => {
+  public setGroupFeatureOverride = asyncHandler(async (req: Request, res: Response) => {
     const groupId = parseInt(req.params.groupId, 10);
     const { featureId } = req.params;
     const { granted } = req.body as SetGroupFeatureOverrideDto;
     const override = await this.setGroupFeatureOverrideUseCase.execute(groupId, featureId, granted);
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, data: override.toJSON() });
-  };
+  });
 
-  public removeGroupFeatureOverride = async (req: Request, res: Response) => {
+  public removeGroupFeatureOverride = asyncHandler(async (req: Request, res: Response) => {
     const groupId = parseInt(req.params.groupId, 10);
     const { featureId } = req.params;
     await this.removeGroupFeatureOverrideUseCase.execute(groupId, featureId);
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, message: 'Feature override removed successfully' });
-  };
+  });
 
   // Plans CRUD
 
-  public createPlan = async (req: Request, res: Response) => {
+  public createPlan = asyncHandler(async (req: Request, res: Response) => {
     const dto = req.body as CreatePlanDto;
     const plan = await this.createPlanUseCase.execute(dto);
     res.status(201).json({ success: true, data: plan.toJSON() });
-  };
+  });
 
-  public getPlan = async (req: Request, res: Response) => {
+  public getPlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const plan = await this.getPlanUseCase.execute(id);
     res.status(200).json({ success: true, data: plan.toJSON() });
-  };
+  });
 
-  public listPlans = async (_req: Request, res: Response) => {
+  public listPlans = asyncHandler(async (_req: Request, res: Response) => {
     const plans = await this.listPlansUseCase.execute();
     res.status(200).json({ success: true, data: plans.map(p => p.toJSON()) });
-  };
+  });
 
-  public updatePlan = async (req: Request, res: Response) => {
+  public updatePlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const dto = req.body as UpdatePlanDto;
     const plan = await this.updatePlanUseCase.execute({ ...dto, id });
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, data: plan.toJSON() });
-  };
+  });
 
-  public deletePlan = async (req: Request, res: Response) => {
+  public deletePlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     await this.deletePlanUseCase.execute(id);
     res.status(200).json({ success: true, message: 'Plan deleted successfully' });
-  };
+  });
 
   // Group Plans
 
-  public assignPlanToGroup = async (req: Request, res: Response) => {
+  public assignPlanToGroup = asyncHandler(async (req: Request, res: Response) => {
     const dto = req.body as AssignPlanToGroupDto;
     const groupPlan = await this.assignPlanToGroupUseCase.execute({
       ...dto,
       startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
       endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
     });
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(201).json({ success: true, data: groupPlan.toJSON() });
-  };
+  });
 
-  public replaceGroupPlan = async (req: Request, res: Response) => {
+  public replaceGroupPlan = asyncHandler(async (req: Request, res: Response) => {
     const dto = req.body as AssignPlanToGroupDto;
     const groupPlan = await this.replaceGroupPlanUseCase.execute({
       ...dto,
       startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
       endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
     });
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, data: groupPlan.toJSON() });
-  };
+  });
 
-  public getGroupPlan = async (req: Request, res: Response) => {
+  public getGroupPlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const groupPlan = await this.getGroupPlanUseCase.execute(id);
     res.status(200).json({ success: true, data: groupPlan.toJSON() });
-  };
+  });
 
-  public listGroupPlansByGroup = async (req: Request, res: Response) => {
+  public listGroupPlansByGroup = asyncHandler(async (req: Request, res: Response) => {
     const groupId = parseInt(req.params.groupId, 10);
     const groupPlans = await this.listGroupPlansByGroupUseCase.execute(groupId);
     res.status(200).json({ success: true, data: groupPlans.map(gp => gp.toJSON()) });
-  };
+  });
 
-  public getActiveGroupPlan = async (req: Request, res: Response) => {
+  public getActiveGroupPlan = asyncHandler(async (req: Request, res: Response) => {
     const groupId = parseInt(req.params.groupId, 10);
     const groupPlan = await this.getActiveGroupPlanUseCase.execute(groupId);
     res.status(200).json({ success: true, data: groupPlan ? groupPlan.toJSON() : null });
-  };
+  });
 
-  public updateGroupPlan = async (req: Request, res: Response) => {
+  public updateGroupPlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const dto = req.body as UpdateGroupPlanDto;
     const groupPlan = await this.updateGroupPlanUseCase.execute({
@@ -168,12 +175,14 @@ export class PlanController {
       endsAt: dto.endsAt !== undefined ? (dto.endsAt ? new Date(dto.endsAt) : null) : undefined,
       isActive: dto.isActive,
     });
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, data: groupPlan.toJSON() });
-  };
+  });
 
-  public deleteGroupPlan = async (req: Request, res: Response) => {
+  public deleteGroupPlan = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     await this.deleteGroupPlanUseCase.execute(id);
+    this.getGroupFeaturesUseCase.invalidateCache();
     res.status(200).json({ success: true, message: 'GroupPlan deleted successfully' });
-  };
+  });
 }

@@ -12,8 +12,7 @@ export const requireFeature = (
   const groupId = req.auth?.groupId;
   if (!groupId) return next();
 
-  const { effectiveFeatures } = await getGroupFeaturesUseCase.execute(groupId);
-  if (!effectiveFeatures.some((feature) => feature.key === featureKey)) {
+  if (!(await getGroupFeaturesUseCase.hasFeature(groupId, featureKey))) {
     throw new FeatureNotAvailableError(featureKey);
   }
 

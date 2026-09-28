@@ -12,4 +12,5 @@ export interface GroupRepository {
   addUserToGroup(groupId: number, userId: string, permission?: string): Promise<void>;
   removeUserFromGroup(groupId: number, userId: string): Promise<void>;
   findUsersByGroupId(groupId: number): Promise<Group | null>;
+  isUserInGroup(groupId: number, userId: string): Promise<boolean>;
 }

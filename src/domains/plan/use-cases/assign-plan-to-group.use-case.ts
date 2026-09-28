@@ -22,12 +22,12 @@ export class AssignPlanToGroupUseCase {
   async execute(input: AssignPlanToGroupInput): Promise<GroupPlan> {
     const group = await this.groupRepository.findById(input.groupId);
     if (!group) {
-      throw new ValidationError('Group not found', 'groupId');
+      throw new ValidationError('El grupo no existe', 'groupId');
     }
 
     const plan = await this.planRepository.findById(input.planId);
     if (!plan) {
-      throw new ValidationError('Plan not found', 'planId');
+      throw new ValidationError('El plan no existe', 'planId');
     }
 
     return withGroupLock(input.groupId, async () => {

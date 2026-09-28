@@ -8,12 +8,7 @@ const FEATURE_KEY = 'firma-electronica:simple';
 
 function makeUseCase(featureKeys: string[]) {
   return {
-    execute: mock(() => Promise.resolve({
-      planId: null,
-      planFeatureIds: [],
-      overrides: [],
-      effectiveFeatures: featureKeys.map((key) => ({ key, categoryId: 'cat', name: key, source: 'plan' as const })),
-    })),
+    hasFeature: mock((_groupId: number, key: string) => Promise.resolve(featureKeys.includes(key))),
   } as unknown as GetGroupFeaturesUseCase;
 }
 
@@ -35,14 +30,14 @@ describe('requireFeature', () => {
     const useCase = makeUseCase([]);
     const next = await run(useCase, makeRequest({ rbac: false, groupId: 1 }));
     expect(next).toHaveBeenCalledTimes(1);
-    expect(useCase.execute).not.toHaveBeenCalled();
+    expect(useCase.hasFeature).not.toHaveBeenCalled();
   });
 
   it('deja pasar si la sesión no tiene grupo', async () => {
     const useCase = makeUseCase([]);
     const next = await run(useCase, makeRequest({ rbac: true }));
     expect(next).toHaveBeenCalledTimes(1);
-    expect(useCase.execute).not.toHaveBeenCalled();
+    expect(useCase.hasFeature).not.toHaveBeenCalled();
   });
 
   it('deja pasar si el grupo tiene la funcionalidad', async () => {

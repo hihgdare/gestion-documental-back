@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PlanController } from '../controllers/plan.controller';
+import { PlanController } from '@presentation/controllers/plan.controller';
 import { auth } from '@shared/middleware/auth.middleware';
 import { authorize } from '@shared/middleware/authorize.middleware';
 import { validateRequest } from '@shared/middleware/validation';
@@ -10,7 +10,7 @@ import {
   updateGroupPlanSchema,
   assignFeaturesToPlanSchema,
   setGroupFeatureOverrideSchema,
-} from '../dto/validation-schemas';
+} from '@presentation/dto/validation-schemas';
 
 export const createPlanRoutes = (controller: PlanController) => {
   const router = Router();

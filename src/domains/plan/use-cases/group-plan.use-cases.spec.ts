@@ -56,6 +56,7 @@ function makeGroupRepo(overrides: Partial<GroupRepository> = {}): GroupRepositor
     addUserToGroup: mock(() => Promise.resolve()),
     removeUserFromGroup: mock(() => Promise.resolve()),
     findUsersByGroupId: mock(() => Promise.resolve(null)),
+    isUserInGroup: mock(() => Promise.resolve(false)),
     ...overrides,
   };
 }
