@@ -21,6 +21,9 @@ export class FileEntity {
   @Column({ type: 'int', nullable: true })
   size?: number;
 
+  @Column({ name: 'group_id', type: 'int', nullable: true })
+  groupId?: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
@@ -38,6 +41,7 @@ export class FileEntity {
     entity.storage = file.storage;
     entity.mimeType = file.mimeType;
     entity.size = file.size as any;
+    entity.groupId = file.groupId ?? null;
     return entity;
   }
 
@@ -49,6 +53,7 @@ export class FileEntity {
       storage: entity.storage,
       mimeType: entity.mimeType,
       size: entity.size ?? undefined,
+      groupId: entity.groupId ?? null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,

@@ -12,7 +12,7 @@ import { buildPrimactaNotificationEmail } from '@shared/infrastructure/email/tem
 import { redactSecret } from '@shared/utils/redact';
 import { SignatureCodeNotificationRepository } from '../repositories/signature-code-notification.repository';
 import { ProcessFlowParticipantActionUseCase } from './progress-signature-flow.use-case';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { UserSignatureRepository } from '@domains/signature/repositories/user-signature.repository';
 import {
   GetSavedSignaturePreviewUseCase,
@@ -312,7 +312,7 @@ export class ValidateExternalSignerOtpUseCase {
     private readonly processFlowUseCase: ProcessFlowParticipantActionUseCase,
     private readonly flowRepository: SignatureFlowRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
-    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly fileRepository?: FileRepository,
     private readonly userSignatureRepository?: UserSignatureRepository,
   ) {}
 

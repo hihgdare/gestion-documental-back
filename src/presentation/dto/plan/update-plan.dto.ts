@@ -9,4 +9,5 @@ export interface UpdatePlanDto {
   maxActiveUsers?: number | null;
   isVisible?: boolean;
   badge?: PlanBadge | null;
+  featureIds?: string[];
 }

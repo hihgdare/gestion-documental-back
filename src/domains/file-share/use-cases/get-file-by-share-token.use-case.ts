@@ -1,13 +1,13 @@
 import { File } from '@domains/file/entities/file.entity';
 import { FileShare } from '../entities/file-share.entity';
 import { FileShareRepository } from '../repositories/file-share.repository';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { NotFoundError } from '@shared/domain/errors';
 
 export class GetFileByShareTokenUseCase {
   constructor(
     private readonly fileShareRepository: FileShareRepository,
-    private readonly fileRepository: TypeOrmFileRepository,
+    private readonly fileRepository: FileRepository,
   ) {}
 
   async execute(

@@ -4,7 +4,7 @@ import { UserStatus } from '@domains/user/value-objects/user-status';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 

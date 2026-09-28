@@ -3,7 +3,7 @@ import { PlanRepository } from '../repositories/plan.repository';
 import { GroupPlan } from '../entities/group-plan.entity';
 import { ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface ReplaceGroupPlanInput {
   groupId: number;
@@ -36,12 +36,9 @@ export class ReplaceGroupPlanUseCase {
       if (activeGroupPlan && activeGroupPlan.planId === input.planId) {
         activeGroupPlan.startsAt = input.startsAt ?? activeGroupPlan.startsAt;
         activeGroupPlan.endsAt = input.endsAt !== undefined ? input.endsAt : activeGroupPlan.endsAt;
-        return this.groupPlanRepository.update(activeGroupPlan);
-      }
-
-      if (activeGroupPlan) {
-        activeGroupPlan.isActive = false;
-        await this.groupPlanRepository.update(activeGroupPlan);
+        const updated = await this.groupPlanRepository.update(activeGroupPlan);
+        await this.groupPlanRepository.deactivateOthers(input.groupId, updated.id!);
+        return updated;
       }
 
       const groupPlan = new GroupPlan({
@@ -52,7 +49,9 @@ export class ReplaceGroupPlanUseCase {
         isActive: true,
       });
 
-      return this.groupPlanRepository.save(groupPlan);
+      const saved = await this.groupPlanRepository.save(groupPlan);
+      await this.groupPlanRepository.deactivateOthers(input.groupId, saved.id!);
+      return saved;
     });
   }
 }

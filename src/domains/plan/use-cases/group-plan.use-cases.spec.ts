@@ -21,6 +21,8 @@ function makeGroupPlanRepo(overrides: Partial<GroupPlanRepository> = {}): GroupP
     findById: mock(() => Promise.resolve(null)),
     findByGroupId: mock(() => Promise.resolve([])),
     findActiveByGroupId: mock(() => Promise.resolve(null)),
+    deactivateOthers: mock(() => Promise.resolve()),
+    existsByPlanId: mock(() => Promise.resolve(false)),
     save: mock((gp: GroupPlan) => Promise.resolve(gp)),
     update: mock((gp: GroupPlan) => Promise.resolve(gp)),
     delete: mock(() => Promise.resolve()),
@@ -104,6 +106,11 @@ describe('AssignPlanToGroupUseCase', () => {
     const result = await useCase.execute({ groupId: 1, planId: 'plan-id' });
     expect(result.endsAt).toBeNull();
   });
+
+  it('desactiva los demás planes activos del grupo', async () => {
+    const result = await useCase.execute({ groupId: 1, planId: 'plan-id' });
+    expect(groupPlanRepo.deactivateOthers).toHaveBeenCalledWith(1, result.id);
+  });
 });
 
 // --- GetGroupPlanUseCase ---
@@ -166,6 +173,14 @@ describe('UpdateGroupPlanUseCase', () => {
     const result = await useCase.execute({ id: 'gp-id', isActive: false });
     expect(result.isActive).toBe(false);
     expect(repo.update).toHaveBeenCalledTimes(1);
+    expect(repo.deactivateOthers).not.toHaveBeenCalled();
+  });
+
+  it('al reactivar un plan desactiva los demás planes del grupo', async () => {
+    gp.isActive = false;
+    const result = await useCase.execute({ id: 'gp-id', isActive: true });
+    expect(result.isActive).toBe(true);
+    expect(repo.deactivateOthers).toHaveBeenCalledWith(1, 'gp-id');
   });
 
   it('actualiza la fecha de fin', async () => {

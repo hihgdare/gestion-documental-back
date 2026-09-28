@@ -8,6 +8,11 @@ import { Document, DocumentProps } from '@domains/document/entities/document.ent
 import { DocumentHistoryProps } from '@domains/document/entities/document-history.entity';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { ValidationError, NotFoundError } from '@shared/domain/errors';
+import { withGroupLock } from '@shared/domain/group-lock';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { hasDocumentQuotaAvailable } from '@domains/document/use-cases/has-document-quota';
+import { SkippedColaborator } from '@domains/document/use-cases/assign-documents-to-group.use-case';
 
 export interface AssignDocumentsFromModelRequest {
   documentModelId: string;
@@ -18,7 +23,7 @@ export interface AssignDocumentsFromModelRequest {
 
 export interface AssignDocumentsFromModelResult {
   created: Document[];
-  skipped: string[];
+  skipped: SkippedColaborator[];
 }
 
 export class AssignDocumentsFromModelUseCase {
@@ -29,6 +34,8 @@ export class AssignDocumentsFromModelUseCase {
     private readonly contractRepository: ContractRepository,
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly familyRepository: IFamilyRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: AssignDocumentsFromModelRequest): Promise<AssignDocumentsFromModelResult> {
@@ -57,13 +64,13 @@ export class AssignDocumentsFromModelUseCase {
     }
 
     const created: Document[] = [];
-    const skipped: string[] = [];
+    const skipped: SkippedColaborator[] = [];
 
     // Para cada colaborador, crear un documento basado en el modelo
     for (const colaboratorId of request.colaboratorIds) {
       const colaborator = await this.colaboratorRepository.findById(colaboratorId);
       if (!colaborator) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'not_found' });
         continue;
       }
 
@@ -81,7 +88,7 @@ export class AssignDocumentsFromModelUseCase {
       );
 
       if (exists) {
-        skipped.push(`${colaboratorId}`);
+        skipped.push({ colaboratorId, reason: 'duplicate' });
         continue;
       }
 
@@ -101,8 +108,21 @@ export class AssignDocumentsFromModelUseCase {
         requiredExpirationDate: model.requiredExpirationDate,
       };
 
-      const doc = Document.create(props);
-      const saved = await this.documentRepository.save(doc);
+      const saved = await withGroupLock(colaborator.groupId, async () => {
+        const hasQuota = await hasDocumentQuotaAvailable(
+          colaborator.groupId,
+          this.documentRepository,
+          this.groupPlanRepository,
+          this.planRepository,
+        );
+        if (!hasQuota) return null;
+        return this.documentRepository.save(Document.create(props));
+      });
+
+      if (!saved) {
+        skipped.push({ colaboratorId, reason: 'quota_exceeded' });
+        continue;
+      }
       created.push(saved);
 
       // Crear historial si es necesario

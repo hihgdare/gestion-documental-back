@@ -4,7 +4,10 @@ import { GetPlanUseCase, ListPlansUseCase } from './get-plan.use-case';
 import { UpdatePlanUseCase, DeletePlanUseCase } from './update-plan.use-case';
 import { Plan } from '../entities/plan.entity';
 import { PlanRepository } from '../repositories/plan.repository';
-import { ValidationError, NotFoundError } from '@shared/domain/errors';
+import { FeatureRepository } from '@domains/feature/repositories/feature.repository';
+import { Feature } from '@domains/feature/entities/feature.entity';
+import { GroupPlanRepository } from '../repositories/group-plan.repository';
+import { ValidationError, NotFoundError, ConflictError } from '@shared/domain/errors';
 
 // --- Mock factory ---
 function makePlan(overrides: Partial<Plan> = {}): Plan {
@@ -24,6 +27,17 @@ function makePlanRepo(overrides: Partial<PlanRepository> = {}): PlanRepository {
   };
 }
 
+function makeFeatureRepo(existingIds: string[] = ['f-1', 'f-2']): FeatureRepository {
+  return {
+    findAll: mock(() => Promise.resolve([])),
+    findIn: mock((ids: string[]) => Promise.resolve(
+      ids.filter((id) => existingIds.includes(id)).map((id) => new Feature({ id, categoryId: 'cat', key: id, name: id })),
+    )),
+    findByKey: mock(() => Promise.resolve(null)),
+    upsertByKey: mock(() => Promise.resolve(new Feature({ categoryId: 'cat', key: 'k', name: 'n' }))),
+  };
+}
+
 // --- CreatePlanUseCase ---
 describe('CreatePlanUseCase', () => {
   let repo: PlanRepository;
@@ -31,7 +45,7 @@ describe('CreatePlanUseCase', () => {
 
   beforeEach(() => {
     repo = makePlanRepo();
-    useCase = new CreatePlanUseCase(repo);
+    useCase = new CreatePlanUseCase(repo, makeFeatureRepo());
   });
 
   it('crea un plan correctamente', async () => {
@@ -101,7 +115,7 @@ describe('UpdatePlanUseCase', () => {
     plan = makePlan();
     plan.id = 'plan-id';
     repo = makePlanRepo({ findById: mock(() => Promise.resolve(plan)) });
-    useCase = new UpdatePlanUseCase(repo);
+    useCase = new UpdatePlanUseCase(repo, makeFeatureRepo());
   });
 
   it('actualiza el nombre si cambia', async () => {
@@ -136,14 +150,53 @@ describe('UpdatePlanUseCase', () => {
 
 // --- DeletePlanUseCase ---
 describe('DeletePlanUseCase', () => {
+  const makeGroupPlanRepo = (existsByPlanId: boolean) =>
+    ({ existsByPlanId: mock(() => Promise.resolve(existsByPlanId)) }) as unknown as GroupPlanRepository;
+
   it('elimina el plan si existe', async () => {
     const plan = makePlan();
     const repo = makePlanRepo({ findById: mock(() => Promise.resolve(plan)) });
-    await new DeletePlanUseCase(repo).execute('plan-id');
+    await new DeletePlanUseCase(repo, makeGroupPlanRepo(false)).execute('plan-id');
     expect(repo.delete).toHaveBeenCalledWith('plan-id');
   });
 
   it('lanza NotFoundError si el plan no existe', async () => {
-    expect(new DeletePlanUseCase(makePlanRepo()).execute('missing')).rejects.toThrow(NotFoundError);
+    expect(new DeletePlanUseCase(makePlanRepo(), makeGroupPlanRepo(false)).execute('missing')).rejects.toThrow(NotFoundError);
+  });
+
+  it('lanza ConflictError si el plan tiene asignaciones de grupo', async () => {
+    const repo = makePlanRepo({ findById: mock(() => Promise.resolve(makePlan())) });
+    await expect(new DeletePlanUseCase(repo, makeGroupPlanRepo(true)).execute('plan-id')).rejects.toThrow(ConflictError);
+    expect(repo.delete).not.toHaveBeenCalled();
+  });
+});
+
+// --- Funcionalidades al crear/editar un plan ---
+describe('Plan con funcionalidades en una sola operación', () => {
+  it('crea el plan con sus funcionalidades sin duplicados', async () => {
+    const repo = makePlanRepo();
+    await new CreatePlanUseCase(repo, makeFeatureRepo()).execute({ name: 'Pro', featureIds: ['f-1', 'f-1', 'f-2'] });
+    expect(repo.save).toHaveBeenCalledWith(expect.any(Plan), ['f-1', 'f-2']);
+  });
+
+  it('no crea el plan si alguna funcionalidad no existe', async () => {
+    const repo = makePlanRepo();
+    await expect(new CreatePlanUseCase(repo, makeFeatureRepo()).execute({ name: 'Pro', featureIds: ['f-1', 'no-existe'] }))
+      .rejects.toThrow(ValidationError);
+    expect(repo.save).not.toHaveBeenCalled();
+  });
+
+  it('no toca las funcionalidades si no se envían al editar', async () => {
+    const plan = makePlan();
+    const repo = makePlanRepo({ findById: mock(() => Promise.resolve(plan)) });
+    await new UpdatePlanUseCase(repo, makeFeatureRepo()).execute({ id: 'plan-id', maxDocuments: 5 });
+    expect(repo.update).toHaveBeenCalledWith(plan, undefined);
+  });
+
+  it('reemplaza las funcionalidades al editar', async () => {
+    const plan = makePlan();
+    const repo = makePlanRepo({ findById: mock(() => Promise.resolve(plan)) });
+    await new UpdatePlanUseCase(repo, makeFeatureRepo()).execute({ id: 'plan-id', featureIds: [] });
+    expect(repo.update).toHaveBeenCalledWith(plan, []);
   });
 });

@@ -333,6 +333,7 @@ export const createPlanSchema = Joi.object({
   maxActiveUsers: Joi.number().integer().min(0).optional().allow(null),
   isVisible: Joi.boolean().optional(),
   badge: Joi.string().valid(...Object.values(PlanBadge)).optional().allow(null),
+  featureIds: Joi.array().items(Joi.string().uuid()).optional(),
 });
 
 export const updatePlanSchema = Joi.object({
@@ -344,6 +345,7 @@ export const updatePlanSchema = Joi.object({
   maxActiveUsers: Joi.number().integer().min(0).optional().allow(null),
   isVisible: Joi.boolean().optional(),
   badge: Joi.string().valid(...Object.values(PlanBadge)).optional().allow(null),
+  featureIds: Joi.array().items(Joi.string().uuid()).optional(),
 }).min(1);
 
 export const assignFeaturesToPlanSchema = Joi.object({

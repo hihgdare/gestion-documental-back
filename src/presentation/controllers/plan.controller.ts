@@ -17,6 +17,7 @@ import {
   RemoveGroupFeatureOverrideUseCase,
 } from '@domains/plan/use-cases/set-group-feature-override.use-case';
 import { ListFeatureCatalogUseCase } from '@domains/feature/use-cases/list-feature-catalog.use-case';
+import { isRbacEnabled } from '@shared/utils/requests';
 import { CreatePlanDto } from '../dto/plan/create-plan.dto';
 import { UpdatePlanDto } from '../dto/plan/update-plan.dto';
 import { AssignPlanToGroupDto } from '../dto/plan/assign-plan-to-group.dto';
@@ -60,13 +61,9 @@ export class PlanController {
   };
 
   public getMyFeatures = async (req: Request, res: Response) => {
-    const groupId = req.auth?.groupId;
-    if (!groupId) {
-      res.status(200).json({ success: true, data: [] });
-      return;
-    }
-    const { effectiveFeatures } = await this.getGroupFeaturesUseCase.execute(groupId);
-    res.status(200).json({ success: true, data: effectiveFeatures.map((feature) => feature.key) });
+    const groupId = isRbacEnabled(req) ? req.auth?.groupId : undefined;
+    const featureKeys = await this.getGroupFeaturesUseCase.getAvailableFeatureKeys(groupId);
+    res.status(200).json({ success: true, data: featureKeys });
   };
 
   public getGroupFeatures = async (req: Request, res: Response) => {

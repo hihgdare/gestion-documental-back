@@ -1,4 +1,4 @@
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, IsNull, LessThanOrEqual, MoreThan, Not } from 'typeorm';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { GroupPlan } from '@domains/plan/entities/group-plan.entity';
 import { GroupPlanEntity } from '../database/entities/group-plan.entity';
@@ -25,11 +25,24 @@ export class TypeOrmGroupPlanRepository implements GroupPlanRepository {
   }
 
   async findActiveByGroupId(groupId: number): Promise<GroupPlan | null> {
+    const now = new Date();
+    const startsAtLimit = new Date(Math.ceil(now.getTime() / 1000) * 1000);
     const entity = await this.repository.findOne({
-      where: { groupId, isActive: true },
+      where: [
+        { groupId, isActive: true, startsAt: LessThanOrEqual(startsAtLimit), endsAt: IsNull() },
+        { groupId, isActive: true, startsAt: LessThanOrEqual(startsAtLimit), endsAt: MoreThan(now) },
+      ],
       order: { startsAt: 'DESC' },
     });
     return entity ? GroupPlanEntity.toDomain(entity) : null;
+  }
+
+  async existsByPlanId(planId: string): Promise<boolean> {
+    return (await this.repository.count({ where: { planId } })) > 0;
+  }
+
+  async deactivateOthers(groupId: number, keepId: string): Promise<void> {
+    await this.repository.update({ groupId, isActive: true, id: Not(keepId) }, { isActive: false });
   }
 
   async save(groupPlan: GroupPlan): Promise<GroupPlan> {

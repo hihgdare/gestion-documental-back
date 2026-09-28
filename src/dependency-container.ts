@@ -316,6 +316,10 @@ import { GetGroupPlanUseCase, ListGroupPlansByGroupUseCase, GetActiveGroupPlanUs
 import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
 import { AssignFeaturesToPlanUseCase } from '@domains/plan/use-cases/assign-features-to-plan.use-case';
 import { GetGroupFeaturesUseCase } from '@domains/plan/use-cases/get-group-features.use-case';
+import { configureGroupLock } from '@shared/domain/group-lock';
+import { UploadFileUseCase } from '@domains/file/use-cases/upload-file.use-case';
+import { createMySqlGroupLock } from '@shared/infrastructure/database/group-lock';
+import { AppDataSource } from '@shared/infrastructure/database/typeorm.config';
 import {
   SetGroupFeatureOverrideUseCase,
   RemoveGroupFeatureOverrideUseCase,
@@ -406,6 +410,7 @@ export class DependencyContainer {
   private listFeatureCatalogUseCase!: ListFeatureCatalogUseCase;
   private assignFeaturesToPlanUseCase!: AssignFeaturesToPlanUseCase;
   private getGroupFeaturesUseCase!: GetGroupFeaturesUseCase;
+  private uploadFileUseCase!: UploadFileUseCase;
   private setGroupFeatureOverrideUseCase!: SetGroupFeatureOverrideUseCase;
   private removeGroupFeatureOverrideUseCase!: RemoveGroupFeatureOverrideUseCase;
 
@@ -670,6 +675,8 @@ export class DependencyContainer {
   private resetPasswordUseCase!: ResetPasswordUseCase;
 
   public async initialize(): Promise<void> {
+    configureGroupLock(createMySqlGroupLock(AppDataSource));
+
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
     this.contractRepository = new TypeOrmContractRepository();
@@ -1072,6 +1079,8 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.contractRepository,
       this.colaboratorRepository,
+      this.groupPlanRepository,
+      this.planRepository,
     );
     this.getFamiliesByContractUseCase = new GetFamiliesByContractUseCase(this.familyRepository);
 
@@ -1102,6 +1111,8 @@ export class DependencyContainer {
       this.contractRepository,
       this.colaboratorRepository,
       this.familyRepository,
+      this.groupPlanRepository,
+      this.planRepository,
     );
 
     this.documentModelController = new DocumentModelController(
@@ -1226,7 +1237,13 @@ export class DependencyContainer {
       jwtSecret,
     );
 
-    this.fileController = new FileController(this.fileRepository);
+    this.uploadFileUseCase = new UploadFileUseCase(
+      this.fileRepository,
+      this.documentRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
+    this.fileController = new FileController(this.fileRepository, this.uploadFileUseCase);
 
     // Initialize FileShare
     this.createFileShareUseCase = new CreateFileShareUseCase(this.fileShareRepository, this.fileRepository);
@@ -1271,11 +1288,11 @@ export class DependencyContainer {
     );
 
     // Initialize Plan use cases
-    this.createPlanUseCase = new CreatePlanUseCase(this.planRepository);
+    this.createPlanUseCase = new CreatePlanUseCase(this.planRepository, this.featureRepository);
     this.getPlanUseCase = new GetPlanUseCase(this.planRepository);
     this.listPlansUseCase = new ListPlansUseCase(this.planRepository);
-    this.updatePlanUseCase = new UpdatePlanUseCase(this.planRepository);
-    this.deletePlanUseCase = new DeletePlanUseCase(this.planRepository);
+    this.updatePlanUseCase = new UpdatePlanUseCase(this.planRepository, this.featureRepository);
+    this.deletePlanUseCase = new DeletePlanUseCase(this.planRepository, this.groupPlanRepository);
     this.assignPlanToGroupUseCase = new AssignPlanToGroupUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
     this.replaceGroupPlanUseCase = new ReplaceGroupPlanUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
     this.getGroupPlanUseCase = new GetGroupPlanUseCase(this.groupPlanRepository);

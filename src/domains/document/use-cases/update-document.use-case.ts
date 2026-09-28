@@ -12,9 +12,9 @@ import { ContractRepository } from '@domains/contract/repositories/contract.repo
 import { AreaRepository } from '@domains/area/repositories/area.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
-import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -58,7 +58,7 @@ export class UpdateDocumentUseCase {
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly contractRepository?: ContractRepository,
     private readonly areaRepository?: AreaRepository,
-    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly fileRepository?: FileRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
@@ -242,7 +242,7 @@ export class UpdateDocumentUseCase {
 
     if (fileWillChange && request.documentUrl && this.fileRepository) {
       const file = await this.fileRepository.findById(request.documentUrl);
-      if (file?.size) {
+      if (file?.size && file.groupId !== document.groupId) {
         await assertStorageQuotaNotExceeded(
           document.groupId,
           file.size,

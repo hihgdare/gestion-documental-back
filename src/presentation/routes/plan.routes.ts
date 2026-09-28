@@ -31,22 +31,6 @@ export const createPlanRoutes = (controller: PlanController) => {
 
   router.get('/my-features', controller.getMyFeatures);
 
-  router.get('/:id',
-    authorize(['plan:read', 'group:assign:plan']),
-    controller.getPlan,
-  );
-
-  router.put('/:id',
-    authorize('plan:update'),
-    validateRequest(updatePlanSchema),
-    controller.updatePlan,
-  );
-
-  router.delete('/:id',
-    authorize('plan:delete'),
-    controller.deletePlan,
-  );
-
   // Feature catalog & plan assignment
 
   router.get('/features/catalog',
@@ -115,6 +99,22 @@ export const createPlanRoutes = (controller: PlanController) => {
   router.delete('/groups/:groupId/features/:featureId',
     authorize('group:assign:plan'),
     controller.removeGroupFeatureOverride,
+  );
+
+  router.get('/:id',
+    authorize(['plan:read', 'group:assign:plan']),
+    controller.getPlan,
+  );
+
+  router.put('/:id',
+    authorize('plan:update'),
+    validateRequest(updatePlanSchema),
+    controller.updatePlan,
+  );
+
+  router.delete('/:id',
+    authorize('plan:delete'),
+    controller.deletePlan,
   );
 
   return router;

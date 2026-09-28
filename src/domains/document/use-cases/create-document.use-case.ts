@@ -12,9 +12,9 @@ import { ColaboratorRepository } from '@domains/colaborators/repositories/colabo
 import { AreaRepository } from '@domains/area/repositories/area.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
-import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface CreateDocumentRequest {
   documentModelId: string;
@@ -48,7 +48,7 @@ export class CreateDocumentUseCase {
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly areaRepository?: AreaRepository,
-    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly fileRepository?: FileRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
@@ -109,7 +109,7 @@ export class CreateDocumentUseCase {
 
       if (this.fileRepository) {
         const file = await this.fileRepository.findById(request.documentUrl);
-        if (file?.size) {
+        if (file?.size && file.groupId !== request.groupId) {
           await assertStorageQuotaNotExceeded(
             request.groupId,
             file.size,

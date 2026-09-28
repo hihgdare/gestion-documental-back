@@ -29,11 +29,14 @@ export class GetGroupFeaturesUseCase {
     const overrides = await this.groupFeatureOverrideRepository.findByGroupId(groupId);
 
     const planFeatures = plan?.features ?? [];
+    const baseFeatures = plan
+      ? planFeatures
+      : (await this.featureRepository.findAll()).map((feature) => feature.toJSON());
     const revokedIds = new Set(overrides.filter((o) => !o.granted).map((o) => o.featureId));
     const grantedOverrides = overrides.filter((o) => o.granted);
 
     const effectiveMap = new Map<string, GroupFeatureView>();
-    for (const feature of planFeatures) {
+    for (const feature of baseFeatures) {
       if (!revokedIds.has(feature.id!)) {
         effectiveMap.set(feature.id!, { ...feature, source: 'plan' });
       }
@@ -55,5 +58,14 @@ export class GetGroupFeaturesUseCase {
       overrides: overrides.map((o) => ({ featureId: o.featureId, granted: o.granted })),
       effectiveFeatures: [...effectiveMap.values()],
     };
+  }
+
+  async getAvailableFeatureKeys(groupId?: number): Promise<string[]> {
+    if (!groupId) {
+      const features = await this.featureRepository.findAll();
+      return features.map((feature) => feature.key);
+    }
+    const { effectiveFeatures } = await this.execute(groupId);
+    return effectiveFeatures.map((feature) => feature.key);
   }
 }

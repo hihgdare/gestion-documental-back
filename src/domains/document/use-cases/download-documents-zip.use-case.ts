@@ -2,7 +2,7 @@ import path from 'path';
 import archiver, { type Archiver } from 'archiver';
 import { type DocumentRepository } from '../repositories/document.repository';
 import { Document } from '../entities/document.entity';
-import { type TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { File } from '@domains/file/entities/file.entity';
 import { ValidationError, ForbiddenError } from '@shared/domain/errors';
 
@@ -24,7 +24,7 @@ function uniqueEntryName(entryDir: string, baseName: string, extension: string, 
 export class DownloadDocumentsZipUseCase {
   constructor(
     private readonly documentRepository: DocumentRepository,
-    private readonly fileRepository: TypeOrmFileRepository,
+    private readonly fileRepository: FileRepository,
   ) {}
 
   /**

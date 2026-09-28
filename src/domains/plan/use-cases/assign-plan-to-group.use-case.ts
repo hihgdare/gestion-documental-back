@@ -3,6 +3,7 @@ import { PlanRepository } from '../repositories/plan.repository';
 import { GroupPlan } from '../entities/group-plan.entity';
 import { ValidationError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface AssignPlanToGroupInput {
   groupId: number;
@@ -29,14 +30,18 @@ export class AssignPlanToGroupUseCase {
       throw new ValidationError('Plan not found', 'planId');
     }
 
-    const groupPlan = new GroupPlan({
-      groupId: input.groupId,
-      planId: input.planId,
-      startsAt: input.startsAt,
-      endsAt: input.endsAt ?? null,
-      isActive: true,
-    });
+    return withGroupLock(input.groupId, async () => {
+      const groupPlan = new GroupPlan({
+        groupId: input.groupId,
+        planId: input.planId,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt ?? null,
+        isActive: true,
+      });
 
-    return await this.groupPlanRepository.save(groupPlan);
+      const saved = await this.groupPlanRepository.save(groupPlan);
+      await this.groupPlanRepository.deactivateOthers(input.groupId, saved.id!);
+      return saved;
+    });
   }
 }

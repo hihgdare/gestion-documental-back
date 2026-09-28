@@ -1,6 +1,7 @@
 import { GroupPlanRepository } from '../repositories/group-plan.repository';
 import { GroupPlan } from '../entities/group-plan.entity';
 import { NotFoundError } from '@shared/domain/errors';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface UpdateGroupPlanInput {
   id: string;
@@ -18,12 +19,18 @@ export class UpdateGroupPlanUseCase {
       throw new NotFoundError('GroupPlan not found');
     }
 
-    if (input.startsAt !== undefined) groupPlan.startsAt = input.startsAt;
-    if (input.endsAt !== undefined) groupPlan.endsAt = input.endsAt;
-    if (input.isActive !== undefined) groupPlan.isActive = input.isActive;
+    return withGroupLock(groupPlan.groupId, async () => {
+      if (input.startsAt !== undefined) groupPlan.startsAt = input.startsAt;
+      if (input.endsAt !== undefined) groupPlan.endsAt = input.endsAt;
+      if (input.isActive !== undefined) groupPlan.isActive = input.isActive;
 
-    groupPlan.updatedAt = new Date();
-    return await this.groupPlanRepository.update(groupPlan);
+      groupPlan.updatedAt = new Date();
+      const updated = await this.groupPlanRepository.update(groupPlan);
+      if (updated.isActive) {
+        await this.groupPlanRepository.deactivateOthers(updated.groupId, updated.id!);
+      }
+      return updated;
+    });
   }
 }
 

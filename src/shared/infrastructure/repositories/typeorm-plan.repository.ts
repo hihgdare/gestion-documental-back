@@ -50,16 +50,25 @@ export class TypeOrmPlanRepository implements PlanRepository {
     return count > 0;
   }
 
-  async save(plan: Plan): Promise<Plan> {
-    const entity = PlanEntity.fromDomain(plan);
-    const saved = await this.repository.save(entity);
-    return PlanEntity.toDomain(saved);
+  async save(plan: Plan, featureIds?: string[]): Promise<Plan> {
+    return this.persist(plan, featureIds);
   }
 
-  async update(plan: Plan): Promise<Plan> {
+  async update(plan: Plan, featureIds?: string[]): Promise<Plan> {
+    return this.persist(plan, featureIds);
+  }
+
+  private async persist(plan: Plan, featureIds?: string[]): Promise<Plan> {
     const entity = PlanEntity.fromDomain(plan);
+    if (featureIds) {
+      entity.features = featureIds.map((id) => Object.assign(new FeatureEntity(), { id }));
+    }
     const saved = await this.repository.save(entity);
-    return PlanEntity.toDomain(saved);
+    if (!featureIds) {
+      return PlanEntity.toDomain(saved);
+    }
+    const reloaded = await this.repository.findOne({ where: { id: saved.id }, relations: ['features'] });
+    return PlanEntity.toDomain(reloaded!);
   }
 
   async delete(id: string): Promise<void> {

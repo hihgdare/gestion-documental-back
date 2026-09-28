@@ -4,7 +4,7 @@ import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repos
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import { NotFoundError, PlanQuotaExceededError } from '@shared/domain/errors';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 async function assertUserQuotaNotExceeded(
   groupId: number,

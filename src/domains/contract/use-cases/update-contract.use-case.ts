@@ -5,7 +5,7 @@ import { only } from '@shared/utils/objects';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 async function assertContractQuotaNotExceeded(
   contract: Contract,
@@ -124,19 +124,21 @@ export class UpdateContractUseCase {
     }
 
     // Update group if provided
+    let groupChanged = false;
     if (request.groupId !== undefined && request.groupId !== contract.groupId) {
       const group = await this.groupRepository.findById(request.groupId);
       if (!group) {
         throw new ValidationError('Group not found', 'groupId');
       }
       contract.changeGroup(request.groupId);
+      groupChanged = true;
     }
 
     if (request.endDate) {
       contract.extendContract(new Date(request.endDate));
     }
 
-    if (!wasCounted && contract.countsForQuota()) {
+    if (contract.countsForQuota() && (!wasCounted || groupChanged)) {
       await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
     }
 

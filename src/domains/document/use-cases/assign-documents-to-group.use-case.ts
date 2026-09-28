@@ -10,7 +10,8 @@ import { IFamilyRepository } from '@domains/family/repositories/family.repositor
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { ValidationError, NotFoundError } from '@shared/domain/errors';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
+import { hasDocumentQuotaAvailable } from './has-document-quota';
 
 export interface AssignDocumentsToGroupRequest {
   documentModelId: string;
@@ -46,18 +47,6 @@ export class AssignDocumentsToGroupUseCase {
     private readonly planRepository: PlanRepository,
   ) {}
 
-  private async getDocumentLimit(groupId: number, limitByGroup: Map<number, number | null>): Promise<number | null> {
-    if (limitByGroup.has(groupId)) {
-      return limitByGroup.get(groupId)!;
-    }
-
-    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(groupId);
-    const plan = activeGroupPlan ? await this.planRepository.findById(activeGroupPlan.planId) : null;
-    const limit = plan?.maxDocuments ?? null;
-    limitByGroup.set(groupId, limit);
-    return limit;
-  }
-
   public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
     const documentModel = await this.documentModelRepository.findById(request.documentModelId);
     if (!documentModel) {
@@ -81,7 +70,6 @@ export class AssignDocumentsToGroupUseCase {
 
     const created: Document[] = [];
     const skipped: SkippedColaborator[] = [];
-    const limitByGroup = new Map<number, number | null>();
 
     for (const colaboratorId of request.colaboratorIds) {
       const colaborator = await this.colaboratorRepository.findById(colaboratorId);
@@ -104,12 +92,14 @@ export class AssignDocumentsToGroupUseCase {
       }
 
       const saved = await withGroupLock(colaborator.groupId, async () => {
-        const documentLimit = await this.getDocumentLimit(colaborator.groupId, limitByGroup);
-        if (documentLimit !== null) {
-          const currentCount = await this.documentRepository.countByGroupId(colaborator.groupId);
-          if (currentCount >= documentLimit) {
-            return null;
-          }
+        const hasQuota = await hasDocumentQuotaAvailable(
+          colaborator.groupId,
+          this.documentRepository,
+          this.groupPlanRepository,
+          this.planRepository,
+        );
+        if (!hasQuota) {
+          return null;
         }
 
         const props: DocumentProps = {

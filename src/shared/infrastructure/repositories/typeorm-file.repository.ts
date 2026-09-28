@@ -4,13 +4,14 @@ import { Repository, IsNull } from 'typeorm';
 import { AppDataSource } from '@shared/infrastructure/database/typeorm.config';
 import { FileEntity } from '@shared/infrastructure/database/entities/file.entity';
 import { File } from '@domains/file/entities/file.entity';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { Bucket } from '@shared/utils/Bucket';
 import FileUtils from '@shared/utils/FileUtils';
 import { ServerError } from '@shared/domain/errors';
 
 const STORAGE = (process.env.FILE_STORAGE || 'local').toLowerCase();
 
-export class TypeOrmFileRepository {
+export class TypeOrmFileRepository implements FileRepository {
   private repository: Repository<FileEntity>;
 
   constructor() {
@@ -53,7 +54,7 @@ export class TypeOrmFileRepository {
    * `size` permite que el llamador declare un tamaño distinto al del buffer escrito
    * (ej: tamaño original antes de algún procesamiento); si no se indica, se usa el real.
    */
-  async saveBuffer(buffer: Buffer, filename: string, mimeType?: string, size?: number): Promise<File> {
+  async saveBuffer(buffer: Buffer, filename: string, mimeType?: string, size?: number, groupId?: number): Promise<File> {
     const result = await FileUtils.save(buffer, filename);
     const { path: localPath, filename: uniqueName, size: actualSize } = result;
 
@@ -90,6 +91,7 @@ export class TypeOrmFileRepository {
       storage,
       mimeType,
       size: size ?? actualSize,
+      groupId: groupId ?? null,
     });
 
     return this.save(file);

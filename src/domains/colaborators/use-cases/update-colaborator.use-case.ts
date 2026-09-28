@@ -5,7 +5,7 @@ import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
 import { PlanRepository } from '@domains/plan/repositories/plan.repository';
-import { withGroupLock } from '@shared/infrastructure/database/group-lock';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface UpdateColaboratorRequest {
   id: string;
@@ -144,15 +144,37 @@ export class UpdateColaboratorUseCase {
     }
 
     // Update group if provided
+    let groupChanged = false;
     if (request.groupId !== undefined && request.groupId !== colaborator.groupId) {
       const group = await this.groupRepository.findById(request.groupId);
       if (!group) {
         throw new ValidationError('Group not found', 'groupId');
       }
       colaborator.changeGroup(request.groupId);
+      groupChanged = true;
+    }
+
+    if (groupChanged && colaborator.isActive()) {
+      return withGroupLock(colaborator.groupId, async () => {
+        await this.assertColaboratorQuotaNotExceeded(colaborator.groupId);
+        return this.colaboratorRepository.update(colaborator);
+      });
     }
 
     return await this.colaboratorRepository.update(colaborator);
+  }
+
+  private async assertColaboratorQuotaNotExceeded(groupId: number): Promise<void> {
+    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(groupId);
+    if (!activeGroupPlan) return;
+
+    const plan = await this.planRepository.findById(activeGroupPlan.planId);
+    if (!plan || plan.maxActiveColaborators === null) return;
+
+    const currentCount = await this.colaboratorRepository.countActiveByGroupId(groupId);
+    if (currentCount >= plan.maxActiveColaborators) {
+      throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+    }
   }
 
   public async activate(id: string): Promise<Colaborator> {
@@ -163,16 +185,7 @@ export class UpdateColaboratorUseCase {
     }
 
     return withGroupLock(colaborator.groupId, async () => {
-      const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(colaborator.groupId);
-      if (activeGroupPlan) {
-        const plan = await this.planRepository.findById(activeGroupPlan.planId);
-        if (plan && plan.maxActiveColaborators !== null) {
-          const currentCount = await this.colaboratorRepository.countActiveByGroupId(colaborator.groupId);
-          if (currentCount >= plan.maxActiveColaborators) {
-            throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
-          }
-        }
-      }
+      await this.assertColaboratorQuotaNotExceeded(colaborator.groupId);
 
       colaborator.activate();
       return this.colaboratorRepository.update(colaborator);

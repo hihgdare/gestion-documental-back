@@ -253,6 +253,24 @@ describe('PlanController', () => {
       expect(response.body.data).toBeNull();
     });
 
+    it('otorga todas las funcionalidades del catálogo a un grupo sin plan', async () => {
+      const catalogRes = await supertest(app)
+        .get('/api/plans/features/catalog')
+        .set('Authorization', 'Bearer user-id:random');
+
+      const response = await supertest(app)
+        .get(`/api/plans/groups/${groupId}/features`)
+        .set('Authorization', 'Bearer user-id:random');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.planId).toBeNull();
+      const effectiveKeys = response.body.data.effectiveFeatures.map((f: { key: string }) => f.key).sort();
+      const catalogKeys = catalogRes.body.data
+        .flatMap((category: { features: { key: string }[] }) => category.features.map((f) => f.key))
+        .sort();
+      expect(effectiveKeys).toEqual(catalogKeys);
+    });
+
     it('obtiene el plan activo del grupo y responde 200', async () => {
       await supertest(app)
         .post('/api/plans/group-plans')
@@ -266,6 +284,56 @@ describe('PlanController', () => {
       expect(response.status).toBe(200);
       expect(response.body.data.groupId).toBe(groupId);
       expect(response.body.data.isActive).toBe(true);
+    });
+
+    it('no aplica un plan cuya fecha de inicio aún no llega', async () => {
+      await supertest(app)
+        .post('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId, startsAt: '2999-01-01' });
+
+      const response = await supertest(app)
+        .get(`/api/plans/groups/${groupId}/active-plan`)
+        .set('Authorization', 'Bearer user-id:random');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toBeNull();
+    });
+
+    it('no aplica un plan vencido', async () => {
+      await supertest(app)
+        .post('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId, startsAt: '2020-01-01', endsAt: '2020-12-31' });
+
+      const response = await supertest(app)
+        .get(`/api/plans/groups/${groupId}/active-plan`)
+        .set('Authorization', 'Bearer user-id:random');
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toBeNull();
+    });
+
+    it('al asignar un plan nuevo desactiva el anterior', async () => {
+      const firstRes = await supertest(app)
+        .post('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId });
+
+      const otherPlanRes = await supertest(app)
+        .post('/api/plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ name: 'Plan Nuevo' });
+
+      await supertest(app)
+        .post('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId: otherPlanRes.body.data.id });
+
+      const previousRes = await supertest(app)
+        .get(`/api/plans/group-plans/${firstRes.body.data.id}`)
+        .set('Authorization', 'Bearer user-id:random');
+      expect(previousRes.body.data.isActive).toBe(false);
     });
 
     it('lista los planes del grupo y responde 200', async () => {
@@ -344,6 +412,47 @@ describe('PlanController', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
+    });
+
+    it('reemplaza el plan activo del grupo y responde 200', async () => {
+      const firstRes = await supertest(app)
+        .post('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId });
+
+      const otherPlanRes = await supertest(app)
+        .post('/api/plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ name: 'Plan Reemplazo' });
+      const otherPlanId = otherPlanRes.body.data.id;
+
+      const response = await supertest(app)
+        .put('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId: otherPlanId });
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.planId).toBe(otherPlanId);
+      expect(response.body.data.isActive).toBe(true);
+
+      const previousRes = await supertest(app)
+        .get(`/api/plans/group-plans/${firstRes.body.data.id}`)
+        .set('Authorization', 'Bearer user-id:random');
+      expect(previousRes.body.data.isActive).toBe(false);
+    });
+
+    it('responde 409 al eliminar un plan asignado a un grupo', async () => {
+      await supertest(app)
+        .post('/api/plans/group-plans')
+        .set('Authorization', 'Bearer user-id:random')
+        .send({ groupId, planId });
+
+      const response = await supertest(app)
+        .delete(`/api/plans/${planId}`)
+        .set('Authorization', 'Bearer user-id:random');
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe('CONFLICT');
     });
 
     it('responde 400 si el formato de fecha es inválido', async () => {
@@ -547,6 +656,16 @@ describe('PlanController RBAC (group:assign:plan)', () => {
     expect(response.status).toBe(200);
   });
 
+  it('permite a group:assign:plan reemplazar el plan del grupo (PUT /group-plans)', async () => {
+    const response = await supertest(app)
+      .put('/api/plans/group-plans')
+      .set('Authorization', `Bearer user-id:${userWithAssignPerm.id}`)
+      .send({ groupId, planId });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.planId).toBe(planId);
+  });
+
   // --- plan:read: acceso a GET de planes y group-plans ---
 
   it('permite a plan:read listar planes (GET /plans)', async () => {
@@ -578,6 +697,15 @@ describe('PlanController RBAC (group:assign:plan)', () => {
   it('responde 403 a plan:read en POST /group-plans', async () => {
     const response = await supertest(app)
       .post('/api/plans/group-plans')
+      .set('Authorization', `Bearer user-id:${userWithPlanReadOnly.id}`)
+      .send({ groupId, planId });
+
+    expect(response.status).toBe(403);
+  });
+
+  it('responde 403 a plan:read en PUT /group-plans', async () => {
+    const response = await supertest(app)
+      .put('/api/plans/group-plans')
       .set('Authorization', `Bearer user-id:${userWithPlanReadOnly.id}`)
       .send({ groupId, planId });
 
