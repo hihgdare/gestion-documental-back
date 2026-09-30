@@ -42,6 +42,12 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
     colaboratorController.getActiveColaborators,
   );
 
+  // GET /api/colaborators/quota - Get active colaborator quota for current group
+  router.get('/quota',
+    authorize('colaborator:read'),
+    colaboratorController.getColaboratorQuota,
+  );
+
   // GET /api/colaborators/search - Search colaborators by name (query: ?name=Juan)
   router.get('/search',
     authorize('colaborator:read'),
@@ -104,12 +110,6 @@ export const createColaboratorRoutes = (colaboratorController: ColaboratorContro
   router.patch('/:id/activate',
     authorize('colaborator:update'),
     colaboratorController.activateColaborator,
-  );
-
-  // PATCH /api/colaborators/:id/suspend - Suspend colaborator
-  router.patch('/:id/suspend',
-    authorize('colaborator:update'),
-    colaboratorController.suspendColaborator,
   );
 
   // PATCH /api/colaborators/:id/deactivate - Deactivate colaborator

@@ -4,12 +4,17 @@ import { DocumentFieldValueRepository } from '../repositories/document-field-val
 import { Document, DocumentProps, DocumentFieldValue } from '../entities/document.entity';
 import { DocumentHistoryProps } from '../entities/document-history.entity';
 import { DocumentAction, DocumentStatus } from '../value-objects/document-enums';
-import { ValidationError } from '@shared/domain/errors';
+import { ValidationError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
 import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { AreaRepository } from '@domains/area/repositories/area.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
+import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface CreateDocumentRequest {
   documentModelId: string;
@@ -38,16 +43,35 @@ export class CreateDocumentUseCase {
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly familyRepository: IFamilyRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly areaRepository?: AreaRepository,
+    private readonly fileRepository?: FileRepository,
   ) {}
 
   public async execute(request: CreateDocumentRequest): Promise<Document> {
+    return withGroupLock(request.groupId, () => this.executeLocked(request));
+  }
+
+  private async executeLocked(request: CreateDocumentRequest): Promise<Document> {
     // Validate group exists
     const group = await this.groupRepository.findById(request.groupId);
     if (!group) {
       throw new ValidationError('Group not found', 'groupId');
+    }
+
+    // Check plan quota for documents
+    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(request.groupId);
+    if (activeGroupPlan) {
+      const plan = await this.planRepository.findById(activeGroupPlan.planId);
+      if (plan && plan.maxDocuments !== null) {
+        const currentCount = await this.documentRepository.countByGroupId(request.groupId);
+        if (currentCount >= plan.maxDocuments) {
+          throw new PlanQuotaExceededError('documentos', plan.maxDocuments, currentCount);
+        }
+      }
     }
 
     // Validate Document Model exists
@@ -81,6 +105,19 @@ export class CreateDocumentUseCase {
     if (request.documentUrl && request.documentUrl.trim().length > 0) {
       if (documentModel.requiredExpirationDate && !request.expirationDate) {
         throw new ValidationError('La fecha de expiración es requerida para este documento');
+      }
+
+      if (this.fileRepository) {
+        const file = await this.fileRepository.findById(request.documentUrl);
+        if (file?.size && file.groupId !== request.groupId) {
+          await assertStorageQuotaNotExceeded(
+            request.groupId,
+            file.size,
+            this.documentRepository,
+            this.groupPlanRepository,
+            this.planRepository,
+          );
+        }
       }
     }
 

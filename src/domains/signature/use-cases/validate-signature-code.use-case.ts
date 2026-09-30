@@ -11,7 +11,7 @@ import { UserSignatureRepository } from '../repositories/user-signature.reposito
 import { SignatureStatus, SignatureRejectionCode } from '../value-objects/signature-enums';
 import { SignatureCryptoService } from '@shared/security/signature-crypto.service';
 import { SignaturePdfStampService, StampTarget } from '@shared/infrastructure/pdf/signature-pdf-stamp.service';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import { ProcessFlowParticipantActionUseCase } from '@domains/signature-flow/use-cases/progress-signature-flow.use-case';
 import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
 import { decodeSignatureImage } from '@shared/utils/image';
@@ -39,7 +39,7 @@ export class ValidateSignatureCodeUseCase {
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly processFlowParticipantActionUseCase?: ProcessFlowParticipantActionUseCase,
     private readonly pdfStampService?: SignaturePdfStampService,
-    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly fileRepository?: FileRepository,
     private readonly userSignatureRepository?: UserSignatureRepository,
     private readonly documentVersioningService?: DocumentVersioningService,
     private readonly signatureFlowRepository?: SignatureFlowRepository,

@@ -1,13 +1,36 @@
 import { ContractRepository } from '../repositories/contract.repository';
 import { Contract, UpdateContractProps } from '../entities/contract.entity';
-import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { NotFoundError, ValidationError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { only } from '@shared/utils/objects';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/domain/group-lock';
+
+async function assertContractQuotaNotExceeded(
+  contract: Contract,
+  contractRepository: ContractRepository,
+  groupPlanRepository: GroupPlanRepository,
+  planRepository: PlanRepository,
+): Promise<void> {
+  const activeGroupPlan = await groupPlanRepository.findActiveByGroupId(contract.groupId);
+  if (!activeGroupPlan) return;
+
+  const plan = await planRepository.findById(activeGroupPlan.planId);
+  if (!plan || plan.maxActiveContracts === null) return;
+
+  const currentCount = await contractRepository.countActiveByGroupId(contract.groupId);
+  if (currentCount >= plan.maxActiveContracts) {
+    throw new PlanQuotaExceededError('contratos', plan.maxActiveContracts, currentCount);
+  }
+}
 
 export class UpdateContractUseCase {
   constructor(
     private readonly contractRepository: ContractRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: UpdateContractProps): Promise<Contract> {
@@ -16,6 +39,11 @@ export class UpdateContractUseCase {
       throw new NotFoundError('Contract', request.id);
     }
 
+    const lockGroupId = request.groupId ?? contract.groupId;
+    return withGroupLock(lockGroupId, () => this.executeLocked(contract, request));
+  }
+
+  private async executeLocked(contract: Contract, request: UpdateContractProps): Promise<Contract> {
     // Verificar si el usuario es administrador
     const isUserAdmin = request.userRoles?.some(
       role => role.name?.toLowerCase() === 'admin' || role.name?.toLowerCase() === 'administrador',
@@ -25,6 +53,8 @@ export class UpdateContractUseCase {
     if (!contract.isEditable() && !isUserAdmin) {
       throw new Error('Contract is not editable. Only contracts with start date in the future can be edited.');
     }
+
+    const wasCounted = contract.countsForQuota();
 
     if (request.rutSociedad) {
       contract.updateRutSociedad(request.rutSociedad);
@@ -94,16 +124,22 @@ export class UpdateContractUseCase {
     }
 
     // Update group if provided
+    let groupChanged = false;
     if (request.groupId !== undefined && request.groupId !== contract.groupId) {
       const group = await this.groupRepository.findById(request.groupId);
       if (!group) {
         throw new ValidationError('Group not found', 'groupId');
       }
       contract.changeGroup(request.groupId);
+      groupChanged = true;
     }
 
     if (request.endDate) {
       contract.extendContract(new Date(request.endDate));
+    }
+
+    if (contract.countsForQuota() && (!wasCounted || groupChanged)) {
+      await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
     }
 
     const updateFields = only(contract, [
@@ -134,7 +170,11 @@ export class UpdateContractUseCase {
 }
 
 export class ActivateContractUseCase {
-  constructor(private readonly contractRepository: ContractRepository) { }
+  constructor(
+    private readonly contractRepository: ContractRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
+  ) { }
 
   public async execute(id: string): Promise<Contract> {
     const contract = await this.contractRepository.findById(id);
@@ -142,8 +182,16 @@ export class ActivateContractUseCase {
       throw new NotFoundError('Contract', id);
     }
 
-    contract.activate();
-    return await this.contractRepository.update(contract);
+    return withGroupLock(contract.groupId, async () => {
+      const wasCounted = contract.countsForQuota();
+      contract.activate();
+
+      if (!wasCounted && contract.countsForQuota()) {
+        await assertContractQuotaNotExceeded(contract, this.contractRepository, this.groupPlanRepository, this.planRepository);
+      }
+
+      return this.contractRepository.update(contract);
+    });
   }
 }
 

@@ -1,5 +1,5 @@
 import { UserSignatureRepository } from '../repositories/user-signature.repository';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 
 export interface SavedSignaturePreview {
   available: boolean;
@@ -10,7 +10,7 @@ export interface SavedSignaturePreview {
 export class GetSavedSignaturePreviewUseCase {
   constructor(
     private readonly userSignatureRepository: UserSignatureRepository,
-    private readonly fileRepository: TypeOrmFileRepository,
+    private readonly fileRepository: FileRepository,
   ) {}
 
   async execute(params: { userId?: string; colaboratorId?: string }): Promise<SavedSignaturePreview> {

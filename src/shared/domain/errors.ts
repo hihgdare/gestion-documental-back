@@ -39,9 +39,8 @@ export class ValidationError extends DomainError {
 }
 
 export class NotFoundError extends DomainError {
-  constructor(resource: string, id?: string) {
-    const message = `${resource}${id ? ` with id ${id}` : ''} not found`;
-    super(message, 404, 'NOT_FOUND');
+  constructor(resource: string, id?: string, message?: string) {
+    super(message ?? `${resource}${id ? ` with id ${id}` : ''} not found`, 404, 'NOT_FOUND');
   }
 }
 
@@ -73,6 +72,39 @@ export class RouteError extends DomainError {
 
   response(res: Response, data?: Record<string, unknown>): Response<any, Record<string, any>> {
     return super.response(res, { path: this.path, ...data });
+  }
+}
+
+export class PlanQuotaExceededError extends DomainError {
+  constructor(
+    readonly resource: string,
+    readonly limit: number,
+    readonly current: number,
+    message?: string,
+  ) {
+    super(
+      message ?? `Has alcanzado el límite de ${resource} activos de tu plan (${current}/${limit})`,
+      409,
+      'PLAN_QUOTA_EXCEEDED',
+    );
+  }
+
+  response(res: Response, data?: Record<string, unknown>) {
+    return super.response(res, { resource: this.resource, limit: this.limit, current: this.current, ...data });
+  }
+}
+
+export class FeatureNotAvailableError extends DomainError {
+  constructor(readonly featureKey: string) {
+    super(
+      'Tu plan actual no incluye esta funcionalidad. Contacta al administrador para habilitarla.',
+      403,
+      'FEATURE_NOT_AVAILABLE',
+    );
+  }
+
+  response(res: Response, data?: Record<string, unknown>) {
+    return super.response(res, { featureKey: this.featureKey, ...data });
   }
 }
 

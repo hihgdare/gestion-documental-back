@@ -1,8 +1,11 @@
 import { ColaboratorRepository } from '../repositories/colaborator.repository';
 import { Colaborator, ColaboratorProps } from '../entities/colaborator.entity';
 import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-enums';
-import { ConflictError, ValidationError } from '@shared/domain/errors';
+import { ConflictError, ValidationError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface CreateColaboratorRequest {
   tipoDocumento: DocumentType;
@@ -34,6 +37,8 @@ export class CreateColaboratorUseCase {
   constructor(
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: CreateColaboratorRequest): Promise<Colaborator> {
@@ -61,13 +66,26 @@ export class CreateColaboratorUseCase {
       throw new ValidationError('Group not found', 'groupId');
     }
 
-    const colaboratorProps: ColaboratorProps = {
-      ...request,
-      fechaNacimiento: new Date(request.fechaNacimiento),
-    };
+    const savedColaborator = await withGroupLock(request.groupId, async () => {
+      const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(request.groupId);
+      if (activeGroupPlan) {
+        const plan = await this.planRepository.findById(activeGroupPlan.planId);
+        if (plan && plan.maxActiveColaborators !== null) {
+          const currentCount = await this.colaboratorRepository.countActiveByGroupId(request.groupId);
+          if (currentCount >= plan.maxActiveColaborators) {
+            throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+          }
+        }
+      }
 
-    const colaborator = Colaborator.create(colaboratorProps);
-    const savedColaborator = await this.colaboratorRepository.save(colaborator);
+      const colaboratorProps: ColaboratorProps = {
+        ...request,
+        fechaNacimiento: new Date(request.fechaNacimiento),
+      };
+
+      const colaborator = Colaborator.create(colaboratorProps);
+      return this.colaboratorRepository.save(colaborator);
+    });
 
     // Assign contracts
     if (request.contractIds && request.contractIds.length > 0) {

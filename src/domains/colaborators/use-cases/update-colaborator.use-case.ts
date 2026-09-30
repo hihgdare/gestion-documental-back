@@ -1,8 +1,11 @@
 import { ColaboratorRepository } from '../repositories/colaborator.repository';
 import { Colaborator } from '../entities/colaborator.entity';
-import { NotFoundError, ConflictError, ValidationError } from '@shared/domain/errors';
+import { NotFoundError, ConflictError, ValidationError, PlanQuotaExceededError } from '@shared/domain/errors';
 import { DocumentType, Gender, CivilStatus } from '../value-objects/colaborator-enums';
 import { GroupRepository } from '@domains/group/repositories/group.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface UpdateColaboratorRequest {
   id: string;
@@ -41,6 +44,8 @@ export class UpdateColaboratorUseCase {
   constructor(
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: UpdateColaboratorRequest): Promise<Colaborator> {
@@ -139,15 +144,37 @@ export class UpdateColaboratorUseCase {
     }
 
     // Update group if provided
+    let groupChanged = false;
     if (request.groupId !== undefined && request.groupId !== colaborator.groupId) {
       const group = await this.groupRepository.findById(request.groupId);
       if (!group) {
         throw new ValidationError('Group not found', 'groupId');
       }
       colaborator.changeGroup(request.groupId);
+      groupChanged = true;
+    }
+
+    if (groupChanged && colaborator.isActive()) {
+      return withGroupLock(colaborator.groupId, async () => {
+        await this.assertColaboratorQuotaNotExceeded(colaborator.groupId);
+        return this.colaboratorRepository.update(colaborator);
+      });
     }
 
     return await this.colaboratorRepository.update(colaborator);
+  }
+
+  private async assertColaboratorQuotaNotExceeded(groupId: number): Promise<void> {
+    const activeGroupPlan = await this.groupPlanRepository.findActiveByGroupId(groupId);
+    if (!activeGroupPlan) return;
+
+    const plan = await this.planRepository.findById(activeGroupPlan.planId);
+    if (!plan || plan.maxActiveColaborators === null) return;
+
+    const currentCount = await this.colaboratorRepository.countActiveByGroupId(groupId);
+    if (currentCount >= plan.maxActiveColaborators) {
+      throw new PlanQuotaExceededError('colaboradores', plan.maxActiveColaborators, currentCount);
+    }
   }
 
   public async activate(id: string): Promise<Colaborator> {
@@ -157,21 +184,16 @@ export class UpdateColaboratorUseCase {
       throw new NotFoundError(`Colaborator with id ${id} not found`);
     }
 
-    colaborator.activate();
-
-    return await this.colaboratorRepository.update(colaborator);
-  }
-
-  public async suspend(id: string): Promise<Colaborator> {
-    const colaborator = await this.colaboratorRepository.findById(id);
-
-    if (!colaborator) {
-      throw new NotFoundError(`Colaborator with id ${id} not found`);
+    if (colaborator.isActive()) {
+      return colaborator;
     }
 
-    colaborator.suspend();
+    return withGroupLock(colaborator.groupId, async () => {
+      await this.assertColaboratorQuotaNotExceeded(colaborator.groupId);
 
-    return await this.colaboratorRepository.update(colaborator);
+      colaborator.activate();
+      return this.colaboratorRepository.update(colaborator);
+    });
   }
 
   public async deactivate(id: string): Promise<Colaborator> {

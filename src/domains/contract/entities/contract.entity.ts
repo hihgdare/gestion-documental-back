@@ -321,6 +321,16 @@ export class Contract {
     return DateUtils.isAfter(new Date(), this.endDate);
   }
 
+  public get hasStarted(): boolean {
+    if (!this.startDate || !(this.startDate instanceof Date)) return false;
+    return !DateUtils.isAfter(this.startDate, new Date());
+  }
+
+  public countsForQuota(): boolean {
+    if (this.status === ContractStatus.SUSPENDED || this.status === ContractStatus.TERMINATED) return false;
+    return this.hasStarted && !this.isExpired;
+  }
+
   public getDuration(): number | null {
     if (!this.endDate || !(this.endDate instanceof Date)) return null;
     const diffTime = this.endDate.getTime() - this.startDate.getTime();

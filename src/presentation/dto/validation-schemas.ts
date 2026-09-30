@@ -1,6 +1,7 @@
 import { ContractStatus, ContractType, JornadaTrabajo } from '@domains/contract/value-objects/contract-enums';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 import { SignatureType, SignatureMethod } from '@domains/signature/value-objects/signature-enums';
+import { PlanBadge } from '@domains/plan/value-objects/plan-badge';
 import {
   SignatureFlowOrderType,
   SignatureFlowParticipantRole,
@@ -321,6 +322,52 @@ export const assignReviewerSchema = Joi.object({
   }
   return value;
 });
+
+// Plan schemas
+export const createPlanSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(100).required(),
+  maxActiveColaborators: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
+  maxDocuments: Joi.number().integer().min(0).optional().allow(null),
+  maxStorageGb: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveUsers: Joi.number().integer().min(0).optional().allow(null),
+  isVisible: Joi.boolean().optional(),
+  badge: Joi.string().valid(...Object.values(PlanBadge)).optional().allow(null),
+  featureIds: Joi.array().items(Joi.string().uuid()).optional(),
+});
+
+export const updatePlanSchema = Joi.object({
+  name: Joi.string().trim().min(1).max(100).optional(),
+  maxActiveColaborators: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveContracts: Joi.number().integer().min(0).optional().allow(null),
+  maxDocuments: Joi.number().integer().min(0).optional().allow(null),
+  maxStorageGb: Joi.number().integer().min(0).optional().allow(null),
+  maxActiveUsers: Joi.number().integer().min(0).optional().allow(null),
+  isVisible: Joi.boolean().optional(),
+  badge: Joi.string().valid(...Object.values(PlanBadge)).optional().allow(null),
+  featureIds: Joi.array().items(Joi.string().uuid()).optional(),
+}).min(1);
+
+export const assignFeaturesToPlanSchema = Joi.object({
+  featureIds: Joi.array().items(Joi.string().uuid()).required(),
+});
+
+export const setGroupFeatureOverrideSchema = Joi.object({
+  granted: Joi.boolean().required(),
+});
+
+export const assignPlanToGroupSchema = Joi.object({
+  groupId: Joi.number().integer().positive().required(),
+  planId: Joi.string().uuid().required(),
+  startsAt: Joi.date().iso().optional(),
+  endsAt: Joi.date().iso().optional().allow(null),
+});
+
+export const updateGroupPlanSchema = Joi.object({
+  startsAt: Joi.date().iso().optional(),
+  endsAt: Joi.date().iso().optional().allow(null),
+  isActive: Joi.boolean().optional(),
+}).min(1);
 
 export const updateReviewerSchema = Joi.object({
   isPrimary: Joi.boolean().optional(),

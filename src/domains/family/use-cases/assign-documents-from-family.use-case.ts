@@ -8,6 +8,11 @@ import { Document, DocumentProps } from '@domains/document/entities/document.ent
 import { DocumentHistoryProps } from '@domains/document/entities/document-history.entity';
 import { DocumentAction } from '@domains/document/value-objects/document-enums';
 import { ValidationError } from '@shared/domain/errors';
+import { withGroupLock } from '@shared/domain/group-lock';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { hasDocumentQuotaAvailable } from '@domains/document/use-cases/has-document-quota';
+import { SkippedColaborator } from '@domains/document/use-cases/assign-documents-to-group.use-case';
 
 export interface AssignDocumentsFromFamilyRequest {
   familyId: string;
@@ -16,9 +21,13 @@ export interface AssignDocumentsFromFamilyRequest {
   comment?: string;
 }
 
+export interface SkippedFamilyAssignment extends SkippedColaborator {
+  documentModelId?: string;
+}
+
 export interface AssignDocumentsFromFamilyResult {
   created: Document[];
-  skipped: string[];
+  skipped: SkippedFamilyAssignment[];
 }
 
 export class AssignDocumentsFromFamilyUseCase {
@@ -29,6 +38,8 @@ export class AssignDocumentsFromFamilyUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly contractRepository: ContractRepository,
     private readonly colaboratorRepository: ColaboratorRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: AssignDocumentsFromFamilyRequest): Promise<AssignDocumentsFromFamilyResult> {
@@ -59,13 +70,13 @@ export class AssignDocumentsFromFamilyUseCase {
     }
 
     const created: Document[] = [];
-    const skipped: string[] = [];
+    const skipped: SkippedFamilyAssignment[] = [];
 
     // Para cada colaborador, crear un documento por cada modelo
     for (const colaboratorId of request.colaboratorIds) {
       const colaborator = await this.colaboratorRepository.findById(colaboratorId);
       if (!colaborator) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'not_found' });
         continue;
       }
 
@@ -84,7 +95,7 @@ export class AssignDocumentsFromFamilyUseCase {
         );
 
         if (exists) {
-          skipped.push(`${colaboratorId}-${model.id}`);
+          skipped.push({ colaboratorId, documentModelId: model.id, reason: 'duplicate' });
           continue;
         }
 
@@ -102,8 +113,21 @@ export class AssignDocumentsFromFamilyUseCase {
           requiredExpirationDate: model.requiredExpirationDate,
         };
 
-        const doc = Document.create(props);
-        const saved = await this.documentRepository.save(doc);
+        const saved = await withGroupLock(colaborator.groupId, async () => {
+          const hasQuota = await hasDocumentQuotaAvailable(
+            colaborator.groupId,
+            this.documentRepository,
+            this.groupPlanRepository,
+            this.planRepository,
+          );
+          if (!hasQuota) return null;
+          return this.documentRepository.save(Document.create(props));
+        });
+
+        if (!saved) {
+          skipped.push({ colaboratorId, documentModelId: model.id, reason: 'quota_exceeded' });
+          continue;
+        }
         created.push(saved);
 
         // Crear historial si es necesario

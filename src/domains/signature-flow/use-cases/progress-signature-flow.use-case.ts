@@ -16,7 +16,7 @@ import { SignatureStatus } from '@domains/signature/value-objects/signature-enum
 import { UserRepository } from '@domains/user/repositories/user.repository';
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { SignatureRepository } from '@domains/signature/repositories/signature.repository';
-import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
 import {
   SignaturePdfStampService,
   SignerStampData,
@@ -46,7 +46,7 @@ export class ProcessFlowParticipantActionUseCase {
     private readonly userRepository?: UserRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly signatureRepository?: SignatureRepository,
-    private readonly fileRepository?: TypeOrmFileRepository,
+    private readonly fileRepository?: FileRepository,
     private readonly pdfStampService?: SignaturePdfStampService,
     private readonly externalTokenRepository?: ExternalParticipantTokenRepository,
     private readonly documentVersioningService?: DocumentVersioningService,

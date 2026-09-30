@@ -185,6 +185,12 @@ export class TypeOrmColaboratorRepository implements ColaboratorRepository {
     return colaboratorEntities.map((entity) => this.toDomain(entity));
   }
 
+  async countActiveByGroupId(groupId: number): Promise<number> {
+    return await this.repository.count({
+      where: { groupId, status: ColaboratorStatus.ACTIVE, deletedAt: IsNull() },
+    });
+  }
+
   async searchByName(searchTerm: string): Promise<Colaborator[]> {
     const colaboratorEntities = await this.repository
       .createQueryBuilder('colaborator')

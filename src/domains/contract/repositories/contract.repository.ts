@@ -16,6 +16,7 @@ export interface ContractRepository {
   findActiveContracts(): Promise<Contract[]>;
   findExpiredContracts(): Promise<Contract[]>;
   findContractsEndingBefore(date: Date): Promise<Contract[]>;
+  countActiveByGroupId(groupId: number): Promise<number>;
   findById(id: string): Promise<Contract | null>;
   findAll(groupId?: number): Promise<Contract[]>;
   save(contract: CreateContractProps): Promise<Contract>;

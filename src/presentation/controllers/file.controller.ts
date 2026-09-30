@@ -5,9 +5,14 @@ import { Bucket } from '@shared/utils/Bucket';
 import FileUtils from '@shared/utils/FileUtils';
 import { TypeOrmFileRepository } from '@shared/infrastructure/repositories/typeorm-file.repository';
 import { NotFoundError, ServerError, ValidationError } from '@shared/domain/errors';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@shared/utils/storage';
+import { UploadFileUseCase } from '@domains/file/use-cases/upload-file.use-case';
 
 export class FileController {
-  constructor(private readonly fileRepo: TypeOrmFileRepository) {
+  constructor(
+    private readonly fileRepo: TypeOrmFileRepository,
+    private readonly uploadFileUseCase: UploadFileUseCase,
+  ) {
     this.upload = this.upload.bind(this);
     this.download = this.download.bind(this);
     this.preview = this.preview.bind(this);
@@ -27,7 +32,18 @@ export class FileController {
       throw new ValidationError('file required', { fields: ['filename', 'contentBase64'] });
     }
 
-    const savedFile = await this.fileRepo.saveBuffer(Buffer.from(contentBase64, 'base64'), filename, mimeType, size);
+    const buffer = Buffer.from(contentBase64, 'base64');
+    if (buffer.length > MAX_FILE_SIZE_BYTES) {
+      throw new ValidationError(`El archivo supera el tamaño máximo permitido de ${MAX_FILE_SIZE_MB} MB`, 'contentBase64');
+    }
+
+    const savedFile = await this.uploadFileUseCase.execute({
+      buffer,
+      filename,
+      mimeType,
+      size,
+      groupId: req.auth?.groupId,
+    });
 
     res.status(201).json({ success: true, data: savedFile });
   }

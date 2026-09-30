@@ -4,6 +4,7 @@ import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case'
 import { GetUserByIdUseCase, GetAllUsersUseCase } from '@domains/user/use-cases/get-user.use-case';
 import { UpdateUserUseCase, DeleteUserUseCase } from '@domains/user/use-cases/update-user.use-case';
 import { SendActivationEmailUseCase } from '@domains/user/use-cases/send-activation-email.use-case';
+import { GetUserQuotaUseCase } from '@domains/user/use-cases/get-user-quota.use-case';
 import { asyncHandler } from '@shared/middleware/validation';
 import { ForbiddenError } from '@shared/domain/errors';
 import { isRbacEnabled } from '@shared/utils/requests';
@@ -18,7 +19,14 @@ export class UserController {
     private readonly deleteUserUseCase: DeleteUserUseCase,
     public readonly assignRoleToUserUseCase: AssignRoleToUserUseCase,
     private readonly sendActivationEmailUseCase: SendActivationEmailUseCase,
+    private readonly getUserQuotaUseCase: GetUserQuotaUseCase,
   ) {}
+
+  public getUserQuota = asyncHandler(async (req: Request, res: Response) => {
+    const { groupId } = req.auth;
+    const quota = await this.getUserQuotaUseCase.execute(groupId!);
+    res.status(200).json({ success: true, data: quota });
+  });
 
   public createUser = asyncHandler(async (req: Request, res: Response) => {
     const { groupId, user: currentUser } = req.auth;

@@ -68,6 +68,7 @@ import { GetDocumentHistoryUseCase } from '@domains/document/use-cases/get-docum
 
 // Contract domain
 import { CreateContractUseCase } from '@domains/contract/use-cases/create-contract.use-case';
+import { GetContractQuotaUseCase } from '@domains/contract/use-cases/get-contract-quota.use-case';
 import {
   GetContractByIdUseCase,
   GetAllContractsUseCase,
@@ -109,6 +110,7 @@ import { UpdateColaboratorUseCase, DeleteColaboratorUseCase } from '@domains/col
 import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
 import { UpdateColaboratorContractsUseCase } from '@domains/colaborators/use-cases/update-colaborator-contracts.use-case';
 import { GetContractsByColaboratorUseCase } from '@domains/contract/use-cases/get-contracts-by-colaborator.use-case';
+import { GetColaboratorQuotaUseCase } from '@domains/colaborators/use-cases/get-colaborator-quota.use-case';
 import { LinkUserToColaboratorUseCase } from '@domains/colaborators/use-cases/link-user-to-colaborator.use-case';
 
 // Permission domain
@@ -200,6 +202,7 @@ import { AuthController } from '@presentation/controllers/auth.controller';
 import { FileController } from '@presentation/controllers/file.controller';
 import { DocumentHistoryController } from '@presentation/controllers/document-history.controller';
 import { AssignDocumentsToGroupUseCase } from '@domains/document/use-cases/assign-documents-to-group.use-case';
+import { GetDocumentQuotaUseCase } from '@domains/document/use-cases/get-document-quota.use-case';
 import { DownloadDocumentsZipUseCase } from '@domains/document/use-cases/download-documents-zip.use-case';
 
 // Group domain
@@ -302,6 +305,38 @@ import {
 } from '@domains/document-template/use-cases/update-document-template.use-case';
 import { TypeOrmDocumentTemplateRepository } from '@shared/infrastructure/repositories/typeorm-document-template.repository';
 import { DocumentTemplateController } from '@presentation/controllers/document-template.controller';
+
+// Plan domain
+import { CreatePlanUseCase } from '@domains/plan/use-cases/create-plan.use-case';
+import { GetPlanUseCase, ListPlansUseCase } from '@domains/plan/use-cases/get-plan.use-case';
+import { UpdatePlanUseCase, DeletePlanUseCase } from '@domains/plan/use-cases/update-plan.use-case';
+import { AssignPlanToGroupUseCase } from '@domains/plan/use-cases/assign-plan-to-group.use-case';
+import { ReplaceGroupPlanUseCase } from '@domains/plan/use-cases/replace-group-plan.use-case';
+import { GetGroupPlanUseCase, ListGroupPlansByGroupUseCase, GetActiveGroupPlanUseCase } from '@domains/plan/use-cases/get-group-plan.use-case';
+import { UpdateGroupPlanUseCase, DeleteGroupPlanUseCase } from '@domains/plan/use-cases/update-group-plan.use-case';
+import { AssignFeaturesToPlanUseCase } from '@domains/plan/use-cases/assign-features-to-plan.use-case';
+import { GetGroupFeaturesUseCase } from '@domains/plan/use-cases/get-group-features.use-case';
+import { configureGroupLock } from '@shared/domain/group-lock';
+import { UploadFileUseCase } from '@domains/file/use-cases/upload-file.use-case';
+import { createMySqlGroupLock } from '@shared/infrastructure/database/group-lock';
+import { AppDataSource } from '@shared/infrastructure/database/typeorm.config';
+import {
+  SetGroupFeatureOverrideUseCase,
+  RemoveGroupFeatureOverrideUseCase,
+} from '@domains/plan/use-cases/set-group-feature-override.use-case';
+import { TypeOrmPlanRepository } from '@shared/infrastructure/repositories/typeorm-plan.repository';
+import { TypeOrmGroupPlanRepository } from '@shared/infrastructure/repositories/typeorm-group-plan.repository';
+import { PlanController } from '@presentation/controllers/plan.controller';
+
+// Feature domain
+import { ListFeatureCatalogUseCase } from '@domains/feature/use-cases/list-feature-catalog.use-case';
+import { TypeOrmFeatureCategoryRepository } from '@shared/infrastructure/repositories/typeorm-feature-category.repository';
+import { TypeOrmFeatureRepository } from '@shared/infrastructure/repositories/typeorm-feature.repository';
+import { TypeOrmGroupFeatureOverrideRepository } from '@shared/infrastructure/repositories/typeorm-group-feature-override.repository';
+
+// User quota
+import { GetUserQuotaUseCase } from '@domains/user/use-cases/get-user-quota.use-case';
+
 import { EmailQueueController } from '@presentation/controllers/email-queue.controller';
 import { LandingSettingsController } from '@presentation/controllers/landing-settings.controller';
 
@@ -331,6 +366,11 @@ export class DependencyContainer {
   private bulkUploadTemplateRepository!: TypeOrmBulkUploadTemplateRepository;
   private fileShareRepository!: TypeOrmFileShareRepository;
   private documentTemplateRepository!: TypeOrmDocumentTemplateRepository;
+  private planRepository!: TypeOrmPlanRepository;
+  private groupPlanRepository!: TypeOrmGroupPlanRepository;
+  private featureCategoryRepository!: TypeOrmFeatureCategoryRepository;
+  private featureRepository!: TypeOrmFeatureRepository;
+  private groupFeatureOverrideRepository!: TypeOrmGroupFeatureOverrideRepository;
   private signatureRepository!: TypeOrmSignatureRepository;
   private signatureVerificationCodeRepository!: TypeOrmSignatureVerificationCodeRepository;
   private signatureCodeNotificationRepository!: TypeOrmSignatureCodeNotificationRepository;
@@ -354,11 +394,32 @@ export class DependencyContainer {
   private createNewDocumentTemplateVersionUseCase!: CreateNewDocumentTemplateVersionUseCase;
   private deleteDocumentTemplateUseCase!: DeleteDocumentTemplateUseCase;
 
+  // Use Cases - Plan
+  private createPlanUseCase!: CreatePlanUseCase;
+  private getPlanUseCase!: GetPlanUseCase;
+  private listPlansUseCase!: ListPlansUseCase;
+  private updatePlanUseCase!: UpdatePlanUseCase;
+  private deletePlanUseCase!: DeletePlanUseCase;
+  private assignPlanToGroupUseCase!: AssignPlanToGroupUseCase;
+  private replaceGroupPlanUseCase!: ReplaceGroupPlanUseCase;
+  private getGroupPlanUseCase!: GetGroupPlanUseCase;
+  private listGroupPlansByGroupUseCase!: ListGroupPlansByGroupUseCase;
+  private getActiveGroupPlanUseCase!: GetActiveGroupPlanUseCase;
+  private updateGroupPlanUseCase!: UpdateGroupPlanUseCase;
+  private deleteGroupPlanUseCase!: DeleteGroupPlanUseCase;
+  private listFeatureCatalogUseCase!: ListFeatureCatalogUseCase;
+  private assignFeaturesToPlanUseCase!: AssignFeaturesToPlanUseCase;
+  private getGroupFeaturesUseCase!: GetGroupFeaturesUseCase;
+  private uploadFileUseCase!: UploadFileUseCase;
+  private setGroupFeatureOverrideUseCase!: SetGroupFeatureOverrideUseCase;
+  private removeGroupFeatureOverrideUseCase!: RemoveGroupFeatureOverrideUseCase;
+
   // Use Cases - User
   private createUserUseCase!: CreateUserUseCase;
   private getUserByIdUseCase!: GetUserByIdUseCase;
   private getAllUsersUseCase!: GetAllUsersUseCase;
   private updateUserUseCase!: UpdateUserUseCase;
+  private getUserQuotaUseCase!: GetUserQuotaUseCase;
   private deleteUserUseCase!: DeleteUserUseCase;
   private assignRoleToUserUseCase!: AssignRoleToUserUseCase;
   private loginUserUseCase!: LoginUserUseCase;
@@ -402,6 +463,7 @@ export class DependencyContainer {
   private getDocumentHistoryUseCase!: GetDocumentHistoryUseCase;
   private getDashboardMetricsUseCase!: GetDashboardMetricsUseCase;
   private assignDocumentsToGroupUseCase!: AssignDocumentsToGroupUseCase;
+  private getDocumentQuotaUseCase!: GetDocumentQuotaUseCase;
   private downloadDocumentsZipUseCase!: DownloadDocumentsZipUseCase;
 
 
@@ -423,6 +485,7 @@ export class DependencyContainer {
   private suspendContractUseCase!: SuspendContractUseCase;
   private terminateContractUseCase!: TerminateContractUseCase;
   private deleteContractUseCase!: DeleteContractUseCase;
+  private getContractQuotaUseCase!: GetContractQuotaUseCase;
   private addSubcontractUseCase!: AddSubcontractUseCase;
   private removeSubcontractUseCase!: RemoveSubcontractUseCase;
   private getSubcontractsUseCase!: GetSubcontractsUseCase;
@@ -445,6 +508,7 @@ export class DependencyContainer {
   private getColaboratorGroupsUseCase!: GetColaboratorGroupsUseCase;
   private updateColaboratorContractsUseCase!: UpdateColaboratorContractsUseCase;
   private getContractsByColaboratorUseCase!: GetContractsByColaboratorUseCase;
+  private getColaboratorQuotaUseCase!: GetColaboratorQuotaUseCase;
   private linkUserToColaboratorUseCase!: LinkUserToColaboratorUseCase;
 
   // Use Cases - Permission
@@ -550,6 +614,7 @@ export class DependencyContainer {
   private bulkTemplateController!: BulkTemplateController;
   private fileShareController!: FileShareController;
   private documentTemplateController!: DocumentTemplateController;
+  private planController!: PlanController;
   private signatureController!: SignatureController;
   private signatureFlowController!: SignatureFlowController;
   private externalParticipantController!: ExternalParticipantController;
@@ -610,6 +675,8 @@ export class DependencyContainer {
   private resetPasswordUseCase!: ResetPasswordUseCase;
 
   public async initialize(): Promise<void> {
+    configureGroupLock(createMySqlGroupLock(AppDataSource));
+
     // Initialize repositories
     this.userRepository = new TypeOrmUserRepository();
     this.contractRepository = new TypeOrmContractRepository();
@@ -634,6 +701,11 @@ export class DependencyContainer {
     this.bulkUploadTemplateRepository = new TypeOrmBulkUploadTemplateRepository();
     this.fileShareRepository = new TypeOrmFileShareRepository();
     this.documentTemplateRepository = new TypeOrmDocumentTemplateRepository();
+    this.planRepository = new TypeOrmPlanRepository();
+    this.groupPlanRepository = new TypeOrmGroupPlanRepository();
+    this.featureCategoryRepository = new TypeOrmFeatureCategoryRepository();
+    this.featureRepository = new TypeOrmFeatureRepository();
+    this.groupFeatureOverrideRepository = new TypeOrmGroupFeatureOverrideRepository();
     this.signatureRepository = new TypeOrmSignatureRepository();
     this.signatureVerificationCodeRepository = new TypeOrmSignatureVerificationCodeRepository();
     this.signatureCodeNotificationRepository = new TypeOrmSignatureCodeNotificationRepository();
@@ -648,7 +720,14 @@ export class DependencyContainer {
     this.createUserUseCase = new CreateUserUseCase(this.userRepository, this.roleRepository, this.groupRepository);
     this.getUserByIdUseCase = new GetUserByIdUseCase(this.userRepository);
     this.getAllUsersUseCase = new GetAllUsersUseCase(this.userRepository);
-    this.updateUserUseCase = new UpdateUserUseCase(this.userRepository, this.roleRepository);
+    this.updateUserUseCase = new UpdateUserUseCase(
+      this.userRepository,
+      this.roleRepository,
+      this.groupRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
+    this.getUserQuotaUseCase = new GetUserQuotaUseCase(this.userRepository, this.groupPlanRepository, this.planRepository);
     this.deleteUserUseCase = new DeleteUserUseCase(this.userRepository);
     this.assignRoleToUserUseCase = new AssignRoleToUserUseCase(this.userRepository, this.roleRepository);
     this.loginUserUseCase = new LoginUserUseCase(this.userRepository);
@@ -661,7 +740,13 @@ export class DependencyContainer {
     if (!jwtSecret) {
       throw new ServerError('JWT_SECRET is not configured');
     }
-    this.setPasswordUseCase = new SetPasswordUseCase(this.userRepository, jwtSecret);
+    this.setPasswordUseCase = new SetPasswordUseCase(
+      this.userRepository,
+      jwtSecret,
+      this.groupRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
     this.sendActivationEmailUseCase = new SendActivationEmailUseCase(
       this.userRepository,
       this.emailService,
@@ -709,9 +794,12 @@ export class DependencyContainer {
       this.groupRepository,
       this.documentModelRepository,
       this.familyRepository,
+      this.groupPlanRepository,
+      this.planRepository,
       this.documentFieldValueRepository,
       this.colaboratorRepository,
       this.areaRepository,
+      this.fileRepository,
     );
     this.getDocumentByIdUseCase = new GetDocumentByIdUseCase(this.documentRepository);
     this.getAllDocumentsUseCase = new GetAllDocumentsUseCase(this.documentRepository);
@@ -725,10 +813,13 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.groupRepository,
       this.documentModelRepository,
+      this.groupPlanRepository,
+      this.planRepository,
       this.documentFieldValueRepository,
       this.colaboratorRepository,
       this.contractRepository,
       this.areaRepository,
+      this.fileRepository,
     );
     this.deleteDocumentUseCase = new DeleteDocumentUseCase(this.documentRepository);
     this.sendToReviewDocumentUseCase = new SendToReviewDocumentUseCase(this.documentRepository, this.documentHistoryRepository);
@@ -745,12 +836,15 @@ export class DependencyContainer {
       this.colaboratorRepository,
       this.documentModelRepository,
       this.familyRepository,
+      this.groupPlanRepository,
+      this.planRepository,
     );
+    this.getDocumentQuotaUseCase = new GetDocumentQuotaUseCase(this.documentRepository, this.groupPlanRepository, this.planRepository);
     this.downloadDocumentsZipUseCase = new DownloadDocumentsZipUseCase(this.documentRepository, this.fileRepository);
 
 
     // Initialize Contract use cases
-    this.createContractUseCase = new CreateContractUseCase(this.contractRepository, this.groupRepository);
+    this.createContractUseCase = new CreateContractUseCase(this.contractRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
     this.getContractByIdUseCase = new GetContractByIdUseCase(this.contractRepository);
     this.getAllContractsUseCase = new GetAllContractsUseCase(this.contractRepository);
     this.getContractsByRutSociedadUseCase = new GetContractsByRutSociedadUseCase(this.contractRepository);
@@ -762,11 +856,12 @@ export class DependencyContainer {
     this.getActiveContractsUseCase = new GetActiveContractsUseCase(this.contractRepository);
     this.getExpiredContractsUseCase = new GetExpiredContractsUseCase(this.contractRepository);
     this.getContractsEndingBeforeUseCase = new GetContractsEndingBeforeUseCase(this.contractRepository);
-    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository, this.groupRepository);
-    this.activateContractUseCase = new ActivateContractUseCase(this.contractRepository);
+    this.updateContractUseCase = new UpdateContractUseCase(this.contractRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
+    this.activateContractUseCase = new ActivateContractUseCase(this.contractRepository, this.groupPlanRepository, this.planRepository);
     this.suspendContractUseCase = new SuspendContractUseCase(this.contractRepository);
     this.terminateContractUseCase = new TerminateContractUseCase(this.contractRepository);
     this.deleteContractUseCase = new DeleteContractUseCase(this.contractRepository);
+    this.getContractQuotaUseCase = new GetContractQuotaUseCase(this.contractRepository, this.groupPlanRepository, this.planRepository);
     this.addSubcontractUseCase = new AddSubcontractUseCase(this.contractRepository);
     this.removeSubcontractUseCase = new RemoveSubcontractUseCase(this.contractRepository);
     this.getSubcontractsUseCase = new GetSubcontractsUseCase(this.contractRepository);
@@ -798,12 +893,13 @@ export class DependencyContainer {
     );
 
     // Initialize Colaborator use cases
-    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
+    this.createColaboratorUseCase = new CreateColaboratorUseCase(this.colaboratorRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
     this.getColaboratorUseCase = new GetColaboratorUseCase(this.colaboratorRepository);
-    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository, this.groupRepository);
+    this.updateColaboratorUseCase = new UpdateColaboratorUseCase(this.colaboratorRepository, this.groupRepository, this.groupPlanRepository, this.planRepository);
     this.deleteColaboratorUseCase = new DeleteColaboratorUseCase(this.colaboratorRepository);
     this.updateColaboratorContractsUseCase = new UpdateColaboratorContractsUseCase(this.colaboratorRepository);
     this.getContractsByColaboratorUseCase = new GetContractsByColaboratorUseCase(this.contractRepository);
+    this.getColaboratorQuotaUseCase = new GetColaboratorQuotaUseCase(this.colaboratorRepository, this.groupPlanRepository, this.planRepository);
     this.linkUserToColaboratorUseCase = new LinkUserToColaboratorUseCase(this.colaboratorRepository, this.userRepository);
 
     // Initialize Permission use cases
@@ -856,6 +952,7 @@ export class DependencyContainer {
       this.getColaboratorGroupsUseCase,
       this.updateColaboratorContractsUseCase,
       this.getContractsByColaboratorUseCase,
+      this.getColaboratorQuotaUseCase,
       this.linkUserToColaboratorUseCase,
     );
 
@@ -890,6 +987,7 @@ export class DependencyContainer {
       this.getContractColaboratorsUseCase,
       this.getParentContractsUseCase,
       this.getContractDocumentStructureUseCase,
+      this.getContractQuotaUseCase,
     );
 
     this.documentTypeController = new DocumentTypeController(
@@ -931,6 +1029,7 @@ export class DependencyContainer {
       this.getAllDocumentTypesWithSubtypesUseCase,
       this.getDashboardMetricsUseCase,
       this.assignDocumentsToGroupUseCase,
+      this.getDocumentQuotaUseCase,
       this.downloadDocumentsZipUseCase,
       this.signatureFlowRepository,
     );
@@ -980,6 +1079,8 @@ export class DependencyContainer {
       this.documentHistoryRepository,
       this.contractRepository,
       this.colaboratorRepository,
+      this.groupPlanRepository,
+      this.planRepository,
     );
     this.getFamiliesByContractUseCase = new GetFamiliesByContractUseCase(this.familyRepository);
 
@@ -1010,6 +1111,8 @@ export class DependencyContainer {
       this.contractRepository,
       this.colaboratorRepository,
       this.familyRepository,
+      this.groupPlanRepository,
+      this.planRepository,
     );
 
     this.documentModelController = new DocumentModelController(
@@ -1028,9 +1131,19 @@ export class DependencyContainer {
     this.getAllGroupsUseCase = new GetAllGroupsUseCase(this.groupRepository);
     this.updateGroupUseCase = new UpdateGroupUseCase(this.groupRepository);
     this.deleteGroupUseCase = new DeleteGroupUseCase(this.groupRepository);
-    this.addUserToGroupUseCase = new AddUserToGroupUseCase(this.groupRepository, this.userRepository);
+    this.addUserToGroupUseCase = new AddUserToGroupUseCase(
+      this.groupRepository,
+      this.userRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
     this.removeUserFromGroupUseCase = new RemoveUserFromGroupUseCase(this.groupRepository, this.userRepository);
-    this.assignGroupToUserUseCase = new AssignGroupToUserUseCase(this.groupRepository, this.userRepository);
+    this.assignGroupToUserUseCase = new AssignGroupToUserUseCase(
+      this.groupRepository,
+      this.userRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
 
     this.groupController = new GroupController(
       this.createGroupUseCase,
@@ -1107,6 +1220,7 @@ export class DependencyContainer {
       this.deleteUserUseCase,
       this.assignRoleToUserUseCase,
       this.sendActivationEmailUseCase,
+      this.getUserQuotaUseCase,
     );
 
     this.authController = new AuthController(
@@ -1123,7 +1237,13 @@ export class DependencyContainer {
       jwtSecret,
     );
 
-    this.fileController = new FileController(this.fileRepository);
+    this.uploadFileUseCase = new UploadFileUseCase(
+      this.fileRepository,
+      this.documentRepository,
+      this.groupPlanRepository,
+      this.planRepository,
+    );
+    this.fileController = new FileController(this.fileRepository, this.uploadFileUseCase);
 
     // Initialize FileShare
     this.createFileShareUseCase = new CreateFileShareUseCase(this.fileShareRepository, this.fileRepository);
@@ -1165,6 +1285,54 @@ export class DependencyContainer {
       this.getNextDocumentTemplateCodeUseCase,
       this.createNewDocumentTemplateVersionUseCase,
       this.deleteDocumentTemplateUseCase,
+    );
+
+    // Initialize Plan use cases
+    this.createPlanUseCase = new CreatePlanUseCase(this.planRepository, this.featureRepository);
+    this.getPlanUseCase = new GetPlanUseCase(this.planRepository);
+    this.listPlansUseCase = new ListPlansUseCase(this.planRepository);
+    this.updatePlanUseCase = new UpdatePlanUseCase(this.planRepository, this.featureRepository);
+    this.deletePlanUseCase = new DeletePlanUseCase(this.planRepository, this.groupPlanRepository);
+    this.assignPlanToGroupUseCase = new AssignPlanToGroupUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
+    this.replaceGroupPlanUseCase = new ReplaceGroupPlanUseCase(this.groupPlanRepository, this.planRepository, this.groupRepository);
+    this.getGroupPlanUseCase = new GetGroupPlanUseCase(this.groupPlanRepository);
+    this.listGroupPlansByGroupUseCase = new ListGroupPlansByGroupUseCase(this.groupPlanRepository);
+    this.getActiveGroupPlanUseCase = new GetActiveGroupPlanUseCase(this.groupPlanRepository);
+    this.updateGroupPlanUseCase = new UpdateGroupPlanUseCase(this.groupPlanRepository);
+    this.deleteGroupPlanUseCase = new DeleteGroupPlanUseCase(this.groupPlanRepository);
+    this.listFeatureCatalogUseCase = new ListFeatureCatalogUseCase(this.featureCategoryRepository, this.featureRepository);
+    this.assignFeaturesToPlanUseCase = new AssignFeaturesToPlanUseCase(this.planRepository, this.featureRepository);
+    this.getGroupFeaturesUseCase = new GetGroupFeaturesUseCase(
+      this.groupPlanRepository,
+      this.planRepository,
+      this.groupFeatureOverrideRepository,
+      this.featureRepository,
+    );
+    this.setGroupFeatureOverrideUseCase = new SetGroupFeatureOverrideUseCase(
+      this.groupFeatureOverrideRepository,
+      this.featureRepository,
+      this.groupRepository,
+    );
+    this.removeGroupFeatureOverrideUseCase = new RemoveGroupFeatureOverrideUseCase(this.groupFeatureOverrideRepository);
+
+    this.planController = new PlanController(
+      this.createPlanUseCase,
+      this.getPlanUseCase,
+      this.listPlansUseCase,
+      this.updatePlanUseCase,
+      this.deletePlanUseCase,
+      this.assignPlanToGroupUseCase,
+      this.replaceGroupPlanUseCase,
+      this.getGroupPlanUseCase,
+      this.listGroupPlansByGroupUseCase,
+      this.getActiveGroupPlanUseCase,
+      this.updateGroupPlanUseCase,
+      this.deleteGroupPlanUseCase,
+      this.listFeatureCatalogUseCase,
+      this.assignFeaturesToPlanUseCase,
+      this.getGroupFeaturesUseCase,
+      this.setGroupFeatureOverrideUseCase,
+      this.removeGroupFeatureOverrideUseCase,
     );
 
     this.signatureFlowNotificationService = new SignatureFlowNotificationService(
@@ -1546,6 +1714,14 @@ export class DependencyContainer {
     return this.groupRepository;
   }
 
+  public getPlanRepository(): TypeOrmPlanRepository {
+    return this.planRepository;
+  }
+
+  public getGroupPlanRepository(): TypeOrmGroupPlanRepository {
+    return this.groupPlanRepository;
+  }
+
   public getCompanyRepository(): TypeOrmCompanyRepository {
     return this.companyRepository;
   }
@@ -1597,6 +1773,10 @@ export class DependencyContainer {
     return this.addUserToGroupUseCase;
   }
 
+  public getGetGroupFeaturesUseCase(): GetGroupFeaturesUseCase {
+    return this.getGroupFeaturesUseCase;
+  }
+
   public getCreateGroupUseCase(): CreateGroupUseCase {
     return this.createGroupUseCase;
   }
@@ -1615,6 +1795,10 @@ export class DependencyContainer {
 
   public getDocumentTemplateController(): DocumentTemplateController {
     return this.documentTemplateController;
+  }
+
+  public getPlanController(): PlanController {
+    return this.planController;
   }
 
   public getSignatureController(): SignatureController {

@@ -29,6 +29,7 @@ import { DownloadDocumentsZipUseCase } from '@domains/document/use-cases/downloa
 import { GetDashboardMetricsUseCase } from '@domains/document/use-cases/get-dashboard-metrics.use-case';
 import { DashboardMetricsDto } from '../dto/document/dashboard-metrics.dto';
 import { NotFoundError, ValidationError } from '@shared/domain/errors';
+import { GetDocumentQuotaUseCase } from '@domains/document/use-cases/get-document-quota.use-case';
 import { DocumentStatus } from '@domains/document/value-objects/document-enums';
 import { SignatureFlowRepository } from '@domains/signature-flow/repositories/signature-flow.repository';
 import { SignatureFlowStatus } from '@domains/signature-flow/value-objects/signature-flow-enums';
@@ -54,6 +55,7 @@ export class DocumentController {
     private getAllDocumentTypesWithSubtypesUseCase: GetAllDocumentTypesWithSubtypesUseCase,
     private getDashboardMetricsUseCase: GetDashboardMetricsUseCase,
     private assignDocumentsToGroupUseCase?: AssignDocumentsToGroupUseCase,
+    private getDocumentQuotaUseCase?: GetDocumentQuotaUseCase,
     private downloadDocumentsZipUseCase?: DownloadDocumentsZipUseCase,
     private signatureFlowRepository?: SignatureFlowRepository,
   ) {}
@@ -494,5 +496,11 @@ export class DocumentController {
       success: true,
       data: metrics as DashboardMetricsDto,
     });
+  });
+
+  getDocumentQuota = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { groupId } = req.auth;
+    const quota = await this.getDocumentQuotaUseCase!.execute(groupId!);
+    res.status(200).json({ success: true, data: quota });
   });
 }

@@ -29,6 +29,7 @@ import { createCompanyRoutes } from '@presentation/routes/company.routes';
 import { createAreaRoutes } from '@presentation/routes/area.routes';
 import { createDivisionRoutes } from '@presentation/routes/division.routes';
 import { createDocumentTemplateRoutes } from '@presentation/routes/document-template.routes';
+import { createPlanRoutes } from '@presentation/routes/plan.routes';
 import { createSignatureRoutes } from '@presentation/routes/signature.routes';
 import { createSignatureFlowRoutes } from '@presentation/routes/signature-flow.routes';
 import { createExternalParticipantRoutes } from '@presentation/routes/external-participant.routes';
@@ -106,8 +107,8 @@ export class App {
     this.app.use('/api', limiter);
 
     // Body parsing middleware
-    this.app.use(express.json({ limit: '10mb' }));
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    this.app.use(express.json({ limit: '15mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
     // Compression middleware
     this.app.use(compression());
@@ -152,6 +153,7 @@ export class App {
           companies: '/api/companies',
           areas: '/api/areas',
           divisions: '/api/divisions',
+          plans: '/api/plans',
           landingSettings: '/api/landing-settings',
           files: '/api/files',
           auth: {
@@ -185,6 +187,7 @@ export class App {
     const bulkTemplateController = this.dependencyContainer.getBulkTemplateController();
     const fileShareController = this.dependencyContainer.getFileShareController();
     const documentTemplateController = this.dependencyContainer.getDocumentTemplateController();
+    const planController = this.dependencyContainer.getPlanController();
     const signatureController = this.dependencyContainer.getSignatureController();
     const signatureFlowController = this.dependencyContainer.getSignatureFlowController();
     const emailQueueController = this.dependencyContainer.getEmailQueueController();
@@ -222,8 +225,11 @@ export class App {
     this.app.use('/api/files', createFileShareAuthRoutes(fileShareController));
     this.app.use('/api/shared/files', createSharedFileRoutes(fileShareController));
     this.app.use('/api/document-templates', createDocumentTemplateRoutes(documentTemplateController));
-    this.app.use('/api/signatures', createSignatureRoutes(signatureController));
-    this.app.use('/api/signature-flows', createSignatureFlowRoutes(signatureFlowController));
+    this.app.use('/api/plans', createPlanRoutes(planController));
+
+    const getGroupFeaturesUseCase = this.dependencyContainer.getGetGroupFeaturesUseCase();
+    this.app.use('/api/signatures', createSignatureRoutes(signatureController, getGroupFeaturesUseCase));
+    this.app.use('/api/signature-flows', createSignatureFlowRoutes(signatureFlowController, getGroupFeaturesUseCase));
 
     const externalParticipantController = this.dependencyContainer.getExternalParticipantController();
     this.app.use('/api/external-access', createExternalParticipantRoutes(externalParticipantController));

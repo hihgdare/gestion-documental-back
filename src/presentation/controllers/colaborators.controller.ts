@@ -3,6 +3,7 @@ import { CreateColaboratorUseCase } from '@domains/colaborators/use-cases/create
 import { GetColaboratorUseCase } from '@domains/colaborators/use-cases/get-colaborator.use-case';
 import { UpdateColaboratorUseCase, DeleteColaboratorUseCase } from '@domains/colaborators/use-cases/update-colaborator.use-case';
 import { GetColaboratorGroupsUseCase } from '@domains/colaborators/use-cases/get-colaborator-groups.use-case';
+import { GetColaboratorQuotaUseCase } from '@domains/colaborators/use-cases/get-colaborator-quota.use-case';
 import { CreateColaboratorDto } from '@presentation/dto/colaborator/create-colaborator.dto';
 import { UpdateColaboratorDto } from '@presentation/dto/colaborator/update-colaborator.dto';
 import { toColaboratorResponseDto } from '@presentation/dto/colaborator/colaborator-response.dto';
@@ -22,6 +23,7 @@ export class ColaboratorController {
     private readonly getColaboratorGroupsUseCase: GetColaboratorGroupsUseCase,
     private readonly updateColaboratorContractsUseCase: UpdateColaboratorContractsUseCase,
     private readonly getContractsByColaboratorUseCase: GetContractsByColaboratorUseCase,
+    private readonly getColaboratorQuotaUseCase: GetColaboratorQuotaUseCase,
     private readonly linkUserToColaboratorUseCase: LinkUserToColaboratorUseCase,
   ) {}
 
@@ -38,6 +40,12 @@ export class ColaboratorController {
       data: toColaboratorResponseDto(colaborator),
       message: 'Colaborator created successfully',
     });
+  });
+
+  public getColaboratorQuota = asyncHandler(async (req: Request, res: Response) => {
+    const { groupId } = req.auth;
+    const quota = await this.getColaboratorQuotaUseCase.execute(groupId!);
+    res.status(200).json({ success: true, data: quota });
   });
 
   public getColaboratorById = asyncHandler(async (req: Request, res: Response) => {
@@ -135,16 +143,6 @@ export class ColaboratorController {
       success: true,
       data: toColaboratorResponseDto(colaborator),
       message: 'Colaborator activated successfully',
-    });
-  });
-
-  public suspendColaborator = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const colaborator = await this.updateColaboratorUseCase.suspend(id);
-    res.status(200).json({
-      success: true,
-      data: toColaboratorResponseDto(colaborator),
-      message: 'Colaborator suspended successfully',
     });
   });
 

@@ -31,7 +31,9 @@ describe('ContractController', () => {
     await dependencyContainer.initialize();
     colaboratorRepository = dependencyContainer.getColaboratorRepository();
     const groupRepository = dependencyContainer.getGroupRepository();
-    createColaboratorUseCase = new CreateColaboratorUseCase(colaboratorRepository, groupRepository);
+    const groupPlanRepository = dependencyContainer.getGroupPlanRepository();
+    const planRepository = dependencyContainer.getPlanRepository();
+    createColaboratorUseCase = new CreateColaboratorUseCase(colaboratorRepository, groupRepository, groupPlanRepository, planRepository);
   });
 
   afterAll(async () => {

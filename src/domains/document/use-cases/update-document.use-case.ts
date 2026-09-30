@@ -10,6 +10,11 @@ import { IDocumentModelRepository } from '@domains/document-model/repositories/d
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { ContractRepository } from '@domains/contract/repositories/contract.repository';
 import { AreaRepository } from '@domains/area/repositories/area.repository';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
+import { FileRepository } from '@domains/file/repositories/file.repository';
+import { assertStorageQuotaNotExceeded } from './assert-storage-quota';
+import { withGroupLock } from '@shared/domain/group-lock';
 
 export interface UpdateDocumentRequest {
   documentModelId?: string;
@@ -47,13 +52,25 @@ export class UpdateDocumentUseCase {
     private readonly documentHistoryRepository: DocumentHistoryRepository,
     private readonly groupRepository: GroupRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
     private readonly documentFieldValueRepository?: DocumentFieldValueRepository,
     private readonly colaboratorRepository?: ColaboratorRepository,
     private readonly contractRepository?: ContractRepository,
     private readonly areaRepository?: AreaRepository,
+    private readonly fileRepository?: FileRepository,
   ) {}
 
   public async execute(id: string, request: UpdateDocumentRequest): Promise<Document> {
+    const existing = await this.documentRepository.findById(id);
+    if (!existing) {
+      throw new NotFoundError('Documento', id);
+    }
+
+    return withGroupLock(existing.groupId, () => this.executeLocked(id, request));
+  }
+
+  private async executeLocked(id: string, request: UpdateDocumentRequest): Promise<Document> {
     const document = await this.documentRepository.findById(id);
     if (!document) {
       throw new NotFoundError('Documento', id);
@@ -222,6 +239,19 @@ export class UpdateDocumentUseCase {
       || previousStatus === DocumentStatus.REJECTED_FOR_SIGN;
     const fileWillChange = request.documentUrl !== undefined
       && (request.documentUrl || null) !== previousState.documentUrl;
+
+    if (fileWillChange && request.documentUrl && this.fileRepository) {
+      const file = await this.fileRepository.findById(request.documentUrl);
+      if (file?.size && file.groupId !== document.groupId) {
+        await assertStorageQuotaNotExceeded(
+          document.groupId,
+          file.size,
+          this.documentRepository,
+          this.groupPlanRepository,
+          this.planRepository,
+        );
+      }
+    }
 
     if (wasRejectedByFlow && fileWillChange) {
       document.signatureFlowId = null;

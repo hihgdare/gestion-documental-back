@@ -2,11 +2,15 @@ import { TypeOrmUserRepository } from '@shared/infrastructure/repositories/typeo
 import { TypeOrmRoleRepository } from '@shared/infrastructure/repositories/typeorm-role.repository';
 import { TypeOrmPermissionRepository } from '@shared/infrastructure/repositories/typeorm-permission.repository';
 import { TypeOrmGroupRepository } from '@shared/infrastructure/repositories/typeorm-group.repository';
+import { TypeOrmFeatureCategoryRepository } from '@shared/infrastructure/repositories/typeorm-feature-category.repository';
+import { TypeOrmFeatureRepository } from '@shared/infrastructure/repositories/typeorm-feature.repository';
 import { SavePermissionUseCase } from '@domains/permission/use-cases/save-permission.use-case';
 import { SaveRoleUseCase } from '@domains/role/use-cases/save-role.use-case';
 import { AssignPermissionsToRoleUseCase } from '@domains/role/use-cases/assign-permissions-to-role.use-case';
 import { CreateUserUseCase } from '@domains/user/use-cases/create-user.use-case';
 import { AssignRoleToUserUseCase } from '@domains/user/use-cases/assign-role-to-user.use-case';
+import { SyncFeaturesUseCase, FeatureSeedDefinition } from '@domains/feature/use-cases/sync-features.use-case';
+import { FeatureKey } from '@domains/feature/value-objects/feature-keys';
 import { UserStatus } from '@domains/user/value-objects/user-status';
 
 const crudActions = ['create', 'read', 'update', 'delete'];
@@ -22,6 +26,7 @@ const adminSections = [
   'family',
   'group',
   'permission',
+  'plan',
   'role',
   'user',
   'area',
@@ -39,6 +44,7 @@ const extraPermissions = [
   'dashboard:read',
   'document:review',
   'file:share',
+  'group:assign:plan',
   'group:assign:user',
   'role:assign:permission',
   'user:assign:role',
@@ -61,6 +67,21 @@ const otherPermissions = [
   'group:owner',
 ];
 
+// Catálogo de funcionalidades adicionales de los planes, agrupadas por categoría.
+// Se sincroniza en cada arranque (upsert por key), igual que los permisos.
+// Agregar nuevas categorías/funcionalidades aquí no requiere ningún paso manual.
+const featureCategories: FeatureSeedDefinition[] = [
+  {
+    key: 'firma-electronica',
+    name: 'Firma Electrónica',
+    features: [
+      { key: FeatureKey.FIRMA_SIMPLE, name: 'Firma electrónica simple' },
+      { key: FeatureKey.FIRMA_TRAZABILIDAD, name: 'Trazabilidad de firma' },
+      { key: FeatureKey.FIRMA_REPORTES, name: 'Reportes de firma' },
+    ],
+  },
+];
+
 export async function runInitialSeedsIfEmpty(): Promise<void> {
   const email = process.env.SEEDER_ADMIN_EMAIL;
   const password = process.env.SEEDER_ADMIN_PASSWORD;
@@ -72,12 +93,15 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
   const roleRepository = new TypeOrmRoleRepository();
   const permissionRepository = new TypeOrmPermissionRepository();
   const groupRepository = new TypeOrmGroupRepository();
+  const featureCategoryRepository = new TypeOrmFeatureCategoryRepository();
+  const featureRepository = new TypeOrmFeatureRepository();
 
   const savePermissionUseCase = new SavePermissionUseCase(permissionRepository);
   const saveRoleUseCase = new SaveRoleUseCase(roleRepository);
   const assignPermissionsToRoleUseCase = new AssignPermissionsToRoleUseCase(roleRepository, permissionRepository);
   const createUserUseCase = new CreateUserUseCase(userRepository, roleRepository, groupRepository);
   const assignRoleToUserUseCase = new AssignRoleToUserUseCase(userRepository, roleRepository);
+  const syncFeaturesUseCase = new SyncFeaturesUseCase(featureCategoryRepository, featureRepository);
 
   const existingUser = await userRepository.findByEmail(email);
 
@@ -118,4 +142,6 @@ export async function runInitialSeedsIfEmpty(): Promise<void> {
   if (adminRole?.id && permissionIds.length > 0) {
     await assignPermissionsToRoleUseCase.execute({ roleId: adminRole.id, permissionIds });
   }
+
+  await syncFeaturesUseCase.execute(featureCategories);
 }

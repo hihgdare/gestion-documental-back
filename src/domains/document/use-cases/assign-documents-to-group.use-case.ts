@@ -7,7 +7,11 @@ import { ContractRepository } from '@domains/contract/repositories/contract.repo
 import { ColaboratorRepository } from '@domains/colaborators/repositories/colaborator.repository';
 import { IDocumentModelRepository } from '@domains/document-model/repositories/document-model.repository.interface';
 import { IFamilyRepository } from '@domains/family/repositories/family.repository.interface';
+import { GroupPlanRepository } from '@domains/plan/repositories/group-plan.repository';
+import { PlanRepository } from '@domains/plan/repositories/plan.repository';
 import { ValidationError, NotFoundError } from '@shared/domain/errors';
+import { withGroupLock } from '@shared/domain/group-lock';
+import { hasDocumentQuotaAvailable } from './has-document-quota';
 
 export interface AssignDocumentsToGroupRequest {
   documentModelId: string;
@@ -19,9 +23,16 @@ export interface AssignDocumentsToGroupRequest {
   comment?: string;
 }
 
+export type SkippedReason = 'not_found' | 'duplicate' | 'quota_exceeded';
+
+export interface SkippedColaborator {
+  colaboratorId: string;
+  reason: SkippedReason;
+}
+
 export interface AssignDocumentsToGroupResult {
   created: Document[];
-  skipped: string[];
+  skipped: SkippedColaborator[];
 }
 
 export class AssignDocumentsToGroupUseCase {
@@ -32,6 +43,8 @@ export class AssignDocumentsToGroupUseCase {
     private readonly colaboratorRepository: ColaboratorRepository,
     private readonly documentModelRepository: IDocumentModelRepository,
     private readonly familyRepository: IFamilyRepository,
+    private readonly groupPlanRepository: GroupPlanRepository,
+    private readonly planRepository: PlanRepository,
   ) {}
 
   public async execute(request: AssignDocumentsToGroupRequest): Promise<AssignDocumentsToGroupResult> {
@@ -56,12 +69,12 @@ export class AssignDocumentsToGroupUseCase {
     }
 
     const created: Document[] = [];
-    const skipped: string[] = [];
+    const skipped: SkippedColaborator[] = [];
 
     for (const colaboratorId of request.colaboratorIds) {
       const colaborator = await this.colaboratorRepository.findById(colaboratorId);
       if (!colaborator) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'not_found' });
         continue;
       }
 
@@ -74,30 +87,47 @@ export class AssignDocumentsToGroupUseCase {
         docName,
       );
       if (exists) {
-        skipped.push(colaboratorId);
+        skipped.push({ colaboratorId, reason: 'duplicate' });
         continue;
       }
 
-      const props: DocumentProps = {
-        documentModelId: request.documentModelId,
-        colaboratorIds: [colaboratorId],
-        name: docName,
-        issuedDate: request.issuedDate,
-        expirationDate: request.expirationDate,
-        contractId: contractId,
-        createdBy: request.createdBy,
-        groupId: colaborator.groupId,
-        reviewDate: Document.calculateDefaultReviewDate(new Date(), request.expirationDate),
+      const saved = await withGroupLock(colaborator.groupId, async () => {
+        const hasQuota = await hasDocumentQuotaAvailable(
+          colaborator.groupId,
+          this.documentRepository,
+          this.groupPlanRepository,
+          this.planRepository,
+        );
+        if (!hasQuota) {
+          return null;
+        }
 
-        // Read-only properties populated for completeness if needed immediately
-        documentTypeId: documentModel.documentTypeId,
-        documentSubtypeId: documentModel.documentSubtypeId,
-        requiredForContract: documentModel.requiredForContract,
-        requiredForColaborator: documentModel.requiredForColaborator,
-        requiredExpirationDate: documentModel.requiredExpirationDate,
-      };
-      const doc = Document.create(props);
-      const saved = await this.documentRepository.save(doc);
+        const props: DocumentProps = {
+          documentModelId: request.documentModelId,
+          colaboratorIds: [colaboratorId],
+          name: docName,
+          issuedDate: request.issuedDate,
+          expirationDate: request.expirationDate,
+          contractId: contractId,
+          createdBy: request.createdBy,
+          groupId: colaborator.groupId,
+          reviewDate: Document.calculateDefaultReviewDate(new Date(), request.expirationDate),
+
+          // Read-only properties populated for completeness if needed immediately
+          documentTypeId: documentModel.documentTypeId,
+          documentSubtypeId: documentModel.documentSubtypeId,
+          requiredForContract: documentModel.requiredForContract,
+          requiredForColaborator: documentModel.requiredForColaborator,
+          requiredExpirationDate: documentModel.requiredExpirationDate,
+        };
+        const doc = Document.create(props);
+        return this.documentRepository.save(doc);
+      });
+
+      if (!saved) {
+        skipped.push({ colaboratorId, reason: 'quota_exceeded' });
+        continue;
+      }
       created.push(saved);
 
       if (request.createdBy && request.createdBy !== 'system' && saved.issuedDate) {
